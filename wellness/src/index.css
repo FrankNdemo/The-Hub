@@ -1,0 +1,214 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Kaushan+Script&family=Playfair+Display:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 42 31% 97%;
+    --foreground: 150 19% 18%;
+
+    --card: 42 27% 96%;
+    --card-foreground: 150 19% 18%;
+
+    --popover: 42 22% 99%;
+    --popover-foreground: 150 19% 18%;
+
+    --primary: 145 16% 31%;
+    --primary-foreground: 42 31% 97%;
+
+    --secondary: 136 19% 89%;
+    --secondary-foreground: 150 19% 18%;
+
+    --muted: 42 18% 93%;
+    --muted-foreground: 148 11% 40%;
+
+    --accent: 136 18% 89%;
+    --accent-foreground: 150 19% 18%;
+
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 210 40% 98%;
+
+    --border: 137 14% 81%;
+    --input: 137 14% 81%;
+    --ring: 145 16% 31%;
+
+    --radius: 0.75rem;
+
+    --sidebar-background: 0 0% 98%;
+    --sidebar-foreground: 240 5.3% 26.1%;
+    --sidebar-primary: 240 5.9% 10%;
+    --sidebar-primary-foreground: 0 0% 98%;
+    --sidebar-accent: 240 4.8% 95.9%;
+    --sidebar-accent-foreground: 240 5.9% 10%;
+    --sidebar-border: 220 13% 91%;
+    --sidebar-ring: 217.2 91.2% 59.8%;
+
+    --font-heading: 'Playfair Display', Georgia, serif;
+    --font-body: 'Inter', system-ui, sans-serif;
+    --font-logo: 'Kaushan Script', cursive;
+
+    --gradient-hero: linear-gradient(135deg, hsl(42 31% 98% / 0.94), hsl(136 18% 89% / 0.88));
+    --gradient-section: linear-gradient(180deg, hsl(136 20% 93%), hsl(42 31% 97%));
+    --gradient-cta: linear-gradient(135deg, hsl(145 16% 31%), hsl(149 18% 24%));
+
+    --shadow-soft: 0 18px 42px -28px hsl(150 20% 18% / 0.22);
+    --shadow-card: 0 16px 32px -28px hsl(150 20% 18% / 0.28);
+    --shadow-hover: 0 26px 48px -26px hsl(150 20% 18% / 0.3);
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+    font-family: var(--font-body);
+    background-image:
+      radial-gradient(circle at top left, hsl(136 22% 88% / 0.45), transparent 35%),
+      radial-gradient(circle at top right, hsl(42 31% 93% / 0.45), transparent 28%);
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    font-family: var(--font-heading);
+  }
+
+  ::selection {
+    background: hsl(var(--primary) / 0.2);
+    color: hsl(var(--foreground));
+  }
+}
+
+@layer utilities {
+  .brand-script {
+    font-family: var(--font-logo);
+  }
+
+  .text-gradient {
+    @apply bg-clip-text text-transparent;
+    background-image: var(--gradient-cta);
+  }
+
+  .wellness-panel {
+    background-image:
+      linear-gradient(145deg, hsl(42 31% 99% / 0.94), hsl(136 20% 93% / 0.84)),
+      url("./assets/leaf-decoration.png");
+    background-repeat: no-repeat;
+    background-position: right -20px top -24px;
+    background-size: 132px;
+  }
+
+  .wellness-panel-soft {
+    background-image:
+      linear-gradient(150deg, hsl(42 31% 99% / 0.9), hsl(136 16% 92% / 0.82)),
+      url("./assets/leaf-decoration.png");
+    background-repeat: no-repeat;
+    background-position: left -18px top -26px;
+    background-size: 110px;
+  }
+
+  .wellness-section-surface {
+    background-image:
+      linear-gradient(180deg, hsl(42 31% 97% / 0.94), hsl(136 18% 92% / 0.82)),
+      radial-gradient(circle at 85% 20%, hsl(136 22% 86% / 0.5), transparent 28%),
+      url("./assets/leaf-decoration.png");
+    background-repeat: no-repeat;
+    background-position: right top, right top, left top;
+    background-size: auto, auto, 180px;
+  }
+
+  .glass-nav {
+    @apply border border-border/50 bg-background/80 backdrop-blur-xl;
+    box-shadow: 0 18px 40px -32px hsl(var(--foreground) / 0.5);
+  }
+
+  .no-scrollbar {
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+
+  .animate-fade-up {
+    animation: fadeUp 0.8s ease-out forwards;
+    opacity: 0;
+  }
+
+  .animate-fade-in {
+    animation: fadeIn 0.6s ease-out forwards;
+    opacity: 0;
+  }
+
+  .animate-float {
+    animation: floatSlow 7s ease-in-out infinite;
+  }
+
+  .animate-glow {
+    animation: glowPulse 4s ease-in-out infinite;
+  }
+
+  .animation-delay-200 { animation-delay: 0.2s; }
+  .animation-delay-400 { animation-delay: 0.4s; }
+  .animation-delay-600 { animation-delay: 0.6s; }
+
+  .prose-wellness {
+    @apply text-muted-foreground;
+  }
+
+  .prose-wellness h2 {
+    @apply mt-10 mb-4 text-2xl font-semibold text-foreground;
+  }
+
+  .prose-wellness h3 {
+    @apply mt-8 mb-3 text-xl font-semibold text-foreground;
+  }
+
+  .prose-wellness p {
+    @apply my-4 leading-8;
+  }
+
+  .prose-wellness ul {
+    @apply my-5 list-disc space-y-2 pl-5;
+  }
+
+  .prose-wellness li {
+    @apply leading-7;
+  }
+
+  .prose-wellness strong {
+    @apply font-semibold text-foreground;
+  }
+
+  .prose-wellness em {
+    @apply italic text-foreground/80;
+  }
+
+  .prose-wellness img {
+    @apply my-8 w-full rounded-[1.5rem] object-cover shadow-card;
+  }
+}
+
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(24px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes floatSlow {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-12px); }
+}
+
+@keyframes glowPulse {
+  0%, 100% { box-shadow: 0 0 0 0 hsl(var(--primary) / 0.08); }
+  50% { box-shadow: 0 0 0 12px hsl(var(--primary) / 0); }
+}
