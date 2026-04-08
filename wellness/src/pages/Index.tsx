@@ -41,6 +41,11 @@ const whyChooseUs = [
   },
 ];
 
+const homepageAwarenessImage =
+  "https://images.pexels.com/photos/9064323/pexels-photo-9064323.jpeg?auto=compress&cs=tinysrgb&w=1800&h=980&fit=crop";
+const homepageSpecializedSupportImage =
+  "https://images.pexels.com/photos/23495763/pexels-photo-23495763.jpeg?auto=compress&cs=tinysrgb&w=1400&h=900&fit=crop";
+
 const featuredServices = [
   {
     image: individualServiceImage,
@@ -102,10 +107,6 @@ const approachPillars = [
 ];
 
 const ctaTypedPhrase = "Cherish yourself";
-const homepageAwarenessImage =
-  "https://images.pexels.com/photos/9064323/pexels-photo-9064323.jpeg?auto=compress&cs=tinysrgb&w=1800&h=980&fit=crop";
-const homepageSpecializedSupportImage =
-  "https://images.pexels.com/photos/7163352/pexels-photo-7163352.jpeg?auto=compress&cs=tinysrgb&w=1400&h=1200&fit=crop";
 const careDescriptionQuote =
   "You do not have to carry everything alone. Healing grows in spaces where you feel safe, seen, and gently supported.";
 

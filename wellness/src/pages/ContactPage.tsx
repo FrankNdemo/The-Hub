@@ -15,7 +15,7 @@ const ContactPage = () => {
   const { therapist } = useWellnessHub();
   const [sent, setSent] = useState(false);
   const phoneHref = `tel:${therapist.phone.replace(/[^\d+]/g, "")}`;
-  const gmailHref = `https://mail.google.com/mail/?view=cm&fs=1&to=${encodeURIComponent(therapist.email)}`;
+  const emailHref = `mailto:${therapist.email}`;
   const contactItems = [
     { icon: MapPin, title: "Location", lines: therapist.location },
     { icon: Phone, title: "Phone", lines: [therapist.phone], href: phoneHref, actionLabel: "Tap to call" },
@@ -23,10 +23,8 @@ const ContactPage = () => {
       icon: Mail,
       title: "Email",
       lines: [therapist.email],
-      href: gmailHref,
-      actionLabel: "Open in Gmail",
-      target: "_blank",
-      rel: "noreferrer",
+      href: emailHref,
+      actionLabel: "Open email app",
     },
     { icon: Clock3, title: "Hours", lines: ["Tuesday to Saturday", "10:00 AM to 7:00 PM"] },
   ];
