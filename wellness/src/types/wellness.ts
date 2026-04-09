@@ -1,4 +1,5 @@
 export type SessionType = "virtual" | "physical";
+export type ServiceType = "individual" | "family" | "corporate";
 
 export type BookingStatus = "upcoming" | "rescheduled" | "cancelled" | "completed";
 
@@ -70,6 +71,8 @@ export interface BookingRecord {
   clientPhone: string;
   therapistId: string;
   therapistName: string;
+  serviceType: ServiceType;
+  participantCount?: number;
   sessionType: SessionType;
   date: string;
   time: string;
@@ -100,17 +103,11 @@ export interface TherapistSession {
   loggedInAt: string;
 }
 
-export interface TherapistPortalSecurity {
-  password: string;
-  secretPassphrase: string;
-}
-
 export interface WellnessHubState {
   blogPosts: BlogPost[];
   bookings: BookingRecord[];
   notifications: NotificationItem[];
   therapist: TherapistProfile;
-  therapistPortalSecurity: TherapistPortalSecurity;
   therapistSession: TherapistSession | null;
 }
 
@@ -121,6 +118,8 @@ export interface BookingInput {
   therapistId: string;
   date: string;
   time: string;
+  serviceType: ServiceType;
+  participantCount?: number;
   sessionType: SessionType;
   notes?: string;
 }

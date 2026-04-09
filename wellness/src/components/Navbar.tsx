@@ -5,6 +5,7 @@ import { toast } from "sonner";
 
 import { useNavigationPreview } from "@/context/NavigationPreviewContext";
 import { useWellnessHub } from "@/context/WellnessHubContext";
+import leafDecor from "@/assets/leaf-decoration.png";
 import { Button } from "@/components/ui/button";
 import WellnessLogo from "./WellnessLogo";
 
@@ -71,8 +72,8 @@ const Navbar = () => {
     window.scrollTo({ top: 0, left: 0, behavior: "auto" });
   };
 
-  const handleTherapistLogout = () => {
-    logoutTherapist();
+  const handleTherapistLogout = async () => {
+    await logoutTherapist();
     clearPendingPreview();
     clearPreviewPath();
     setOpen(false);
@@ -91,12 +92,19 @@ const Navbar = () => {
         <div
           className={`flex min-h-[4.5rem] items-center justify-between gap-3 rounded-[2rem] px-3 py-3 sm:h-20 sm:rounded-full sm:px-5 ${
             showTherapistHeader
-              ? "border border-white/45 bg-white/10 shadow-[0_20px_40px_-32px_rgba(35,72,61,0.16)]"
-              : "bg-transparent shadow-none backdrop-blur-none md:border md:border-border/50 md:bg-background/80 md:shadow-[0_18px_40px_-32px_rgba(35,72,61,0.28)] md:backdrop-blur-xl"
+              ? "bg-white/10 shadow-[0_20px_40px_-32px_rgba(35,72,61,0.16)]"
+              : "bg-transparent shadow-none backdrop-blur-none md:bg-background/80 md:shadow-[0_18px_40px_-32px_rgba(35,72,61,0.28)] md:backdrop-blur-xl"
           }`}
         >
-          <div className="min-w-0 shrink origin-left scale-[0.82] sm:scale-100">
-            <WellnessLogo variant="navbar" />
+          <div className="relative min-w-0 shrink origin-left ml-2 sm:ml-0">
+            <img
+              src={leafDecor}
+              alt=""
+              className="pointer-events-none absolute -left-4 -top-4 z-0 w-16 opacity-24 animate-float md:hidden"
+            />
+            <div className="relative z-10 scale-[0.96] sm:scale-[1.04]">
+              <WellnessLogo variant="navbar" />
+            </div>
           </div>
 
           {showTherapistHeader ? (

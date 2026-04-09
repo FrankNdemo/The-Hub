@@ -1,6 +1,6 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link, useParams } from "react-router-dom";
-import { CalendarDays, Clock3, MapPin, RefreshCw, ShieldCheck, Trash2, Video } from "lucide-react";
+import { CalendarDays, Clock3, MapPin, RefreshCw, ShieldCheck, Trash2, Users, Video } from "lucide-react";
 import { toast } from "sonner";
 
 import Footer from "@/components/Footer";
@@ -8,15 +8,62 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useWellnessHub } from "@/context/WellnessHubContext";
+import { getApiErrorMessage } from "@/lib/api";
 import { softPageBackgroundStyle } from "@/lib/pageBackground";
-import { formatDisplayDate, formatDisplayTime } from "@/lib/wellness";
+import { formatDisplayDate, formatDisplayTime, formatServiceType } from "@/lib/wellness";
+import type { BookingRecord } from "@/types/wellness";
 
 const ManageBookingPage = () => {
   const { token } = useParams();
   const { getBookingByToken, rescheduleBooking, cancelBooking } = useWellnessHub();
-  const booking = token ? getBookingByToken(token) : undefined;
-  const [date, setDate] = useState(booking?.date ?? "");
-  const [time, setTime] = useState(booking?.time ?? "");
+  const [booking, setBooking] = useState<BookingRecord | null | undefined>(undefined);
+  const [date, setDate] = useState("");
+  const [time, setTime] = useState("");
+  const [isLoading, setIsLoading] = useState(true);
+  const [isUpdating, setIsUpdating] = useState(false);
+
+  useEffect(() => {
+    let isActive = true;
+
+    const loadBooking = async () => {
+      if (!token) {
+        if (isActive) {
+          setBooking(null);
+          setIsLoading(false);
+        }
+        return;
+      }
+
+      setIsLoading(true);
+
+      try {
+        const nextBooking = await getBookingByToken(token);
+
+        if (!isActive) {
+          return;
+        }
+
+        setBooking(nextBooking);
+        setDate(nextBooking?.date ?? "");
+        setTime(nextBooking?.time ?? "");
+      } catch (error) {
+        if (isActive) {
+          setBooking(null);
+          toast.error(getApiErrorMessage(error, "We could not load this booking right now."));
+        }
+      } finally {
+        if (isActive) {
+          setIsLoading(false);
+        }
+      }
+    };
+
+    void loadBooking();
+
+    return () => {
+      isActive = false;
+    };
+  }, [token]);
 
   const statusLabel = useMemo(() => {
     if (!booking) {
@@ -25,6 +72,25 @@ const ManageBookingPage = () => {
 
     return booking.status.charAt(0).toUpperCase() + booking.status.slice(1);
   }, [booking]);
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen" style={softPageBackgroundStyle}>
+        <section className="pt-32 pb-24">
+          <div className="container mx-auto px-4">
+            <div className="mx-auto max-w-2xl rounded-[2rem] border border-border/60 bg-card p-10 text-center shadow-card">
+              <p className="text-sm font-semibold uppercase tracking-[0.24em] text-primary/75">Session Manager</p>
+              <h1 className="mt-4 font-heading text-4xl font-semibold text-foreground">Loading your booking</h1>
+              <p className="mt-4 text-muted-foreground leading-8">
+                We&apos;re pulling your session details from the secure booking link now.
+              </p>
+            </div>
+          </div>
+        </section>
+        <Footer />
+      </div>
+    );
+  }
 
   if (!booking) {
     return (
@@ -49,26 +115,34 @@ const ManageBookingPage = () => {
     );
   }
 
-  const handleReschedule = () => {
-    const updated = rescheduleBooking({ token: booking.token, date, time });
+  const handleReschedule = async () => {
+    setIsUpdating(true);
 
-    if (!updated) {
-      toast.error("We could not update this session.");
-      return;
+    try {
+      const updated = await rescheduleBooking({ token: booking.token, date, time });
+      setBooking(updated);
+      setDate(updated.date);
+      setTime(updated.time);
+      toast.success("Your session has been rescheduled.");
+    } catch (error) {
+      toast.error(getApiErrorMessage(error, "We could not update this session."));
+    } finally {
+      setIsUpdating(false);
     }
-
-    toast.success("Your session has been rescheduled.");
   };
 
-  const handleCancel = () => {
-    const cancelled = cancelBooking(booking.token);
+  const handleCancel = async () => {
+    setIsUpdating(true);
 
-    if (!cancelled) {
-      toast.error("This session could not be cancelled.");
-      return;
+    try {
+      const cancelled = await cancelBooking(booking.token);
+      setBooking(cancelled);
+      toast.success("Your session has been cancelled.");
+    } catch (error) {
+      toast.error(getApiErrorMessage(error, "This session could not be cancelled."));
+    } finally {
+      setIsUpdating(false);
     }
-
-    toast.success("Your session has been cancelled.");
   };
 
   return (
@@ -96,7 +170,7 @@ const ManageBookingPage = () => {
             <div className="mt-10 grid gap-8 lg:grid-cols-[1fr_0.9fr]">
               <div className="rounded-[2rem] border border-border/60 bg-card p-7 shadow-card">
                 <h2 className="font-heading text-3xl font-semibold text-foreground">Booking details</h2>
-                <div className="mt-7 grid gap-4 sm:grid-cols-2">
+                <div className="mt-7 grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
                   <div className="wellness-panel rounded-[1.5rem] border border-border/60 p-5">
                     <p className="text-xs uppercase tracking-[0.24em] text-primary/70">Client</p>
                     <p className="mt-2 text-lg font-semibold text-foreground">{booking.clientName}</p>
@@ -121,11 +195,24 @@ const ManageBookingPage = () => {
                   </div>
                   <div className="wellness-panel rounded-[1.5rem] border border-border/60 p-5">
                     <div className="flex items-center gap-2 text-primary">
+                      <Users className="h-4 w-4" />
+                      <p className="text-xs uppercase tracking-[0.24em] text-primary/70">Service Type</p>
+                    </div>
+                    <p className="mt-2 text-lg font-semibold text-foreground">{formatServiceType(booking.serviceType)}</p>
+                  </div>
+                  <div className="wellness-panel rounded-[1.5rem] border border-border/60 p-5">
+                    <div className="flex items-center gap-2 text-primary">
                       {booking.sessionType === "virtual" ? <Video className="h-4 w-4" /> : <MapPin className="h-4 w-4" />}
                       <p className="text-xs uppercase tracking-[0.24em] text-primary/70">Session Type</p>
                     </div>
                     <p className="mt-2 text-lg font-semibold capitalize text-foreground">{booking.sessionType}</p>
                   </div>
+                  {booking.serviceType === "corporate" && booking.participantCount ? (
+                    <div className="wellness-panel rounded-[1.5rem] border border-border/60 p-5">
+                      <p className="text-xs uppercase tracking-[0.24em] text-primary/70">Participants</p>
+                      <p className="mt-2 text-lg font-semibold text-foreground">{booking.participantCount.toLocaleString()}</p>
+                    </div>
+                  ) : null}
                   <div className="wellness-panel rounded-[1.5rem] border border-border/60 p-5">
                     <p className="text-xs uppercase tracking-[0.24em] text-primary/70">Session Details</p>
                     <p className="mt-2 text-sm leading-7 text-muted-foreground">
@@ -208,11 +295,11 @@ const ManageBookingPage = () => {
                     </div>
 
                     <div className="flex flex-wrap gap-3">
-                      <Button variant="hero" className="rounded-full" type="button" onClick={handleReschedule}>
+                      <Button variant="hero" className="rounded-full" type="button" onClick={handleReschedule} disabled={isUpdating}>
                         <RefreshCw className="h-4 w-4" />
-                        Reschedule Session
+                        {isUpdating ? "Updating..." : "Reschedule Session"}
                       </Button>
-                      <Button variant="heroBorder" className="rounded-full" type="button" onClick={handleCancel}>
+                      <Button variant="heroBorder" className="rounded-full" type="button" onClick={handleCancel} disabled={isUpdating}>
                         <Trash2 className="h-4 w-4" />
                         Cancel Session
                       </Button>

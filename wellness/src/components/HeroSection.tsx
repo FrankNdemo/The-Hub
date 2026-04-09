@@ -45,17 +45,7 @@ const HeroSection = () => (
 
         <div className="relative z-20 min-h-[calc(100svh-5.75rem)] px-5 py-8 sm:px-8 md:hidden">
           <div className="mx-auto flex min-h-full max-w-[20rem] flex-col items-start justify-start pt-4 text-left">
-            <div className="relative inline-block">
-              <span className="ml-[7.2rem] block font-body text-[0.62rem] font-medium uppercase tracking-[0.42em] text-primary/90">
-                The
-              </span>
-              <span className="brand-script mt-1 block text-[4.2rem] leading-[0.76] text-primary">
-                Wellness
-              </span>
-              <span className="brand-script -mt-3 ml-[9.7rem] block text-[2.2rem] leading-none text-primary/95">
-                Hub
-              </span>
-            </div>
+            <WellnessLogo variant="hero" />
 
             <h1 className="mt-8 font-heading text-[3.35rem] font-semibold leading-[0.88] text-foreground [text-shadow:0_6px_18px_rgba(255,255,255,0.22)]">
               Discover your

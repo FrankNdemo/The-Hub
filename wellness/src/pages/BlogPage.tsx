@@ -11,7 +11,7 @@ import { pageHeaderBackgrounds, softPageBackgroundStyle } from "@/lib/pageBackgr
 import { formatDisplayDate, stripHtml } from "@/lib/wellness";
 
 const BlogPage = () => {
-  const { blogPosts } = useWellnessHub();
+  const { blogPosts, isInitializing } = useWellnessHub();
   const [search, setSearch] = useState("");
   const [activeCategory, setActiveCategory] = useState("All");
   const [canScrollLeft, setCanScrollLeft] = useState(false);
@@ -181,7 +181,13 @@ const BlogPage = () => {
 
       <section className="pb-24">
         <div className="container mx-auto px-4">
-          {featuredPost ? (
+          {isInitializing ? (
+            <div className="rounded-[2rem] bg-card p-10 text-center shadow-card">
+              <p className="text-muted-foreground">Loading the latest articles...</p>
+            </div>
+          ) : null}
+
+          {!isInitializing && featuredPost ? (
             <div className="rounded-[2rem] border border-border/60 bg-card p-5 shadow-card">
               <div className="grid gap-6 lg:grid-cols-[1.1fr_0.9fr]">
                 <div className="overflow-hidden rounded-[1.75rem]">
@@ -207,13 +213,13 @@ const BlogPage = () => {
                 </div>
               </div>
             </div>
-          ) : (
+          ) : !isInitializing ? (
             <div className="rounded-[2rem] bg-card p-10 text-center shadow-card">
               <p className="text-muted-foreground">No articles match your search right now.</p>
             </div>
-          )}
+          ) : null}
 
-          {remainingPosts.length ? (
+          {!isInitializing && remainingPosts.length ? (
             <div className="mt-10 grid gap-8 md:grid-cols-2 xl:grid-cols-3">
               {remainingPosts.map((post) => (
                 <article key={post.id} className="group overflow-hidden rounded-[2rem] border border-border/60 bg-card shadow-card transition-all hover:-translate-y-1 hover:shadow-hover">

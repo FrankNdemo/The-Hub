@@ -1,24 +1,54 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import {
   CalendarDays,
+  Briefcase,
   CheckCircle2,
   Clock3,
   Copy,
   Mail,
   MapPin,
   ShieldCheck,
+  User,
+  Users,
   Video,
 } from "lucide-react";
 import { toast } from "sonner";
 
 import { useWellnessHub } from "@/context/WellnessHubContext";
-import { formatDisplayDate, formatDisplayTime } from "@/lib/wellness";
-import type { BookingRecord, SessionType } from "@/types/wellness";
+import { getApiErrorMessage } from "@/lib/api";
+import { formatDisplayDate, formatDisplayTime, formatServiceType } from "@/lib/wellness";
+import type { BookingRecord, ServiceType, SessionType } from "@/types/wellness";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+
+const serviceCards: {
+  type: ServiceType;
+  title: string;
+  description: string;
+  icon: typeof Video;
+}[] = [
+  {
+    type: "individual",
+    title: "Individual",
+    description: "One-on-one sessions",
+    icon: User,
+  },
+  {
+    type: "family",
+    title: "Family",
+    description: "Family & couples support",
+    icon: Users,
+  },
+  {
+    type: "corporate",
+    title: "Corporate",
+    description: "Team & workplace programs",
+    icon: Briefcase,
+  },
+];
 
 const sessionCards: {
   type: SessionType;
@@ -28,22 +58,26 @@ const sessionCards: {
 }[] = [
   {
     type: "virtual",
-    title: "Virtual Session",
-    description: "Online support with a Google Meet style session link prepared in your confirmation.",
+    title: "Virtual",
+    description: "Online via Google Meet",
     icon: Video,
   },
   {
     type: "physical",
-    title: "Physical Session",
-    description: "In-person care at our Westlands centre in a calm, welcoming environment.",
+    title: "Physical",
+    description: "In-person at our centre",
     icon: MapPin,
   },
 ];
 
 const BookingSection = () => {
   const { submitBooking, therapist } = useWellnessHub();
+  const [serviceType, setServiceType] = useState<ServiceType>("individual");
   const [sessionType, setSessionType] = useState<SessionType>("virtual");
   const [submittedBooking, setSubmittedBooking] = useState<BookingRecord | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [serviceDescriptionText, setServiceDescriptionText] = useState("");
+  const [isDeletingServiceDescription, setIsDeletingServiceDescription] = useState(false);
   const [form, setForm] = useState({
     clientName: "",
     clientEmail: "",
@@ -51,24 +85,88 @@ const BookingSection = () => {
     therapistId: therapist.id,
     date: "",
     time: "",
+    participantCount: "",
     notes: "",
   });
+  const activeServiceCard = serviceCards.find((item) => item.type === serviceType) ?? serviceCards[0];
 
   const updateField = (field: keyof typeof form, value: string) => {
     setForm((current) => ({ ...current, [field]: value }));
   };
 
-  const handleSubmit = (event: React.FormEvent) => {
+  useEffect(() => {
+    setServiceDescriptionText("");
+    setIsDeletingServiceDescription(false);
+  }, [serviceType]);
+
+  useEffect(() => {
+    const target = activeServiceCard.description;
+    const delay =
+      !isDeletingServiceDescription && serviceDescriptionText === target
+        ? 3000
+        : isDeletingServiceDescription
+          ? 35
+          : 55;
+
+    const timeout = window.setTimeout(() => {
+      if (!isDeletingServiceDescription && serviceDescriptionText === target) {
+        setIsDeletingServiceDescription(true);
+        return;
+      }
+
+      if (isDeletingServiceDescription && serviceDescriptionText === "") {
+        setIsDeletingServiceDescription(false);
+        return;
+      }
+
+      setServiceDescriptionText((current) =>
+        isDeletingServiceDescription
+          ? target.slice(0, Math.max(0, current.length - 1))
+          : target.slice(0, current.length + 1),
+      );
+    }, delay);
+
+    return () => window.clearTimeout(timeout);
+  }, [activeServiceCard.description, isDeletingServiceDescription, serviceDescriptionText]);
+
+  const handleServiceTypeSelect = (value: ServiceType) => {
+    setServiceType(value);
+    setForm((current) => ({
+      ...current,
+      participantCount: value === "corporate" ? current.participantCount : "",
+    }));
+  };
+
+  const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
+    const participantCount =
+      serviceType === "corporate" && form.participantCount
+        ? Number.parseInt(form.participantCount, 10)
+        : undefined;
 
-    const booking = submitBooking({
-      ...form,
-      therapistId: therapist.id,
-      sessionType,
-    });
+    setIsSubmitting(true);
 
-    setSubmittedBooking(booking);
-    toast.success("Your booking has been confirmed.");
+    try {
+      const booking = await submitBooking({
+        clientName: form.clientName,
+        clientEmail: form.clientEmail,
+        clientPhone: form.clientPhone,
+        therapistId: form.therapistId,
+        date: form.date,
+        time: form.time,
+        serviceType,
+        participantCount,
+        sessionType,
+        notes: form.notes,
+      });
+
+      setSubmittedBooking(booking);
+      toast.success("Your booking has been confirmed.");
+    } catch (error) {
+      toast.error(getApiErrorMessage(error, "We could not confirm your booking right now."));
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const copyManageLink = async () => {
@@ -114,7 +212,7 @@ const BookingSection = () => {
                   {
                     icon: Mail,
                     title: "Confirmation package",
-                    description: "Beautiful HTML confirmation content is prepared with date, time, therapist, and session details.",
+                    description: "A simple confirmation message will be sent with all your session details",
                   },
                 ].map((item) => (
                   <div key={item.title} className="rounded-[1.5rem] bg-background/85 p-5 shadow-soft">
@@ -152,7 +250,7 @@ const BookingSection = () => {
                     below anytime you need to reschedule or cancel.
                   </p>
 
-                  <div className="mt-8 grid gap-4 sm:grid-cols-2">
+                  <div className="mt-8 grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
                     <div className="wellness-panel rounded-[1.5rem] border border-border/60 p-5 text-center">
                       <p className="text-xs uppercase tracking-[0.24em] text-primary/70">Date</p>
                       <p className="mt-2 text-lg font-semibold text-foreground">{formatDisplayDate(submittedBooking.date)}</p>
@@ -162,6 +260,10 @@ const BookingSection = () => {
                       <p className="mt-2 text-lg font-semibold text-foreground">{formatDisplayTime(submittedBooking.time)}</p>
                     </div>
                     <div className="wellness-panel rounded-[1.5rem] border border-border/60 p-5 text-center">
+                      <p className="text-xs uppercase tracking-[0.24em] text-primary/70">Service Type</p>
+                      <p className="mt-2 text-lg font-semibold text-foreground">{formatServiceType(submittedBooking.serviceType)}</p>
+                    </div>
+                    <div className="wellness-panel rounded-[1.5rem] border border-border/60 p-5 text-center">
                       <p className="text-xs uppercase tracking-[0.24em] text-primary/70">Session Type</p>
                       <p className="mt-2 text-lg font-semibold capitalize text-foreground">{submittedBooking.sessionType}</p>
                     </div>
@@ -169,6 +271,14 @@ const BookingSection = () => {
                       <p className="text-xs uppercase tracking-[0.24em] text-primary/70">Therapist</p>
                       <p className="mt-2 text-lg font-semibold text-foreground">{submittedBooking.therapistName}</p>
                     </div>
+                    {submittedBooking.serviceType === "corporate" && submittedBooking.participantCount ? (
+                      <div className="wellness-panel rounded-[1.5rem] border border-border/60 p-5 text-center">
+                        <p className="text-xs uppercase tracking-[0.24em] text-primary/70">Participants</p>
+                        <p className="mt-2 text-lg font-semibold text-foreground">
+                          {submittedBooking.participantCount.toLocaleString()}
+                        </p>
+                      </div>
+                    ) : null}
                   </div>
 
                   {submittedBooking.sessionType === "virtual" && submittedBooking.meetLink ? (
@@ -220,6 +330,74 @@ const BookingSection = () => {
                   </div>
 
                   <div className="mt-8 grid gap-5 sm:grid-cols-2">
+                    <div className="sm:col-span-2">
+                      <Label className="block text-sm leading-6">Service Type *</Label>
+                      <div className="mt-3 grid grid-cols-3 gap-2 sm:gap-3">
+                        {serviceCards.map((item) => (
+                          <button
+                            key={item.type}
+                            type="button"
+                            aria-pressed={serviceType === item.type}
+                            onClick={() => handleServiceTypeSelect(item.type)}
+                            className={`relative min-w-0 rounded-[1rem] border px-2 py-2 text-center transition-all duration-200 sm:px-2.5 sm:py-2.5 ${
+                              serviceType === item.type
+                                ? "-translate-y-1 border-primary bg-primary/10 shadow-[0_18px_35px_rgba(17,24,39,0.24)]"
+                                : "border-border/60 bg-background hover:-translate-y-0.5 hover:border-primary/40 hover:bg-primary/5 hover:shadow-[0_12px_24px_rgba(17,24,39,0.12)]"
+                            }`}
+                          >
+                            {serviceType === item.type ? (
+                              <span className="absolute right-2 top-2 h-2.5 w-2.5 rounded-full bg-primary shadow-[0_0_0_3px_rgba(78,124,104,0.14)] sm:right-3 sm:top-3" />
+                            ) : null}
+                            <div className="flex items-center justify-center gap-1.5 sm:gap-2">
+                              <div
+                                className={`flex h-7 w-7 items-center justify-center rounded-lg sm:h-8 sm:w-8 ${
+                                  serviceType === item.type ? "bg-primary/15 text-primary" : "bg-secondary text-muted-foreground"
+                                }`}
+                              >
+                                <item.icon className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
+                              </div>
+                              <p className="min-w-0 font-heading text-[10px] font-semibold leading-tight text-foreground sm:text-xs md:text-sm">
+                                {item.title}
+                              </p>
+                            </div>
+                          </button>
+                        ))}
+                      </div>
+                      <div className="mt-3 min-h-6 px-1 text-xs leading-6 text-primary/80 sm:text-sm">
+                        {serviceDescriptionText}
+                        <span
+                          aria-hidden="true"
+                          className="ml-0.5 inline-block h-3 w-px animate-pulse bg-primary/55 align-[-1px] sm:h-4"
+                        />
+                      </div>
+                    </div>
+
+                    {serviceType === "corporate" ? (
+                      <div className="sm:col-span-2 rounded-[1.5rem] border border-primary/15 bg-secondary/35 p-5 shadow-soft">
+                        <div className="flex items-center gap-2 text-primary">
+                          <Users className="h-4 w-4" />
+                          <Label htmlFor="booking-participants" className="text-base font-medium text-foreground">
+                            Number of Participants *
+                          </Label>
+                        </div>
+                        <Input
+                          id="booking-participants"
+                          type="number"
+                          inputMode="numeric"
+                          min="1"
+                          step="1"
+                          value={form.participantCount}
+                          onChange={(event) => updateField("participantCount", event.target.value)}
+                          className="mt-4 max-w-[240px] bg-background/95"
+                          placeholder="e.g. 25"
+                          required
+                        />
+                        <p className="mt-3 text-sm leading-6 text-muted-foreground">
+                          We&apos;ll tailor the program to your team size.
+                        </p>
+                      </div>
+                    ) : null}
+
                     <div>
                       <Label htmlFor="booking-name">Full Name</Label>
                       <Input
@@ -296,31 +474,36 @@ const BookingSection = () => {
                   </div>
 
                   <div className="mt-6">
-                    <Label className="block">Session Type (select preferred choice)</Label>
-                    <div className="mt-3 grid gap-4 sm:grid-cols-2">
+                    <Label className="block text-sm leading-6">Session Type (select preferred choice)</Label>
+                    <div className="mt-3 grid grid-cols-2 gap-2 sm:gap-3">
                       {sessionCards.map((item) => (
                         <button
                           key={item.type}
                           type="button"
+                          aria-pressed={sessionType === item.type}
                           onClick={() => setSessionType(item.type)}
-                          className={`rounded-[1.5rem] border p-5 text-center transition-all sm:text-left ${
+                          className={`min-w-0 rounded-[1rem] border px-2 py-2 text-center transition-all duration-200 sm:px-2.5 sm:py-2.5 ${
                             sessionType === item.type
-                              ? "border-primary bg-primary/8 shadow-card"
-                              : "border-border/60 hover:border-primary/40 hover:bg-primary/5"
+                              ? "-translate-y-1 border-primary bg-primary/10 shadow-[0_18px_35px_rgba(17,24,39,0.24)]"
+                              : "border-border/60 bg-background hover:-translate-y-0.5 hover:border-primary/40 hover:bg-primary/5 hover:shadow-[0_12px_24px_rgba(17,24,39,0.12)]"
                           }`}
                         >
-                          <div className="flex flex-col items-center gap-4 sm:flex-row sm:items-start">
-                            <div
-                              className={`flex h-12 w-12 items-center justify-center rounded-2xl ${
-                                sessionType === item.type ? "bg-primary/15 text-primary" : "bg-secondary text-muted-foreground"
-                              }`}
-                            >
-                              <item.icon className="h-5 w-5" />
+                          <div className="flex flex-col items-center justify-center gap-1">
+                            <div className="flex items-center justify-center gap-1.5 sm:gap-2">
+                              <div
+                                className={`flex h-7 w-7 items-center justify-center rounded-lg sm:h-8 sm:w-8 ${
+                                  sessionType === item.type ? "bg-primary/15 text-primary" : "bg-secondary text-muted-foreground"
+                                }`}
+                              >
+                                <item.icon className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
+                              </div>
+                              <p className="font-heading text-[10px] font-semibold leading-tight text-foreground sm:text-xs">
+                                {item.title}
+                              </p>
                             </div>
-                            <div>
-                              <p className="font-heading text-xl font-semibold text-foreground">{item.title}</p>
-                              <p className="mt-2 text-sm leading-7 text-muted-foreground">{item.description}</p>
-                            </div>
+                            <p className="text-[8px] leading-tight text-muted-foreground sm:text-[10px]">
+                              {item.description}
+                            </p>
                           </div>
                         </button>
                       ))}
@@ -343,8 +526,8 @@ const BookingSection = () => {
                     <span>Your booking details remain private, and your follow-up session link is unique to you.</span>
                   </div>
 
-                  <Button variant="hero" size="lg" type="submit" className="mt-7 w-full rounded-full">
-                    Book Your First Session
+                  <Button variant="hero" size="lg" type="submit" className="mt-7 w-full rounded-full" disabled={isSubmitting}>
+                    {isSubmitting ? "Confirming Your Session..." : "Book Your First Session"}
                   </Button>
                 </form>
               )}

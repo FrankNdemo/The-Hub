@@ -33,8 +33,9 @@ import {
 } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useWellnessHub } from "@/context/WellnessHubContext";
+import { getApiErrorMessage } from "@/lib/api";
 import { softPageBackgroundStyle } from "@/lib/pageBackground";
-import { formatDisplayDate, formatDisplayTime, stripHtml } from "@/lib/wellness";
+import { formatDisplayDate, formatDisplayTime, formatServiceType, stripHtml } from "@/lib/wellness";
 import type { BlogPostDraft, BookingStatus, TherapistProfile } from "@/types/wellness";
 
 interface TherapistProfileFormState {
@@ -154,6 +155,7 @@ const TherapistDashboardPage = () => {
     notifications,
     therapist,
     therapistSession,
+    isInitializing,
     isTherapistAuthenticated,
     markBookingCompleted,
     saveBlogPost,
@@ -245,21 +247,25 @@ const TherapistDashboardPage = () => {
     }
   };
 
-  const handleSavePost = (event: React.FormEvent) => {
+  const handleSavePost = async (event: React.FormEvent) => {
     event.preventDefault();
 
-    const saved = saveBlogPost({
-      ...draft,
-      id: editingId ?? undefined,
-      tags: tagInput
-        .split(",")
-        .map((tag) => tag.trim())
-        .filter(Boolean),
-    });
-    const action = editingId ? "updated" : "published";
+    try {
+      const saved = await saveBlogPost({
+        ...draft,
+        id: editingId ?? undefined,
+        tags: tagInput
+          .split(",")
+          .map((tag) => tag.trim())
+          .filter(Boolean),
+      });
+      const action = editingId ? "updated" : "published";
 
-    resetDraft();
-    toast.success(`"${saved.title}" has been ${action}.`);
+      resetDraft();
+      toast.success(`"${saved.title}" has been ${action}.`);
+    } catch (error) {
+      toast.error(getApiErrorMessage(error, "This blog post could not be saved right now."));
+    }
   };
 
   const handleEditPost = (id: string) => {
@@ -283,7 +289,7 @@ const TherapistDashboardPage = () => {
     setTagInput(post.tags.join(", "));
   };
 
-  const handleSaveProfile = (event: React.FormEvent) => {
+  const handleSaveProfile = async (event: React.FormEvent) => {
     event.preventDefault();
 
     const nextProfile: TherapistProfile = {
@@ -312,37 +318,66 @@ const TherapistDashboardPage = () => {
       return;
     }
 
-    updateTherapistProfile(nextProfile);
-    toast.success("Your therapist profile has been updated.");
-  };
-
-  const handleDeletePost = (id: string) => {
-    deleteBlogPost(id);
-    if (editingId === id) {
-      resetDraft();
+    try {
+      await updateTherapistProfile(nextProfile);
+      toast.success("Your therapist profile has been updated.");
+    } catch (error) {
+      toast.error(getApiErrorMessage(error, "Your therapist profile could not be updated right now."));
     }
-    toast.success("Blog post deleted.");
   };
 
-  const handleDismissNotification = (id: string) => {
-    dismissNotification(id);
-    toast.success("Notification removed.");
-  };
-
-  const handleMarkCompleted = (id: string) => {
-    const updated = markBookingCompleted(id);
-
-    if (!updated) {
-      toast.error("This booking could not be marked as completed.");
-      return;
+  const handleDeletePost = async (id: string) => {
+    try {
+      await deleteBlogPost(id);
+      if (editingId === id) {
+        resetDraft();
+      }
+      toast.success("Blog post deleted.");
+    } catch (error) {
+      toast.error(getApiErrorMessage(error, "This blog post could not be deleted right now."));
     }
+  };
 
-    toast.success("Booking marked as completed.");
+  const handleDismissNotification = async (id: string) => {
+    try {
+      await dismissNotification(id);
+      toast.success("Notification removed.");
+    } catch (error) {
+      toast.error(getApiErrorMessage(error, "This notification could not be removed right now."));
+    }
+  };
+
+  const handleMarkCompleted = async (id: string) => {
+    try {
+      await markBookingCompleted(id);
+      toast.success("Booking marked as completed.");
+    } catch (error) {
+      toast.error(getApiErrorMessage(error, "This booking could not be marked as completed."));
+    }
   };
 
   const toggleOverviewBooking = (id: string) => {
     setExpandedOverviewBookingId((current) => (current === id ? null : id));
   };
+
+  if (isInitializing) {
+    return (
+      <div className="min-h-screen" style={softPageBackgroundStyle}>
+        <section className="pt-32 pb-24">
+          <div className="container mx-auto px-4">
+            <div className="mx-auto max-w-2xl rounded-[2rem] border border-border/60 bg-card p-10 text-center shadow-card">
+              <p className="text-sm font-semibold uppercase tracking-[0.24em] text-primary/75">Secure Portal</p>
+              <h1 className="mt-4 font-heading text-4xl font-semibold text-foreground">Loading therapist portal</h1>
+              <p className="mt-4 text-muted-foreground leading-8">
+                We&apos;re checking your session and syncing the latest dashboard data now.
+              </p>
+            </div>
+          </div>
+        </section>
+        <Footer />
+      </div>
+    );
+  }
 
   if (!isTherapistAuthenticated) {
     return (
@@ -451,7 +486,7 @@ const TherapistDashboardPage = () => {
                   onValueChange={(value) => {
                     setActiveTab(value);
                     if (value === "notifications") {
-                      markNotificationsRead();
+                      void markNotificationsRead().catch(() => undefined);
                     }
                   }}
                   className="-mx-2 rounded-[1.6rem] border border-border/60 bg-card p-3 shadow-card sm:mx-0 sm:rounded-[2rem] sm:p-6"
@@ -519,7 +554,7 @@ const TherapistDashboardPage = () => {
                             <p className="font-heading text-xl font-semibold text-foreground sm:text-2xl">{booking.clientName}</p>
                             <p className="mt-2 text-sm leading-6 text-muted-foreground sm:leading-7">
                               {formatDisplayDate(booking.date)} at {formatDisplayTime(booking.time)} ·{" "}
-                              <span className="capitalize">{booking.sessionType}</span> session
+                              {formatServiceType(booking.serviceType)} Â· <span className="capitalize">{booking.sessionType}</span> session
                             </p>
                           </div>
                           <div className="flex flex-wrap items-center gap-3">
@@ -571,6 +606,16 @@ const TherapistDashboardPage = () => {
                                 {booking.clientPhone}
                               </a>
                             </div>
+                            <div className="rounded-[1.25rem] bg-secondary/40 p-4">
+                              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-primary/80">Service Type</p>
+                              <p className="mt-2 text-sm leading-7 text-foreground">{formatServiceType(booking.serviceType)}</p>
+                            </div>
+                            {booking.serviceType === "corporate" && booking.participantCount ? (
+                              <div className="rounded-[1.25rem] bg-secondary/40 p-4">
+                                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-primary/80">Participants</p>
+                                <p className="mt-2 text-sm leading-7 text-foreground">{booking.participantCount.toLocaleString()}</p>
+                              </div>
+                            ) : null}
                           </div>
                           <p className="mt-4 break-all text-sm leading-7 text-muted-foreground">
                             Private client manage link:{" "}
@@ -606,7 +651,7 @@ const TherapistDashboardPage = () => {
                             <div className="min-w-0">
                               <p className="font-medium text-foreground">{booking.clientName}</p>
                               <p className="mt-1 text-xs uppercase tracking-[0.18em] text-primary/65">
-                                {booking.sessionType} session
+                                {formatServiceType(booking.serviceType)} · {booking.sessionType} session
                               </p>
                             </div>
                             <Badge
@@ -630,6 +675,15 @@ const TherapistDashboardPage = () => {
                             <p>
                               <span className="font-medium text-foreground">Phone:</span> {booking.clientPhone}
                             </p>
+                            <p>
+                              <span className="font-medium text-foreground">Service:</span> {formatServiceType(booking.serviceType)}
+                            </p>
+                            {booking.serviceType === "corporate" && booking.participantCount ? (
+                              <p>
+                                <span className="font-medium text-foreground">Participants:</span>{" "}
+                                {booking.participantCount.toLocaleString()}
+                              </p>
+                            ) : null}
                           </div>
 
                           <Button
@@ -671,7 +725,7 @@ const TherapistDashboardPage = () => {
                                 <div className="space-y-1">
                                   <p className="font-medium text-foreground">{booking.clientName}</p>
                                   <p className="text-xs uppercase tracking-[0.18em] text-primary/65">
-                                    {booking.sessionType} session
+                                    {formatServiceType(booking.serviceType)} · {booking.sessionType} session
                                   </p>
                                 </div>
                               </TableCell>

@@ -18,12 +18,14 @@ const TherapistSecurityPanel = () => {
   const [currentSecret, setCurrentSecret] = useState("");
   const [newSecret, setNewSecret] = useState("");
   const [confirmSecret, setConfirmSecret] = useState("");
+  const [isSavingPassword, setIsSavingPassword] = useState(false);
+  const [isSavingSecret, setIsSavingSecret] = useState(false);
 
   const toggleView = (view: Exclude<SecurityView, null>) => {
     setActiveView((current) => (current === view ? null : view));
   };
 
-  const handlePasswordSubmit = (event: FormEvent) => {
+  const handlePasswordSubmit = async (event: FormEvent) => {
     event.preventDefault();
 
     if (newPassword !== confirmPassword) {
@@ -31,7 +33,9 @@ const TherapistSecurityPanel = () => {
       return;
     }
 
-    const result = updateTherapistPassword(currentPassword, newPassword);
+    setIsSavingPassword(true);
+    const result = await updateTherapistPassword(currentPassword, newPassword);
+    setIsSavingPassword(false);
 
     if (!result.success) {
       toast.error(result.error);
@@ -45,7 +49,7 @@ const TherapistSecurityPanel = () => {
     toast.success("Therapist password updated.");
   };
 
-  const handleSecretSubmit = (event: FormEvent) => {
+  const handleSecretSubmit = async (event: FormEvent) => {
     event.preventDefault();
 
     if (newSecret.trim() !== confirmSecret.trim()) {
@@ -53,7 +57,9 @@ const TherapistSecurityPanel = () => {
       return;
     }
 
-    const result = updateTherapistSecretPassphrase(currentSecret, newSecret);
+    setIsSavingSecret(true);
+    const result = await updateTherapistSecretPassphrase(currentSecret, newSecret);
+    setIsSavingSecret(false);
 
     if (!result.success) {
       toast.error(result.error);
@@ -187,8 +193,8 @@ const TherapistSecurityPanel = () => {
           </div>
 
           <div className="mt-6 flex flex-col gap-3 sm:flex-row">
-            <Button type="submit" variant="hero" className="w-full rounded-full sm:w-auto">
-              Save Password
+            <Button type="submit" variant="hero" className="w-full rounded-full sm:w-auto" disabled={isSavingPassword}>
+              {isSavingPassword ? "Saving..." : "Save Password"}
             </Button>
             <Button
               type="button"
@@ -252,8 +258,8 @@ const TherapistSecurityPanel = () => {
           </p>
 
           <div className="mt-6 flex flex-col gap-3 sm:flex-row">
-            <Button type="submit" variant="hero" className="w-full rounded-full sm:w-auto">
-              Save Secret
+            <Button type="submit" variant="hero" className="w-full rounded-full sm:w-auto" disabled={isSavingSecret}>
+              {isSavingSecret ? "Saving..." : "Save Secret"}
             </Button>
             <Button
               type="button"

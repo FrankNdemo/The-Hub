@@ -4,39 +4,110 @@ interface WellnessLogoProps {
   variant?: "navbar" | "hero" | "footer";
 }
 
+type LogoLayout = {
+  frame: string;
+  viewBox: string;
+  word: {
+    x: number;
+    y: number;
+    size: number;
+    rotate: number;
+  };
+  the: {
+    x: number;
+    y: number;
+    size: number;
+    spacing: number;
+  };
+  hub: {
+    x: number;
+    y: number;
+    size: number;
+    rotate: number;
+  };
+};
+
+const layouts: Record<NonNullable<WellnessLogoProps["variant"]>, LogoLayout> = {
+  navbar: {
+    frame: "h-[3.45rem] w-[9.4rem]",
+    viewBox: "0 -6 180 82",
+    word: { x: 4, y: 49, size: 47, rotate: -7 },
+    the: { x: 47, y: 7, size: 10.2, spacing: 0.08 },
+    hub: { x: 129, y: 57, size: 19.5, rotate: -5 },
+  },
+  hero: {
+    frame: "h-[4.9rem] w-[13rem] sm:h-[5.1rem] sm:w-[13.5rem] lg:h-[5.9rem] lg:w-[15.2rem]",
+    viewBox: "0 0 180 72",
+    word: { x: 4, y: 47, size: 50, rotate: -7 },
+    the: { x: 42, y: 2, size: 9.5, spacing: 0.14 },
+    hub: { x: 132, y: 59, size: 23, rotate: -5 },
+  },
+  footer: {
+    frame: "h-[4.2rem] w-[11.3rem]",
+    viewBox: "0 0 180 72",
+    word: { x: 4, y: 47, size: 50, rotate: -7 },
+    the: { x: 42, y: 2, size: 9.5, spacing: 0.14 },
+    hub: { x: 132, y: 59, size: 23, rotate: -5 },
+  },
+};
+
 const WellnessLogo = ({ variant = "navbar" }: WellnessLogoProps) => {
-  const sizes = {
-    navbar: {
-      wrapper: "pt-3 pb-2 pr-12",
-      top: "right-8 top-0 text-[11px] tracking-[0.35em]",
-      center: "text-[2.4rem] leading-none",
-      bottom: "right-0 bottom-0 text-[0.9rem] tracking-[0.28em]",
-    },
-    hero: {
-      wrapper: "pt-1 pb-2 pr-11 md:pt-3 md:pb-3 md:pr-12",
-      top: "right-8 top-0 text-[0.54rem] tracking-[0.4em] md:right-9 md:text-[0.56rem]",
-      center: "text-[3.15rem] leading-[0.8] md:text-[3.2rem] lg:text-[3.75rem]",
-      bottom: "right-0 bottom-[0.24rem] text-[0.84rem] tracking-[0.32em] md:text-[0.92rem]",
-    },
-    footer: {
-      wrapper: "pt-4 pb-3 pr-14",
-      top: "right-10 top-0 text-[11px] tracking-[0.35em]",
-      center: "text-[2.8rem] leading-none",
-      bottom: "right-0 bottom-0 text-[0.98rem] tracking-[0.32em]",
-    },
-  }[variant];
+  const layout = layouts[variant];
 
   const content = (
-    <div className={`relative inline-block select-none ${sizes.wrapper}`}>
-      <span className={`absolute font-body font-medium uppercase text-primary/90 ${sizes.top}`}>
-        The
-      </span>
-      <span className={`brand-script block text-primary ${sizes.center}`}>
-        Wellness
-      </span>
-      <span className={`absolute font-body font-semibold uppercase text-primary/95 ${sizes.bottom}`}>
-        Hub
-      </span>
+    <div className={`inline-block select-none ${layout.frame}`}>
+      <svg
+        viewBox={layout.viewBox}
+        className="block h-full w-full overflow-visible text-primary"
+        xmlns="http://www.w3.org/2000/svg"
+        aria-hidden="true"
+      >
+        <g transform={`translate(${layout.word.x} ${layout.word.y}) rotate(${layout.word.rotate})`}>
+          <text
+            x="0"
+            y="0"
+            fill="currentColor"
+            style={{
+              fontFamily: "var(--font-logo)",
+              fontSize: `${layout.word.size}px`,
+              letterSpacing: "-0.03em",
+            }}
+          >
+            Wellness
+          </text>
+        </g>
+
+        <text
+          x={layout.the.x}
+          y={layout.the.y}
+          fill="currentColor"
+          opacity="0.94"
+          style={{
+            fontFamily: "var(--font-heading)",
+            fontSize: `${layout.the.size}px`,
+            fontWeight: 600,
+            letterSpacing: `${layout.the.spacing}em`,
+          }}
+        >
+          THE
+        </text>
+
+        <g transform={`translate(${layout.hub.x} ${layout.hub.y}) rotate(${layout.hub.rotate})`}>
+          <text
+            x="0"
+            y="0"
+            fill="currentColor"
+            opacity="0.95"
+            style={{
+              fontFamily: "var(--font-logo)",
+              fontSize: `${layout.hub.size}px`,
+              letterSpacing: "-0.02em",
+            }}
+          >
+            Hub
+          </text>
+        </g>
+      </svg>
     </div>
   );
 

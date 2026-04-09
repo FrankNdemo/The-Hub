@@ -1,12 +1,4 @@
-export const WELLNESS_STORAGE_KEY = "wellness-hub-state-v1";
-
-export const THERAPIST_SECRET_PASSPHRASE = "gichia";
-
-export const THERAPIST_PORTAL_CREDENTIALS = {
-  email: "caroline@thewellnesshub.co.ke",
-  password: "WellnessHub2026!",
-  name: "Caroline Gichia",
-};
+import type { ServiceType } from "@/types/wellness";
 
 const dateFormatter = new Intl.DateTimeFormat("en-US", {
   month: "long",
@@ -30,6 +22,17 @@ export const formatDisplayTime = (value: string) => {
   }).format(date);
 };
 
+export const formatServiceType = (value: ServiceType) => {
+  switch (value) {
+    case "family":
+      return "Family Therapy";
+    case "corporate":
+      return "Corporate Wellness";
+    default:
+      return "Individual Therapy";
+  }
+};
+
 export const slugify = (value: string) =>
   value
     .toLowerCase()
@@ -50,27 +53,6 @@ export const estimateReadTime = (html: string) => {
   const words = stripHtml(html).split(/\s+/).filter(Boolean).length;
   const minutes = Math.max(1, Math.round(words / 200));
   return `${minutes} min read`;
-};
-
-export const makeId = (prefix: string) => {
-  if (typeof crypto !== "undefined" && "randomUUID" in crypto) {
-    return `${prefix}-${crypto.randomUUID()}`;
-  }
-
-  return `${prefix}-${Math.random().toString(36).slice(2, 10)}`;
-};
-
-export const makeToken = () => {
-  const compact = makeId("session").replace(/[^a-z0-9]/gi, "");
-  return compact.slice(0, 24).toLowerCase();
-};
-
-export const makeMeetLink = () => {
-  const alphabet = "abcdefghijklmnopqrstuvwxyz";
-  const chunk = () =>
-    Array.from({ length: 3 }, () => alphabet[Math.floor(Math.random() * alphabet.length)]).join("");
-
-  return `https://meet.google.com/${chunk()}-${chunk()}-${chunk()}`;
 };
 
 export const markdownToHtml = (markdown: string) => {

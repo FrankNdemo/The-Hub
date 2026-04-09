@@ -26,7 +26,7 @@ export const primaryTherapist: TherapistProfile = {
     "Family Therapy",
     "Trauma and CBT",
   ],
-  email: "caroline@thewellnesshub.co.ke",
+  email: "linkentnerg@gmail.com",
   phone: "+254 726 759 850",
   location: [
     "Nairobi, Westlands",

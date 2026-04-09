@@ -9,10 +9,28 @@ import { formatDisplayDate } from "@/lib/wellness";
 const BlogPostPage = () => {
   const { slug } = useParams();
   const navigate = useNavigate();
-  const { blogPosts } = useWellnessHub();
+  const { blogPosts, isInitializing } = useWellnessHub();
 
   const post = blogPosts.find((entry) => entry.slug === slug);
   const relatedPosts = blogPosts.filter((entry) => entry.slug !== slug).slice(0, 3);
+
+  if (isInitializing) {
+    return (
+      <div className="min-h-screen">
+        <section className="pt-32 pb-24">
+          <div className="container mx-auto px-4">
+            <div className="mx-auto max-w-2xl rounded-[2rem] border border-border/60 bg-card p-10 text-center shadow-card">
+              <h1 className="font-heading text-4xl font-semibold text-foreground">Loading article</h1>
+              <p className="mt-4 text-muted-foreground leading-8">
+                We&apos;re pulling the latest published story from the backend now.
+              </p>
+            </div>
+          </div>
+        </section>
+        <Footer />
+      </div>
+    );
+  }
 
   if (!post) {
     return (

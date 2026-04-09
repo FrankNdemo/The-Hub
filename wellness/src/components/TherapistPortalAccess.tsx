@@ -31,6 +31,9 @@ const TherapistPortalAccess = () => {
   const [resetPassword, setResetPassword] = useState("");
   const [confirmResetPassword, setConfirmResetPassword] = useState("");
   const [resetError, setResetError] = useState("");
+  const [isUnlocking, setIsUnlocking] = useState(false);
+  const [isLoggingIn, setIsLoggingIn] = useState(false);
+  const [isResettingPassword, setIsResettingPassword] = useState(false);
 
   useEffect(() => {
     setEmail(therapist.email);
@@ -45,11 +48,18 @@ const TherapistPortalAccess = () => {
     setResetPassword("");
     setConfirmResetPassword("");
     setResetError("");
+    setIsLoggingIn(false);
+    setIsResettingPassword(false);
   };
 
-  const unlockPortal = (value: string) => {
-    if (!verifyTherapistPassphrase(value)) {
+  const unlockPortal = async (value: string) => {
+    setIsUnlocking(true);
+
+    const isValid = await verifyTherapistPassphrase(value);
+
+    if (!isValid) {
       setPassphraseError("Passphrase not recognized.");
+      setIsUnlocking(false);
       return;
     }
 
@@ -58,6 +68,7 @@ const TherapistPortalAccess = () => {
     setShowPassphrase(false);
     resetDialogState();
     setLoginOpen(true);
+    setIsUnlocking(false);
   };
 
   const handlePassphraseChange = (value: string) => {
@@ -66,15 +77,11 @@ const TherapistPortalAccess = () => {
     if (passphraseError) {
       setPassphraseError("");
     }
-
-    if (verifyTherapistPassphrase(value)) {
-      unlockPortal(value);
-    }
   };
 
-  const handlePassphraseSubmit = (event: FormEvent) => {
+  const handlePassphraseSubmit = async (event: FormEvent) => {
     event.preventDefault();
-    unlockPortal(passphrase);
+    await unlockPortal(passphrase);
   };
 
   const handleDialogChange = (open: boolean) => {
@@ -85,10 +92,12 @@ const TherapistPortalAccess = () => {
     }
   };
 
-  const handleLogin = (event: FormEvent) => {
+  const handleLogin = async (event: FormEvent) => {
     event.preventDefault();
 
-    const success = loginTherapist(email, password);
+    setIsLoggingIn(true);
+    const success = await loginTherapist(email, password);
+    setIsLoggingIn(false);
 
     if (!success) {
       setLoginError("Incorrect therapist credentials.");
@@ -102,7 +111,7 @@ const TherapistPortalAccess = () => {
     navigate("/therapist/portal");
   };
 
-  const handlePasswordReset = (event: FormEvent) => {
+  const handlePasswordReset = async (event: FormEvent) => {
     event.preventDefault();
 
     if (resetPassword !== confirmResetPassword) {
@@ -110,7 +119,9 @@ const TherapistPortalAccess = () => {
       return;
     }
 
-    const result = resetTherapistPassword(email, forgotSecret, resetPassword);
+    setIsResettingPassword(true);
+    const result = await resetTherapistPassword(email, forgotSecret, resetPassword);
+    setIsResettingPassword(false);
 
     if (!result.success) {
       setResetError(result.error);
@@ -147,6 +158,9 @@ const TherapistPortalAccess = () => {
             />
           </div>
           {passphraseError ? <p className="mt-2 text-xs text-destructive">{passphraseError}</p> : null}
+          <Button type="submit" variant="hero" className="mt-2 w-full rounded-full" disabled={isUnlocking}>
+            {isUnlocking ? "Checking..." : "Continue"}
+          </Button>
         </form>
       ) : (
         <button
@@ -201,8 +215,8 @@ const TherapistPortalAccess = () => {
                   />
                 </div>
                 {loginError ? <p className="text-sm text-destructive">{loginError}</p> : null}
-                <Button type="submit" variant="hero" className="w-full rounded-full">
-                  Open Dashboard
+                <Button type="submit" variant="hero" className="w-full rounded-full" disabled={isLoggingIn}>
+                  {isLoggingIn ? "Opening Dashboard..." : "Open Dashboard"}
                 </Button>
                 <button
                   type="button"
@@ -265,8 +279,8 @@ const TherapistPortalAccess = () => {
                   The email here matches the therapist profile. If you need to change the secret passphrase itself,
                   sign in and update it from the dashboard security section.
                 </p>
-                <Button type="submit" variant="hero" className="w-full rounded-full">
-                  Save New Password
+                <Button type="submit" variant="hero" className="w-full rounded-full" disabled={isResettingPassword}>
+                  {isResettingPassword ? "Saving..." : "Save New Password"}
                 </Button>
                 <button
                   type="button"
