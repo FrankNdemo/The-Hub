@@ -4,13 +4,23 @@ import { CalendarDays, Clock3, MapPin, RefreshCw, ShieldCheck, Trash2, Users, Vi
 import { toast } from "sonner";
 
 import Footer from "@/components/Footer";
+import ScrollReveal from "@/components/ScrollReveal";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useWellnessHub } from "@/context/WellnessHubContext";
-import { getApiErrorMessage } from "@/lib/api";
+import { getApiErrorMessage, getSuggestedBookingSlot } from "@/lib/api";
 import { softPageBackgroundStyle } from "@/lib/pageBackground";
-import { formatDisplayDate, formatDisplayTime, formatServiceType } from "@/lib/wellness";
+import {
+  BOOKING_AVAILABILITY_DETAIL,
+  BOOKING_LAST_START_TIME,
+  BOOKING_OPEN_TIME,
+  BOOKING_TIME_STEP_SECONDS,
+  formatDisplayDate,
+  formatDisplayTime,
+  formatServiceType,
+  getTodayDateInputValue,
+} from "@/lib/wellness";
 import type { BookingRecord } from "@/types/wellness";
 
 const ManageBookingPage = () => {
@@ -21,6 +31,8 @@ const ManageBookingPage = () => {
   const [time, setTime] = useState("");
   const [isLoading, setIsLoading] = useState(true);
   const [isUpdating, setIsUpdating] = useState(false);
+  const [bookingGuidance, setBookingGuidance] = useState("");
+  const todayDate = getTodayDateInputValue();
 
   useEffect(() => {
     let isActive = true;
@@ -123,9 +135,21 @@ const ManageBookingPage = () => {
       setBooking(updated);
       setDate(updated.date);
       setTime(updated.time);
+      setBookingGuidance("");
       toast.success("Your session has been rescheduled.");
     } catch (error) {
-      toast.error(getApiErrorMessage(error, "We could not update this session."));
+      const message = getApiErrorMessage(error, "We could not update this session.");
+      const suggestion = getSuggestedBookingSlot(error);
+
+      if (suggestion) {
+        setDate(suggestion.date);
+        setTime(suggestion.time);
+        setBookingGuidance(`${message} We prefilled the next available option for you.`);
+        toast.error(`${message} We prefilled ${formatDisplayDate(suggestion.date)} at ${formatDisplayTime(suggestion.time)}.`);
+      } else {
+        setBookingGuidance(message);
+        toast.error(message);
+      }
     } finally {
       setIsUpdating(false);
     }
@@ -168,6 +192,7 @@ const ManageBookingPage = () => {
             </div>
 
             <div className="mt-10 grid gap-8 lg:grid-cols-[1fr_0.9fr]">
+              <ScrollReveal direction="left">
               <div className="rounded-[2rem] border border-border/60 bg-card p-7 shadow-card">
                 <h2 className="font-heading text-3xl font-semibold text-foreground">Booking details</h2>
                 <div className="mt-7 grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
@@ -214,9 +239,13 @@ const ManageBookingPage = () => {
                     </div>
                   ) : null}
                   <div className="wellness-panel rounded-[1.5rem] border border-border/60 p-5">
-                    <p className="text-xs uppercase tracking-[0.24em] text-primary/70">Session Details</p>
+                    <p className="text-xs uppercase tracking-[0.24em] text-primary/70">
+                      {booking.sessionType === "virtual" ? "Virtual Session Link" : "Session Details"}
+                    </p>
                     <p className="mt-2 text-sm leading-7 text-muted-foreground">
-                      {booking.sessionType === "virtual" ? booking.meetLink : booking.locationSummary}
+                      {booking.sessionType === "virtual"
+                        ? booking.meetLink || "Virtual session access will be included in your updated confirmation."
+                        : booking.locationSummary}
                     </p>
                   </div>
                 </div>
@@ -245,7 +274,9 @@ const ManageBookingPage = () => {
                   </div>
                 </div>
               </div>
+              </ScrollReveal>
 
+              <ScrollReveal direction="right">
               <div className="rounded-[2rem] border border-border/60 bg-card p-7 shadow-card">
                 <h2 className="font-heading text-3xl font-semibold text-foreground">Manage this booking</h2>
                 <p className="mt-3 text-muted-foreground leading-8">
@@ -271,8 +302,12 @@ const ManageBookingPage = () => {
                           id="reschedule-date"
                           type="date"
                           value={date}
-                          onChange={(event) => setDate(event.target.value)}
+                          onChange={(event) => {
+                            setBookingGuidance("");
+                            setDate(event.target.value);
+                          }}
                           className="mt-2"
+                          min={todayDate}
                         />
                       </div>
                       <div>
@@ -281,18 +316,31 @@ const ManageBookingPage = () => {
                           id="reschedule-time"
                           type="time"
                           value={time}
-                          onChange={(event) => setTime(event.target.value)}
+                          onChange={(event) => {
+                            setBookingGuidance("");
+                            setTime(event.target.value);
+                          }}
                           className="mt-2"
+                          min={BOOKING_OPEN_TIME}
+                          max={BOOKING_LAST_START_TIME}
+                          step={BOOKING_TIME_STEP_SECONDS}
                         />
                       </div>
                     </div>
 
                     <div className="rounded-[1.5rem] bg-primary/8 p-5">
                       <p className="text-sm leading-7 text-muted-foreground">
-                        Virtual sessions receive a fresh meeting link when rescheduled. Physical sessions keep the same
-                        centre location and updated calendar reference.
+                        {BOOKING_AVAILABILITY_DETAIL} Virtual sessions receive a refreshed calendar-ready access link
+                        when rescheduled, while physical sessions keep the same centre location and updated calendar
+                        reference.
                       </p>
                     </div>
+
+                    {bookingGuidance ? (
+                      <div className="rounded-[1.5rem] border border-primary/20 bg-primary/8 p-5">
+                        <p className="text-sm leading-7 text-foreground">{bookingGuidance}</p>
+                      </div>
+                    ) : null}
 
                     <div className="flex flex-wrap gap-3">
                       <Button variant="hero" className="rounded-full" type="button" onClick={handleReschedule} disabled={isUpdating}>
@@ -307,6 +355,7 @@ const ManageBookingPage = () => {
                   </div>
                 )}
               </div>
+              </ScrollReveal>
             </div>
           </div>
         </div>

@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import secrets
-import string
 
 from django.db import transaction
 
@@ -10,9 +9,11 @@ from apps.notifications.models import Notification
 from .delivery import (
     BookingDeliveryError,
     SERVICE_TYPE_LABELS,
+    build_virtual_session_link,
     send_booking_email,
 )
 from .models import Booking, BookingHistoryEvent, EmailRecord
+from .scheduling import ensure_client_can_book, ensure_slot_is_available
 
 
 def make_id(prefix: str) -> str:
@@ -21,15 +22,6 @@ def make_id(prefix: str) -> str:
 
 def make_token() -> str:
     return secrets.token_hex(16)[:24]
-
-
-def make_meet_link() -> str:
-    alphabet = string.ascii_lowercase
-
-    def chunk() -> str:
-        return "".join(secrets.choice(alphabet) for _ in range(3))
-
-    return f"https://meet.google.com/{chunk()}-{chunk()}-{chunk()}"
 
 
 def create_notification(*, booking: Booking, notification_type: str, title: str, description: str) -> None:
@@ -44,6 +36,12 @@ def create_notification(*, booking: Booking, notification_type: str, title: str,
 
 @transaction.atomic
 def create_booking(*, therapist, data: dict) -> Booking:
+    ensure_client_can_book(client_email=data["client_email"])
+    ensure_slot_is_available(
+        therapist=therapist,
+        day=data["date"],
+        slot_time=data["time"],
+    )
     service_type = data["service_type"]
     booking = Booking.objects.create(
         manage_token=make_token(),
@@ -58,11 +56,18 @@ def create_booking(*, therapist, data: dict) -> Booking:
         date=data["date"],
         time=data["time"],
         status=Booking.Status.UPCOMING,
-        location_summary=therapist.location_summary if data["session_type"] == Booking.SessionType.PHYSICAL else "Online via Google Meet",
+        location_summary=(
+            therapist.location_summary
+            if data["session_type"] == Booking.SessionType.PHYSICAL
+            else "Online session access will be shared in your calendar-ready confirmation."
+        ),
         calendar_event_id=make_id("booking"),
-        meet_link=make_meet_link() if data["session_type"] == Booking.SessionType.VIRTUAL else "",
+        meet_link="",
         notes=data.get("notes", ""),
     )
+    if booking.session_type == Booking.SessionType.VIRTUAL:
+        booking.meet_link = build_virtual_session_link(booking)
+        booking.save(update_fields=["meet_link", "updated_at"])
 
     descriptor = f"{SERVICE_TYPE_LABELS[booking.service_type].lower()} {booking.session_type} session"
     description = (
@@ -101,11 +106,18 @@ def reschedule_booking(*, booking: Booking, date, time) -> Booking:
     if booking.status == Booking.Status.CANCELLED:
         raise ValueError("Cancelled bookings cannot be rescheduled.")
 
+    ensure_slot_is_available(
+        therapist=booking.therapist,
+        day=date,
+        slot_time=time,
+        exclude_booking=booking,
+    )
+
     booking.date = date
     booking.time = time
     booking.status = Booking.Status.RESCHEDULED
     if booking.session_type == Booking.SessionType.VIRTUAL:
-        booking.meet_link = make_meet_link()
+        booking.meet_link = build_virtual_session_link(booking)
     booking.save()
 
     BookingHistoryEvent.objects.create(

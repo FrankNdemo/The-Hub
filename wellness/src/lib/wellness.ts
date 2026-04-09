@@ -1,5 +1,12 @@
 import type { ServiceType } from "@/types/wellness";
 
+export const BOOKING_OPEN_TIME = "10:00";
+export const BOOKING_LAST_START_TIME = "18:00";
+export const BOOKING_TIME_STEP_SECONDS = 15 * 60;
+export const BOOKING_AVAILABILITY_SUMMARY = "Tuesday to Saturday, 10:00 AM to 7:00 PM";
+export const BOOKING_AVAILABILITY_DETAIL =
+  "Sessions begin from 10:00 AM, finish by 7:00 PM, and the last available start time is 6:00 PM.";
+
 const dateFormatter = new Intl.DateTimeFormat("en-US", {
   month: "long",
   day: "numeric",
@@ -20,6 +27,14 @@ export const formatDisplayTime = (value: string) => {
     hour: "numeric",
     minute: "2-digit",
   }).format(date);
+};
+
+export const getTodayDateInputValue = () => {
+  const today = new Date();
+  const year = today.getFullYear();
+  const month = String(today.getMonth() + 1).padStart(2, "0");
+  const day = String(today.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
 };
 
 export const formatServiceType = (value: ServiceType) => {

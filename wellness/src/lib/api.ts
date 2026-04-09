@@ -127,6 +127,12 @@ interface SuccessResponse {
   success: boolean;
 }
 
+export interface BookingSuggestion {
+  date: string;
+  time: string;
+  label?: string;
+}
+
 export class ApiError extends Error {
   status: number;
   data: unknown;
@@ -372,6 +378,27 @@ export const getApiErrorMessage = (error: unknown, fallback: string) => {
   }
 
   return fallback;
+};
+
+export const getSuggestedBookingSlot = (error: unknown): BookingSuggestion | null => {
+  if (!(error instanceof ApiError) || !error.data || typeof error.data !== "object") {
+    return null;
+  }
+
+  const payload = error.data as Record<string, unknown>;
+  const date = payload.suggestedDate;
+  const time = payload.suggestedTime;
+  const label = payload.detail;
+
+  if (typeof date !== "string" || typeof time !== "string") {
+    return null;
+  }
+
+  return {
+    date,
+    time,
+    label: typeof label === "string" ? label : undefined,
+  };
 };
 
 export const getStoredAuthTokens = () => authTokens;

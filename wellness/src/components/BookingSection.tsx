@@ -16,12 +16,23 @@ import {
 import { toast } from "sonner";
 
 import { useWellnessHub } from "@/context/WellnessHubContext";
-import { getApiErrorMessage } from "@/lib/api";
-import { formatDisplayDate, formatDisplayTime, formatServiceType } from "@/lib/wellness";
+import { getApiErrorMessage, getSuggestedBookingSlot } from "@/lib/api";
+import {
+  BOOKING_AVAILABILITY_DETAIL,
+  BOOKING_AVAILABILITY_SUMMARY,
+  BOOKING_LAST_START_TIME,
+  BOOKING_OPEN_TIME,
+  BOOKING_TIME_STEP_SECONDS,
+  formatDisplayDate,
+  formatDisplayTime,
+  formatServiceType,
+  getTodayDateInputValue,
+} from "@/lib/wellness";
 import type { BookingRecord, ServiceType, SessionType } from "@/types/wellness";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import ScrollReveal from "@/components/ScrollReveal";
 import { Textarea } from "@/components/ui/textarea";
 
 const serviceCards: {
@@ -59,7 +70,7 @@ const sessionCards: {
   {
     type: "virtual",
     title: "Virtual",
-    description: "Online via Google Meet",
+    description: "Online with a calendar-ready session link",
     icon: Video,
   },
   {
@@ -76,6 +87,7 @@ const BookingSection = () => {
   const [sessionType, setSessionType] = useState<SessionType>("virtual");
   const [submittedBooking, setSubmittedBooking] = useState<BookingRecord | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [bookingGuidance, setBookingGuidance] = useState("");
   const [serviceDescriptionText, setServiceDescriptionText] = useState("");
   const [isDeletingServiceDescription, setIsDeletingServiceDescription] = useState(false);
   const [form, setForm] = useState({
@@ -91,8 +103,11 @@ const BookingSection = () => {
   const activeServiceCard = serviceCards.find((item) => item.type === serviceType) ?? serviceCards[0];
 
   const updateField = (field: keyof typeof form, value: string) => {
+    setBookingGuidance("");
     setForm((current) => ({ ...current, [field]: value }));
   };
+
+  const todayDate = getTodayDateInputValue();
 
   useEffect(() => {
     setServiceDescriptionText("");
@@ -161,9 +176,24 @@ const BookingSection = () => {
       });
 
       setSubmittedBooking(booking);
+      setBookingGuidance("");
       toast.success("Your booking has been confirmed.");
     } catch (error) {
-      toast.error(getApiErrorMessage(error, "We could not confirm your booking right now."));
+      const message = getApiErrorMessage(error, "We could not confirm your booking right now.");
+      const suggestion = getSuggestedBookingSlot(error);
+
+      if (suggestion) {
+        setForm((current) => ({
+          ...current,
+          date: suggestion.date,
+          time: suggestion.time,
+        }));
+        setBookingGuidance(`${message} We prefilled the next available option so you can confirm it quickly.`);
+        toast.error(`${message} We prefilled ${formatDisplayDate(suggestion.date)} at ${formatDisplayTime(suggestion.time)}.`);
+      } else {
+        setBookingGuidance(message);
+        toast.error(message);
+      }
     } finally {
       setIsSubmitting(false);
     }
@@ -187,6 +217,7 @@ const BookingSection = () => {
       <div className="container mx-auto px-4">
         <div className="mx-auto max-w-6xl">
           <div className="grid gap-12 lg:grid-cols-[0.9fr_1.1fr]">
+            <ScrollReveal direction="left">
             <div className="wellness-panel rounded-[2rem] border border-border/60 p-6 text-center shadow-card sm:p-8 lg:text-left">
               <p className="text-sm font-semibold uppercase tracking-[0.24em] text-primary/75">Booking Flow</p>
               <h2 className="mt-4 font-heading text-4xl font-semibold text-foreground md:text-5xl">
@@ -212,7 +243,7 @@ const BookingSection = () => {
                   {
                     icon: Mail,
                     title: "Confirmation package",
-                    description: "A simple confirmation message will be sent with all your session details",
+                    description: "A confirmation message arrives with your session details, timing, and next-step guidance.",
                   },
                 ].map((item) => (
                   <div key={item.title} className="rounded-[1.5rem] bg-background/85 p-5 shadow-soft">
@@ -231,13 +262,16 @@ const BookingSection = () => {
 
               <div className="mt-8 rounded-[1.75rem] bg-foreground px-6 py-5 text-center text-primary-foreground shadow-soft">
                 <p className="text-sm uppercase tracking-[0.24em] text-primary-foreground/60">Availability</p>
-                <p className="mt-3 text-lg font-medium">Tuesday to Saturday, 10:00 AM to 7:00 PM</p>
+                <p className="mt-3 text-lg font-medium">{BOOKING_AVAILABILITY_SUMMARY}</p>
                 <p className="mt-2 text-sm text-primary-foreground/70">
-                  Physical sessions take place in Westlands. Virtual sessions are prepared with a live meeting link.
+                  {BOOKING_AVAILABILITY_DETAIL} Physical sessions take place in Westlands, and virtual sessions arrive
+                  with a calendar-ready access link.
                 </p>
               </div>
             </div>
+            </ScrollReveal>
 
+            <ScrollReveal direction="right">
             <div>
               {submittedBooking ? (
                 <div className="rounded-[2rem] border border-border/60 bg-card p-6 text-center shadow-hover sm:p-8 sm:text-left">
@@ -283,12 +317,16 @@ const BookingSection = () => {
 
                   {submittedBooking.sessionType === "virtual" && submittedBooking.meetLink ? (
                     <div className="mt-6 rounded-[1.5rem] bg-primary/8 p-5">
-                      <p className="text-sm font-medium text-foreground">Virtual session link</p>
+                      <p className="text-sm font-medium text-foreground">Virtual session calendar link</p>
+                      <p className="mt-2 text-sm leading-7 text-muted-foreground">
+                        Open this link to save the session timing, title, and reflection in Google Calendar before the
+                        session begins.
+                      </p>
                       <a
                         href={submittedBooking.meetLink}
                         target="_blank"
                         rel="noreferrer"
-                        className="mt-2 block break-all text-sm text-primary hover:underline"
+                        className="mt-3 block break-all text-sm text-primary hover:underline"
                       >
                         {submittedBooking.meetLink}
                       </a>
@@ -445,6 +483,7 @@ const BookingSection = () => {
                         value={form.date}
                         onChange={(event) => updateField("date", event.target.value)}
                         className="mt-2"
+                        min={todayDate}
                         required
                       />
                     </div>
@@ -456,10 +495,23 @@ const BookingSection = () => {
                         value={form.time}
                         onChange={(event) => updateField("time", event.target.value)}
                         className="mt-2"
+                        min={BOOKING_OPEN_TIME}
+                        max={BOOKING_LAST_START_TIME}
+                        step={BOOKING_TIME_STEP_SECONDS}
                         required
                       />
                     </div>
                   </div>
+
+                  <div className="mt-4 rounded-[1.25rem] bg-primary/8 px-4 py-3 text-sm leading-7 text-muted-foreground">
+                    {BOOKING_AVAILABILITY_DETAIL}
+                  </div>
+
+                  {bookingGuidance ? (
+                    <div className="mt-4 rounded-[1.25rem] border border-primary/20 bg-primary/8 px-4 py-3 text-sm leading-7 text-foreground">
+                      {bookingGuidance}
+                    </div>
+                  ) : null}
 
                   <div className="mt-5">
                     <Label htmlFor="booking-therapist">Preferred Therapist</Label>
@@ -532,6 +584,7 @@ const BookingSection = () => {
                 </form>
               )}
             </div>
+            </ScrollReveal>
           </div>
         </div>
       </div>

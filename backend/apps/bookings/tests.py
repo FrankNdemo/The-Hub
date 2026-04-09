@@ -28,7 +28,7 @@ class BookingApiTests(APITestCase):
                 "clientEmail": "client@example.com",
                 "clientPhone": "+254700000000",
                 "therapistId": "caroline-gichia",
-                "date": "2026-04-12",
+                "date": "2026-04-14",
                 "time": "10:30",
                 "serviceType": "individual",
                 "sessionType": "virtual",
@@ -57,21 +57,22 @@ class BookingApiTests(APITestCase):
         self.assertEqual(mail.outbox[0].to, ["client@example.com"])
         self.assertIn("Manage Your Session", mail.outbox[0].alternatives[0][0])
         self.assertIn(create_response.data["manageUrl"], mail.outbox[0].body)
-        self.assertIn("Google Meet Link", mail.outbox[0].body)
+        self.assertIn("Virtual Session Link", mail.outbox[0].body)
         self.assertIn(create_response.data["meetLink"], mail.outbox[0].body)
         self.assertEqual(mail.outbox[1].to, ["likentnerg@gmail.com"])
         self.assertEqual(mail.outbox[1].subject, "New Session Booked | The Wellness Hub")
         self.assertIn("Client Email: client@example.com", mail.outbox[1].body)
-        self.assertIn("Google Meet Link", mail.outbox[1].body)
+        self.assertIn("Virtual Session Link", mail.outbox[1].body)
         self.assertIn(create_response.data["meetLink"], mail.outbox[1].body)
         self.assertNotIn(create_response.data["manageUrl"], mail.outbox[1].body)
         self.assertEqual(mail.outbox[0].attachments[0][0], "wellness-session.ics")
         self.assertIn("METHOD:REQUEST", mail.outbox[0].attachments[0][1])
         self.assertIn(create_response.data["calendarEventId"], mail.outbox[0].attachments[0][1])
-        self.assertIn(create_response.data["meetLink"], mail.outbox[0].attachments[0][1])
+        self.assertIn("https://calendar.google.com/calendar/render?action=TEMPLATE", mail.outbox[0].attachments[0][1])
         self.assertIn("client@example.com", mail.outbox[0].attachments[0][1])
         self.assertIn("likentnerg@gmail.com", mail.outbox[0].attachments[0][1])
         self.assertNotIn(create_response.data["manageUrl"], mail.outbox[0].attachments[0][1])
+        self.assertTrue(create_response.data["meetLink"].startswith("https://calendar.google.com/calendar/render?"))
 
         token = create_response.data["token"]
         detail_response = self.client.get(f"/api/v1/bookings/manage/{token}/")
@@ -80,7 +81,7 @@ class BookingApiTests(APITestCase):
 
         reschedule_response = self.client.post(
             f"/api/v1/bookings/manage/{token}/reschedule/",
-            {"date": "2026-04-14", "time": "12:15"},
+            {"date": "2026-04-15", "time": "12:15"},
             format="json",
         )
         self.assertEqual(reschedule_response.status_code, status.HTTP_200_OK)
@@ -92,7 +93,7 @@ class BookingApiTests(APITestCase):
         self.assertIn("METHOD:REQUEST", mail.outbox[2].attachments[0][1])
         self.assertIn(create_response.data["calendarEventId"], mail.outbox[2].attachments[0][1])
         self.assertIn("SEQUENCE:1", mail.outbox[2].attachments[0][1])
-        self.assertIn(reschedule_response.data["meetLink"], mail.outbox[2].attachments[0][1])
+        self.assertIn("https://calendar.google.com/calendar/render?action=TEMPLATE", mail.outbox[2].attachments[0][1])
 
         cancel_response = self.client.post(f"/api/v1/bookings/manage/{token}/cancel/", {}, format="json")
         self.assertEqual(cancel_response.status_code, status.HTTP_200_OK)
@@ -106,6 +107,158 @@ class BookingApiTests(APITestCase):
         self.assertIn("SEQUENCE:2", mail.outbox[4].attachments[0][1])
 
         self.assertEqual(Notification.objects.count(), 3)
+
+    def test_rejects_out_of_hours_booking_and_suggests_first_open_slot(self):
+        response = self.client.post(
+            "/api/v1/bookings/",
+            {
+                "clientName": "Early Client",
+                "clientEmail": "early@example.com",
+                "clientPhone": "+254700000123",
+                "therapistId": "caroline-gichia",
+                "date": "2026-04-14",
+                "time": "09:00",
+                "serviceType": "individual",
+                "sessionType": "virtual",
+            },
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(response.data["code"], "outside_hours")
+        self.assertEqual(response.data["suggestedDate"], "2026-04-14")
+        self.assertEqual(response.data["suggestedTime"], "10:00")
+        self.assertIn("Tuesday to Saturday", response.data["detail"])
+
+    def test_rejects_overlapping_booking_and_suggests_next_available_slot(self):
+        first_response = self.client.post(
+            "/api/v1/bookings/",
+            {
+                "clientName": "Booked Client",
+                "clientEmail": "booked@example.com",
+                "clientPhone": "+254700000124",
+                "therapistId": "caroline-gichia",
+                "date": "2026-04-15",
+                "time": "10:30",
+                "serviceType": "individual",
+                "sessionType": "virtual",
+            },
+            format="json",
+        )
+        self.assertEqual(first_response.status_code, status.HTTP_201_CREATED)
+
+        conflict_response = self.client.post(
+            "/api/v1/bookings/",
+            {
+                "clientName": "Overlap Client",
+                "clientEmail": "overlap@example.com",
+                "clientPhone": "+254700000125",
+                "therapistId": "caroline-gichia",
+                "date": "2026-04-15",
+                "time": "11:00",
+                "serviceType": "individual",
+                "sessionType": "virtual",
+            },
+            format="json",
+        )
+
+        self.assertEqual(conflict_response.status_code, status.HTTP_409_CONFLICT)
+        self.assertEqual(conflict_response.data["code"], "slot_unavailable")
+        self.assertEqual(conflict_response.data["suggestedDate"], "2026-04-15")
+        self.assertEqual(conflict_response.data["suggestedTime"], "11:30")
+        self.assertFalse(conflict_response.data["dayFullyBooked"])
+
+    def test_reports_when_requested_day_is_fully_booked(self):
+        for hour in range(10, 19):
+            create_response = self.client.post(
+                "/api/v1/bookings/",
+                {
+                    "clientName": f"Client {hour}",
+                    "clientEmail": f"client-{hour}@example.com",
+                    "clientPhone": f"+254700000{hour}",
+                    "therapistId": "caroline-gichia",
+                    "date": "2026-04-17",
+                    "time": f"{hour:02d}:00",
+                    "serviceType": "individual",
+                    "sessionType": "physical",
+                },
+                format="json",
+            )
+            self.assertEqual(create_response.status_code, status.HTTP_201_CREATED)
+
+        response = self.client.post(
+            "/api/v1/bookings/",
+            {
+                "clientName": "Overflow Client",
+                "clientEmail": "overflow@example.com",
+                "clientPhone": "+254700000999",
+                "therapistId": "caroline-gichia",
+                "date": "2026-04-17",
+                "time": "14:30",
+                "serviceType": "individual",
+                "sessionType": "physical",
+            },
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_409_CONFLICT)
+        self.assertEqual(response.data["code"], "day_full")
+        self.assertTrue(response.data["dayFullyBooked"])
+        self.assertEqual(response.data["suggestedDate"], "2026-04-18")
+        self.assertEqual(response.data["suggestedTime"], "10:00")
+
+    def test_same_email_cannot_hold_multiple_live_sessions(self):
+        first_response = self.client.post(
+            "/api/v1/bookings/",
+            {
+                "clientName": "Repeat Client",
+                "clientEmail": "repeat@example.com",
+                "clientPhone": "+254700000126",
+                "therapistId": "caroline-gichia",
+                "date": "2026-04-21",
+                "time": "11:00",
+                "serviceType": "individual",
+                "sessionType": "virtual",
+            },
+            format="json",
+        )
+        self.assertEqual(first_response.status_code, status.HTTP_201_CREATED)
+
+        blocked_response = self.client.post(
+            "/api/v1/bookings/",
+            {
+                "clientName": "Repeat Client",
+                "clientEmail": "repeat@example.com",
+                "clientPhone": "+254700000126",
+                "therapistId": "caroline-gichia",
+                "date": "2026-04-22",
+                "time": "13:00",
+                "serviceType": "individual",
+                "sessionType": "virtual",
+            },
+            format="json",
+        )
+        self.assertEqual(blocked_response.status_code, status.HTTP_409_CONFLICT)
+        self.assertEqual(blocked_response.data["code"], "active_session_exists")
+        self.assertIn("You already have an active session booked", blocked_response.data["detail"])
+
+        Booking.objects.filter(pk=first_response.data["id"]).update(status=Booking.Status.COMPLETED)
+
+        allowed_response = self.client.post(
+            "/api/v1/bookings/",
+            {
+                "clientName": "Repeat Client",
+                "clientEmail": "repeat@example.com",
+                "clientPhone": "+254700000126",
+                "therapistId": "caroline-gichia",
+                "date": "2026-04-22",
+                "time": "13:00",
+                "serviceType": "individual",
+                "sessionType": "virtual",
+            },
+            format="json",
+        )
+        self.assertEqual(allowed_response.status_code, status.HTTP_201_CREATED)
 
     def test_therapist_can_delete_booking_with_reason(self):
         create_response = self.client.post(

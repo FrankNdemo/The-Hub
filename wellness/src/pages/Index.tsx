@@ -10,9 +10,9 @@ import leafDecor from "@/assets/leaf-decoration.png";
 import Footer from "@/components/Footer";
 import FAQSection from "@/components/FAQSection";
 import HeroSection from "@/components/HeroSection";
+import ScrollReveal from "@/components/ScrollReveal";
 import { Button } from "@/components/ui/button";
 import { useWellnessHub } from "@/context/WellnessHubContext";
-import { useScrollAnimation } from "@/hooks/useScrollAnimation";
 import {
   familyServiceImage,
   individualServiceImage,
@@ -110,19 +110,6 @@ const ctaTypedPhrase = "Cherish yourself";
 const careDescriptionQuote =
   "You do not have to carry everything alone. Healing grows in spaces where you feel safe, seen, and gently supported.";
 
-const AnimatedSection = ({ children, className = "" }: { children: React.ReactNode; className?: string }) => {
-  const { ref, isVisible } = useScrollAnimation();
-
-  return (
-    <div
-      ref={ref}
-      className={`transition-all duration-700 ${isVisible ? "translate-y-0 opacity-100" : "translate-y-8 opacity-0"} ${className}`}
-    >
-      {children}
-    </div>
-  );
-};
-
 const Index = () => {
   const { therapist } = useWellnessHub();
   const [typedCtaText, setTypedCtaText] = useState("");
@@ -156,7 +143,7 @@ const Index = () => {
 
     <section className="bg-secondary/30 py-24">
       <div className="container mx-auto px-4">
-        <AnimatedSection>
+        <ScrollReveal direction="left">
           <div className="grid items-center gap-12 md:grid-cols-2">
             <div className="text-center md:text-left">
               <p className="font-body text-sm uppercase tracking-[0.2em] text-primary">About Us</p>
@@ -191,13 +178,13 @@ const Index = () => {
               <img src={aboutImg} alt="Peaceful therapy office" loading="lazy" className="h-auto w-full object-cover" />
             </div>
           </div>
-        </AnimatedSection>
+        </ScrollReveal>
       </div>
     </section>
 
     <section className="py-10 sm:py-14">
       <div className="container mx-auto px-0 sm:px-4">
-        <AnimatedSection>
+        <ScrollReveal direction="up">
           <div className="relative overflow-hidden rounded-none border-y border-border/60 shadow-card sm:rounded-[2.4rem] sm:border">
             <img
               src={homepageAwarenessImage}
@@ -225,13 +212,13 @@ const Index = () => {
               </Button>
             </div>
           </div>
-        </AnimatedSection>
+        </ScrollReveal>
       </div>
     </section>
 
     <section className="py-24">
       <div className="container mx-auto px-4">
-        <AnimatedSection>
+        <ScrollReveal direction="up">
           <h2 className="text-center font-heading text-4xl font-semibold text-foreground md:text-5xl">
             Why Choose Us
           </h2>
@@ -253,13 +240,13 @@ const Index = () => {
               </div>
             ))}
           </div>
-        </AnimatedSection>
+        </ScrollReveal>
       </div>
     </section>
 
     <section className="py-16">
       <div className="container mx-auto px-4">
-        <AnimatedSection>
+        <ScrollReveal direction="right">
           <div className="flex flex-col items-center gap-4 text-center">
             <div className="max-w-4xl">
               <p className="text-sm font-semibold uppercase tracking-[0.24em] text-primary/75">Our services</p>
@@ -292,13 +279,13 @@ const Index = () => {
               </div>
             ))}
           </div>
-        </AnimatedSection>
+        </ScrollReveal>
       </div>
     </section>
 
     <section className="py-16">
       <div className="container mx-auto px-4">
-        <AnimatedSection>
+        <ScrollReveal direction="left">
           <div className="wellness-section-surface grid gap-10 rounded-[2.5rem] border border-border/60 px-6 py-8 text-center shadow-card md:px-10 lg:grid-cols-[1.2fr_0.8fr] lg:items-center lg:text-left">
             <div className="mx-auto max-w-2xl lg:mx-0">
               <p className="text-xs font-semibold uppercase tracking-[0.32em] text-primary/60">Meet your therapist</p>
@@ -335,13 +322,13 @@ const Index = () => {
               </div>
             </div>
           </div>
-        </AnimatedSection>
+        </ScrollReveal>
       </div>
     </section>
 
     <section className="py-16">
       <div className="container mx-auto px-4">
-        <AnimatedSection>
+        <ScrollReveal direction="right">
           <div className="relative overflow-hidden rounded-[2.5rem] border border-border/60 px-4 py-6 shadow-card sm:px-6 sm:py-8 lg:px-8 lg:py-10">
             <img
               src={approachImg}
@@ -391,13 +378,13 @@ const Index = () => {
               ))}
             </div>
           </div>
-        </AnimatedSection>
+        </ScrollReveal>
       </div>
     </section>
 
     <section className="py-16">
       <div className="container mx-auto px-4">
-        <AnimatedSection>
+        <ScrollReveal direction="left">
           <div className="text-center">
             <p className="text-sm font-semibold uppercase tracking-[0.24em] text-primary/75">Client stories</p>
             <h2 className="mt-4 font-heading text-4xl font-semibold text-foreground md:text-5xl">
@@ -439,13 +426,13 @@ const Index = () => {
               </div>
             ))}
           </div>
-        </AnimatedSection>
+        </ScrollReveal>
       </div>
     </section>
 
     <section className="py-0 md:py-20">
       <div className="container mx-auto px-0 md:px-4">
-        <AnimatedSection>
+        <ScrollReveal direction="up">
           <div className="relative min-h-[100svh] overflow-hidden shadow-hover md:min-h-0 md:rounded-[2.5rem]">
             <img
               src={ctaImg}
@@ -496,13 +483,13 @@ const Index = () => {
               </div>
             </div>
           </div>
-        </AnimatedSection>
+        </ScrollReveal>
       </div>
     </section>
 
     <section className="py-20">
       <div className="container mx-auto px-4">
-        <AnimatedSection>
+        <ScrollReveal direction="right">
           <div className="mx-auto max-w-6xl">
             <div className="mx-auto max-w-4xl text-center">
               <p className="text-sm font-semibold uppercase tracking-[0.26em] text-primary/75">A closer look</p>
@@ -540,13 +527,16 @@ const Index = () => {
               </div>
             </div>
           </div>
-        </AnimatedSection>
+        </ScrollReveal>
       </div>
     </section>
 
     <section className="pb-24">
       <div className="container mx-auto px-4">
-        <AnimatedSection className="rounded-[2.25rem] border border-border/60 bg-card px-6 py-8 text-center shadow-card sm:px-8">
+        <ScrollReveal
+          direction="up"
+          className="rounded-[2.25rem] border border-border/60 bg-card px-6 py-8 text-center shadow-card sm:px-8"
+        >
           <p className="text-sm font-semibold uppercase tracking-[0.24em] text-primary/75">Ready when you are</p>
           <h2 className="mt-4 font-heading text-4xl font-semibold text-foreground md:text-5xl">
             Choose support that meets you where you are.
@@ -563,7 +553,7 @@ const Index = () => {
               <Link to="/blog">Explore the Blog</Link>
             </Button>
           </div>
-        </AnimatedSection>
+        </ScrollReveal>
       </div>
     </section>
 

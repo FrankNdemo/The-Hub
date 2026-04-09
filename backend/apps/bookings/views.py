@@ -9,6 +9,7 @@ from .models import Booking
 from .serializers import BookingCreateSerializer, BookingDeleteSerializer, BookingDetailSerializer, BookingRescheduleSerializer
 from .delivery import BookingDeliveryError
 from .services import cancel_booking, complete_booking, create_booking, delete_booking, reschedule_booking
+from .scheduling import BookingAvailabilityError
 
 
 class PublicBookingCreateView(APIView):
@@ -23,6 +24,8 @@ class PublicBookingCreateView(APIView):
                 therapist=serializer.validated_data["therapist"],
                 data=serializer.validated_data,
             )
+        except BookingAvailabilityError as exc:
+            return Response(exc.as_response(), status=exc.status_code)
         except BookingDeliveryError as exc:
             return Response({"detail": str(exc)}, status=status.HTTP_503_SERVICE_UNAVAILABLE)
         return Response(BookingDetailSerializer(booking).data, status=status.HTTP_201_CREATED)
@@ -59,6 +62,8 @@ class BookingManageRescheduleView(APIView):
                 date=serializer.validated_data["date"],
                 time=serializer.validated_data["time"],
             )
+        except BookingAvailabilityError as exc:
+            return Response(exc.as_response(), status=exc.status_code)
         except BookingDeliveryError as exc:
             return Response({"detail": str(exc)}, status=status.HTTP_503_SERVICE_UNAVAILABLE)
         except ValueError as exc:

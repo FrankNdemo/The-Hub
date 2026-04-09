@@ -8,6 +8,7 @@ from datetime import datetime, timedelta, timezone as dt_timezone
 from email.utils import parseaddr
 from urllib import error as urllib_error
 from urllib import request as urllib_request
+from urllib.parse import urlencode
 from zoneinfo import ZoneInfo
 
 from django.conf import settings
@@ -48,6 +49,10 @@ def build_therapist_dashboard_url() -> str:
 def get_booking_session_title(booking: Booking) -> str:
     session_mode = "Virtual Session" if booking.session_type == Booking.SessionType.VIRTUAL else "In-Person Session"
     return f"{SERVICE_TYPE_LABELS[booking.service_type]} {session_mode}"
+
+
+def get_virtual_session_title(booking: Booking) -> str:
+    return f"The Wellness Hub Virtual Session | {get_booking_quote(booking)}"
 
 
 def get_booking_quote(booking: Booking) -> str:
@@ -98,9 +103,36 @@ def build_email_detail_card(label: str, value: str) -> str:
 
 def get_session_location(booking: Booking) -> str:
     if booking.session_type == Booking.SessionType.VIRTUAL:
-        return booking.meet_link or "Google Meet link will be shared shortly."
+        return booking.meet_link or "Virtual session access details will be shared shortly."
 
     return booking.location_summary
+
+
+def build_virtual_session_link(booking: Booking) -> str:
+    start_at, end_at = get_booking_time_window(booking)
+    title = get_virtual_session_title(booking)
+    details = "\n".join(
+        [
+            f"Therapist: {booking.therapist_name_snapshot}",
+            f"Service: {SERVICE_TYPE_LABELS[booking.service_type]}",
+            f"Session starts: {format_display_date(booking.date)} at {format_display_time(booking.time)}",
+            f"Reflection: {get_booking_quote(booking)}",
+            "Open this event in Google Calendar to save the session timing and prepare the virtual room details.",
+        ]
+    )
+    query = urlencode(
+        {
+            "action": "TEMPLATE",
+            "text": title,
+            "dates": (
+                f"{start_at.astimezone(dt_timezone.utc).strftime('%Y%m%dT%H%M%SZ')}/"
+                f"{end_at.astimezone(dt_timezone.utc).strftime('%Y%m%dT%H%M%SZ')}"
+            ),
+            "details": details,
+            "location": "Online session",
+        }
+    )
+    return f"https://calendar.google.com/calendar/render?{query}"
 
 
 def get_email_subject(kind: str, audience: str) -> str:
@@ -156,10 +188,10 @@ def get_email_intro(booking: Booking, kind: str, audience: str) -> str:
 
     intro_map = {
         EmailRecord.EmailKind.CONFIRMATION: (
-            f"Hello {booking.therapist_name_snapshot}, a new {booking.session_type} {SERVICE_TYPE_LABELS[booking.service_type].lower()} session has been booked. The client details, meeting link, and attached calendar invite are below."
+            f"Hello {booking.therapist_name_snapshot}, a new {booking.session_type} {SERVICE_TYPE_LABELS[booking.service_type].lower()} session has been booked. The client details, session link, and attached calendar invite are below."
         ),
         EmailRecord.EmailKind.RESCHEDULE: (
-            f"Hello {booking.therapist_name_snapshot}, a client has rescheduled an upcoming session. The refreshed meeting details and calendar invite are below."
+            f"Hello {booking.therapist_name_snapshot}, a client has rescheduled an upcoming session. The refreshed session details and calendar invite are below."
         ),
         EmailRecord.EmailKind.CANCELLATION: (
             f"Hello {booking.therapist_name_snapshot}, a client has cancelled a scheduled session. The updated calendar notice is attached so your calendar can stay in sync."
@@ -194,7 +226,7 @@ def get_summary_card_values(booking: Booking, audience: str) -> list[tuple[str, 
         cards.append(("Participants", str(booking.participant_count)))
 
     if booking.session_type == Booking.SessionType.VIRTUAL and booking.meet_link:
-        cards.append(("Google Meet Link", booking.meet_link))
+        cards.append(("Virtual Session Link", booking.meet_link))
     else:
         cards.append(("Location", booking.location_summary))
 
@@ -402,7 +434,7 @@ def build_calendar_description(booking: Booking) -> str:
     ]
 
     if booking.session_type == Booking.SessionType.VIRTUAL and booking.meet_link:
-        lines.append(f"Meeting Link: {booking.meet_link}")
+        lines.append(f"Virtual Session Link: {booking.meet_link}")
     else:
         lines.append(f"Location: {booking.location_summary}")
 
@@ -419,7 +451,7 @@ def build_calendar_invite(booking: Booking, kind: str) -> str:
     start_at, end_at = get_booking_time_window(booking)
     summary_prefix = "Cancelled" if kind == EmailRecord.EmailKind.CANCELLATION else "The Wellness Hub"
     summary = f"{summary_prefix}: {get_booking_session_title(booking)} with {booking.therapist_name_snapshot}"
-    location = booking.location_summary if booking.session_type == Booking.SessionType.PHYSICAL else "Online via Google Meet"
+    location = booking.location_summary if booking.session_type == Booking.SessionType.PHYSICAL else "Online virtual session"
     url = booking.meet_link or settings.FRONTEND_BASE_URL
 
     lines = [
