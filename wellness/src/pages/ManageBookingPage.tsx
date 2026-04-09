@@ -225,7 +225,7 @@ const ManageBookingPage = () => {
                   <div className="flex items-center gap-3">
                     <ShieldCheck className="h-5 w-5 text-primary" />
                     <p className="text-sm text-muted-foreground">
-                      Changes made here also update the therapist dashboard and confirmation package.
+                      Changes made You will receive a confirmation email shortly with your updated schedule and session details.
                     </p>
                   </div>
                 </div>

@@ -74,13 +74,7 @@ pip install -r requirements.txt
 python manage.py migrate
 ```
 
-4. Bootstrap the primary therapist account and default blog content:
-
-```powershell
-python manage.py bootstrap_wellness_demo
-```
-
-5. Start the API:
+4. Start the API:
 
 ```powershell
 python manage.py runserver
@@ -93,8 +87,7 @@ The project is ready for a PostgreSQL migration later. When you share the Supaba
 1. Add either `DATABASE_URL` or the individual `DB_*` variables in `.env`.
 2. If you use the individual fields, set `DB_ENGINE=postgres` and `DB_SSLMODE=require`.
 3. Run `python manage.py migrate` against Supabase/Postgres.
-4. Run `python manage.py bootstrap_wellness_demo` so the therapist account and default blog content exist in Supabase too.
-5. Optionally move media/image URLs to Supabase Storage.
+4. Optionally move media/image URLs to Supabase Storage.
 
 Example `.env` values for Supabase:
 

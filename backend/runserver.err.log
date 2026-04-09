@@ -875,3 +875,204 @@ Watching for file changes with StatReloader
 [09/Apr/2026 17:42:40] "OPTIONS /api/v1/dashboard/bookings/ae384946-c01f-4cd0-b03a-0eef712d797e/delete/ HTTP/1.1" 200 0
 [09/Apr/2026 17:42:42] "POST /api/v1/dashboard/bookings/ae384946-c01f-4cd0-b03a-0eef712d797e/delete/ HTTP/1.1" 200 16
 [09/Apr/2026 17:42:45] "GET /api/v1/dashboard/ HTTP/1.1" 200 34530
+[09/Apr/2026 17:46:03] "GET /api/v1/public/therapist/ HTTP/1.1" 200 879
+[09/Apr/2026 17:46:03] "GET /api/v1/blog/posts/ HTTP/1.1" 200 9408
+[09/Apr/2026 17:46:06] "GET /api/v1/dashboard/ HTTP/1.1" 200 34530
+[09/Apr/2026 17:46:33] "OPTIONS /api/v1/dashboard/bookings/485aad66-4b5f-4d21-b610-45d30c3fa1f8/delete/ HTTP/1.1" 200 0
+[09/Apr/2026 17:46:36] "POST /api/v1/dashboard/bookings/485aad66-4b5f-4d21-b610-45d30c3fa1f8/delete/ HTTP/1.1" 200 16
+[09/Apr/2026 17:46:38] "GET /api/v1/dashboard/ HTTP/1.1" 200 20804
+[09/Apr/2026 17:46:42] "OPTIONS /api/v1/dashboard/bookings/839a80d5-1296-44da-89ed-fc9597f92e6a/delete/ HTTP/1.1" 200 0
+[09/Apr/2026 17:46:45] "POST /api/v1/dashboard/bookings/839a80d5-1296-44da-89ed-fc9597f92e6a/delete/ HTTP/1.1" 200 16
+[09/Apr/2026 17:46:48] "GET /api/v1/dashboard/ HTTP/1.1" 200 15763
+[09/Apr/2026 17:46:50] "OPTIONS /api/v1/dashboard/bookings/95132c18-1566-43b7-8848-d03b125a42ec/delete/ HTTP/1.1" 200 0
+[09/Apr/2026 17:46:55] "POST /api/v1/dashboard/bookings/95132c18-1566-43b7-8848-d03b125a42ec/delete/ HTTP/1.1" 200 16
+[09/Apr/2026 17:47:13] "POST /api/v1/dashboard/notifications/mark-read/ HTTP/1.1" 200 16
+[09/Apr/2026 17:47:15] "GET /api/v1/dashboard/ HTTP/1.1" 200 10724
+[09/Apr/2026 17:47:17] "GET /api/v1/public/therapist/ HTTP/1.1" 200 879
+[09/Apr/2026 17:47:23] "GET /api/v1/blog/posts/ HTTP/1.1" 200 9408
+[09/Apr/2026 17:47:29] "GET /api/v1/public/therapist/ HTTP/1.1" 200 879
+[09/Apr/2026 17:47:35] "GET /api/v1/blog/posts/ HTTP/1.1" 200 9408
+Internal Server Error: /api/v1/bookings/
+Traceback (most recent call last):
+  File "C:\Users\CCS\AppData\Local\Programs\Python\Python312\Lib\site-packages\django\db\backends\base\base.py", line 275, in ensure_connection
+    self.connect()
+  File "C:\Users\CCS\AppData\Local\Programs\Python\Python312\Lib\site-packages\django\utils\asyncio.py", line 26, in inner
+    return func(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\CCS\AppData\Local\Programs\Python\Python312\Lib\site-packages\django\db\backends\base\base.py", line 256, in connect
+    self.connection = self.get_new_connection(conn_params)
+                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\CCS\AppData\Local\Programs\Python\Python312\Lib\site-packages\django\utils\asyncio.py", line 26, in inner
+    return func(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\CCS\AppData\Local\Programs\Python\Python312\Lib\site-packages\django\db\backends\postgresql\base.py", line 277, in get_new_connection
+    connection = self.Database.connect(**conn_params)
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\CCS\AppData\Local\Programs\Python\Python312\Lib\site-packages\psycopg2\__init__.py", line 122, in connect
+    conn = _connect(dsn, connection_factory=connection_factory, **kwasync)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+psycopg2.OperationalError: connection to server at "aws-0-eu-west-1.pooler.supabase.com" (52.209.89.87), port 6543 failed: server closed the connection unexpectedly
+	This probably means the server terminated abnormally
+	before or while processing the request.
+server closed the connection unexpectedly
+	This probably means the server terminated abnormally
+	before or while processing the request.
+
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "C:\Users\CCS\AppData\Local\Programs\Python\Python312\Lib\site-packages\django\core\handlers\exception.py", line 55, in inner
+    response = get_response(request)
+               ^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\CCS\AppData\Local\Programs\Python\Python312\Lib\site-packages\django\core\handlers\base.py", line 197, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\CCS\AppData\Local\Programs\Python\Python312\Lib\site-packages\django\views\decorators\csrf.py", line 65, in _view_wrapper
+    return view_func(request, *args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\CCS\AppData\Local\Programs\Python\Python312\Lib\site-packages\django\views\generic\base.py", line 104, in view
+    return self.dispatch(request, *args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\CCS\AppData\Local\Programs\Python\Python312\Lib\site-packages\rest_framework\views.py", line 515, in dispatch
+    response = self.handle_exception(exc)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\CCS\AppData\Local\Programs\Python\Python312\Lib\site-packages\rest_framework\views.py", line 475, in handle_exception
+    self.raise_uncaught_exception(exc)
+  File "C:\Users\CCS\AppData\Local\Programs\Python\Python312\Lib\site-packages\rest_framework\views.py", line 486, in raise_uncaught_exception
+    raise exc
+  File "C:\Users\CCS\AppData\Local\Programs\Python\Python312\Lib\site-packages\rest_framework\views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\CCS\Desktop\The-Hub\backend\apps\bookings\views.py", line 20, in post
+    serializer.is_valid(raise_exception=True)
+  File "C:\Users\CCS\AppData\Local\Programs\Python\Python312\Lib\site-packages\rest_framework\serializers.py", line 225, in is_valid
+    self._validated_data = self.run_validation(self.initial_data)
+                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\CCS\AppData\Local\Programs\Python\Python312\Lib\site-packages\rest_framework\serializers.py", line 444, in run_validation
+    value = self.to_internal_value(data)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\CCS\AppData\Local\Programs\Python\Python312\Lib\site-packages\rest_framework\serializers.py", line 501, in to_internal_value
+    validated_value = field.run_validation(primitive_value)
+                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\CCS\AppData\Local\Programs\Python\Python312\Lib\site-packages\rest_framework\relations.py", line 155, in run_validation
+    return super().run_validation(data)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\CCS\AppData\Local\Programs\Python\Python312\Lib\site-packages\rest_framework\fields.py", line 538, in run_validation
+    value = self.to_internal_value(data)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\CCS\AppData\Local\Programs\Python\Python312\Lib\site-packages\rest_framework\relations.py", line 457, in to_internal_value
+    return queryset.get(**{self.slug_field: data})
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\CCS\AppData\Local\Programs\Python\Python312\Lib\site-packages\django\db\models\query.py", line 645, in get
+    num = len(clone)
+          ^^^^^^^^^^
+  File "C:\Users\CCS\AppData\Local\Programs\Python\Python312\Lib\site-packages\django\db\models\query.py", line 382, in __len__
+    self._fetch_all()
+  File "C:\Users\CCS\AppData\Local\Programs\Python\Python312\Lib\site-packages\django\db\models\query.py", line 1928, in _fetch_all
+    self._result_cache = list(self._iterable_class(self))
+                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\CCS\AppData\Local\Programs\Python\Python312\Lib\site-packages\django\db\models\query.py", line 91, in __iter__
+    results = compiler.execute_sql(
+              ^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\CCS\AppData\Local\Programs\Python\Python312\Lib\site-packages\django\db\models\sql\compiler.py", line 1560, in execute_sql
+    cursor = self.connection.cursor()
+             ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\CCS\AppData\Local\Programs\Python\Python312\Lib\site-packages\django\utils\asyncio.py", line 26, in inner
+    return func(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\CCS\AppData\Local\Programs\Python\Python312\Lib\site-packages\django\db\backends\base\base.py", line 316, in cursor
+    return self._cursor()
+           ^^^^^^^^^^^^^^
+  File "C:\Users\CCS\AppData\Local\Programs\Python\Python312\Lib\site-packages\django\db\backends\base\base.py", line 292, in _cursor
+    self.ensure_connection()
+  File "C:\Users\CCS\AppData\Local\Programs\Python\Python312\Lib\site-packages\django\utils\asyncio.py", line 26, in inner
+    return func(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\CCS\AppData\Local\Programs\Python\Python312\Lib\site-packages\django\db\backends\base\base.py", line 274, in ensure_connection
+    with self.wrap_database_errors:
+  File "C:\Users\CCS\AppData\Local\Programs\Python\Python312\Lib\site-packages\django\db\utils.py", line 91, in __exit__
+    raise dj_exc_value.with_traceback(traceback) from exc_value
+  File "C:\Users\CCS\AppData\Local\Programs\Python\Python312\Lib\site-packages\django\db\backends\base\base.py", line 275, in ensure_connection
+    self.connect()
+  File "C:\Users\CCS\AppData\Local\Programs\Python\Python312\Lib\site-packages\django\utils\asyncio.py", line 26, in inner
+    return func(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\CCS\AppData\Local\Programs\Python\Python312\Lib\site-packages\django\db\backends\base\base.py", line 256, in connect
+    self.connection = self.get_new_connection(conn_params)
+                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\CCS\AppData\Local\Programs\Python\Python312\Lib\site-packages\django\utils\asyncio.py", line 26, in inner
+    return func(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\CCS\AppData\Local\Programs\Python\Python312\Lib\site-packages\django\db\backends\postgresql\base.py", line 277, in get_new_connection
+    connection = self.Database.connect(**conn_params)
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\CCS\AppData\Local\Programs\Python\Python312\Lib\site-packages\psycopg2\__init__.py", line 122, in connect
+    conn = _connect(dsn, connection_factory=connection_factory, **kwasync)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+django.db.utils.OperationalError: connection to server at "aws-0-eu-west-1.pooler.supabase.com" (52.209.89.87), port 6543 failed: server closed the connection unexpectedly
+	This probably means the server terminated abnormally
+	before or while processing the request.
+server closed the connection unexpectedly
+	This probably means the server terminated abnormally
+	before or while processing the request.
+
+[09/Apr/2026 17:53:38] "POST /api/v1/bookings/ HTTP/1.1" 500 28717
+[09/Apr/2026 17:54:10] "POST /api/v1/bookings/ HTTP/1.1" 201 30560
+[09/Apr/2026 17:57:11] "GET /api/v1/bookings/manage/2296b2be6f0cefecf1421233/ HTTP/1.1" 200 30560
+[09/Apr/2026 18:01:44] "GET /api/v1/bookings/manage/2296b2be6f0cefecf1421233/ HTTP/1.1" 200 30560
+[09/Apr/2026 18:01:44] "GET /api/v1/bookings/manage/2296b2be6f0cefecf1421233/ HTTP/1.1" 200 30560
+[09/Apr/2026 18:01:49] "GET /api/v1/bookings/manage/2296b2be6f0cefecf1421233/ HTTP/1.1" 200 30560
+[09/Apr/2026 18:07:56] "POST /api/v1/auth/verify-passphrase/ HTTP/1.1" 200 47
+[09/Apr/2026 18:08:44] "POST /api/v1/auth/login/ HTTP/1.1" 200 1500
+[09/Apr/2026 18:09:31] "GET /api/v1/blog/posts/ HTTP/1.1" 200 9408
+[09/Apr/2026 18:09:31] "GET /api/v1/public/therapist/ HTTP/1.1" 200 879
+C:\Users\CCS\Desktop\The-Hub\backend\config\settings.py changed, reloading.
+Watching for file changes with StatReloader
+[09/Apr/2026 18:11:31] "POST /api/v1/auth/verify-passphrase/ HTTP/1.1" 200 47
+[09/Apr/2026 18:13:26] "POST /api/v1/auth/login/ HTTP/1.1" 200 1500
+[09/Apr/2026 18:13:32] "GET /api/v1/dashboard/ HTTP/1.1" 200 76862
+[09/Apr/2026 18:15:11] "POST /api/v1/dashboard/notifications/mark-read/ HTTP/1.1" 200 16
+[09/Apr/2026 18:15:16] "OPTIONS /api/v1/dashboard/notifications/4e4994da-7862-49b3-ab83-5ff8b848d8e1/ HTTP/1.1" 200 0
+[09/Apr/2026 18:15:18] "DELETE /api/v1/dashboard/notifications/4e4994da-7862-49b3-ab83-5ff8b848d8e1/ HTTP/1.1" 204 0
+[09/Apr/2026 18:15:21] "OPTIONS /api/v1/dashboard/notifications/c9709679-8209-423b-86e0-1090452cc718/ HTTP/1.1" 200 0
+[09/Apr/2026 18:15:23] "DELETE /api/v1/dashboard/notifications/c9709679-8209-423b-86e0-1090452cc718/ HTTP/1.1" 204 0
+[09/Apr/2026 18:15:28] "OPTIONS /api/v1/dashboard/notifications/a7172fb2-b7ea-47c7-b777-f160584acace/ HTTP/1.1" 200 0
+[09/Apr/2026 18:15:30] "DELETE /api/v1/dashboard/notifications/a7172fb2-b7ea-47c7-b777-f160584acace/ HTTP/1.1" 204 0
+[09/Apr/2026 18:15:40] "OPTIONS /api/v1/dashboard/bookings/83a3e4e5-88a3-4609-bf6f-a85f7361264e/delete/ HTTP/1.1" 200 0
+[09/Apr/2026 18:15:42] "POST /api/v1/dashboard/bookings/83a3e4e5-88a3-4609-bf6f-a85f7361264e/delete/ HTTP/1.1" 200 16
+[09/Apr/2026 18:15:45] "GET /api/v1/dashboard/ HTTP/1.1" 200 41032
+[09/Apr/2026 18:15:48] "OPTIONS /api/v1/dashboard/bookings/d8e766fd-9681-42ef-af7b-9bb1b5c0a0d6/delete/ HTTP/1.1" 200 0
+[09/Apr/2026 18:15:51] "POST /api/v1/dashboard/bookings/d8e766fd-9681-42ef-af7b-9bb1b5c0a0d6/delete/ HTTP/1.1" 200 16
+[09/Apr/2026 18:15:53] "GET /api/v1/dashboard/ HTTP/1.1" 200 10472
+C:\Users\CCS\Desktop\The-Hub\backend\config\settings.py changed, reloading.
+Traceback (most recent call last):
+  File "C:\Users\CCS\Desktop\The-Hub\backend\manage.py", line 18, in <module>
+    main()
+  File "C:\Users\CCS\Desktop\The-Hub\backend\manage.py", line 14, in main
+    execute_from_command_line(sys.argv)
+  File "C:\Users\CCS\AppData\Local\Programs\Python\Python312\Lib\site-packages\django\core\management\__init__.py", line 442, in execute_from_command_line
+    utility.execute()
+  File "C:\Users\CCS\AppData\Local\Programs\Python\Python312\Lib\site-packages\django\core\management\__init__.py", line 382, in execute
+    settings.INSTALLED_APPS
+  File "C:\Users\CCS\AppData\Local\Programs\Python\Python312\Lib\site-packages\django\conf\__init__.py", line 89, in __getattr__
+    self._setup(name)
+  File "C:\Users\CCS\AppData\Local\Programs\Python\Python312\Lib\site-packages\django\conf\__init__.py", line 76, in _setup
+    self._wrapped = Settings(settings_module)
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\CCS\AppData\Local\Programs\Python\Python312\Lib\site-packages\django\conf\__init__.py", line 190, in __init__
+    mod = importlib.import_module(self.SETTINGS_MODULE)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\CCS\AppData\Local\Programs\Python\Python312\Lib\importlib\__init__.py", line 90, in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "<frozen importlib._bootstrap>", line 1387, in _gcd_import
+  File "<frozen importlib._bootstrap>", line 1360, in _find_and_load
+  File "<frozen importlib._bootstrap>", line 1331, in _find_and_load_unlocked
+  File "<frozen importlib._bootstrap>", line 935, in _load_unlocked
+  File "<frozen importlib._bootstrap_external>", line 995, in exec_module
+  File "<frozen importlib._bootstrap>", line 488, in _call_with_frames_removed
+  File "C:\Users\CCS\Desktop\The-Hub\backend\config\settings.py", line 112, in <module>
+    SUPABASE_DB_CONFIG_PRESENT = any(
+                                 ^^^^
+TypeError: any() takes exactly one argument (4 given)

@@ -37,6 +37,15 @@ def env(key: str, default: str = "") -> str:
     return os.getenv(key, default)
 
 
+def env_any(*keys: str, default: str = "") -> str:
+    for key in keys:
+        value = os.getenv(key)
+        if value:
+            return value
+
+    return default
+
+
 def env_list(key: str, default: str = "") -> list[str]:
     raw = env(key, default)
     return [value.strip() for value in raw.split(",") if value.strip()]
@@ -45,6 +54,8 @@ def env_list(key: str, default: str = "") -> list[str]:
 SECRET_KEY = env("DJANGO_SECRET_KEY", "django-insecure-the-wellness-hub-local-dev")
 DEBUG = env("DJANGO_DEBUG", "True").lower() == "true"
 ALLOWED_HOSTS = env_list("DJANGO_ALLOWED_HOSTS", "localhost,127.0.0.1,[::1],testserver")
+USE_X_FORWARDED_HOST = True
+SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 
 if DEBUG and "*" not in ALLOWED_HOSTS:
     ALLOWED_HOSTS = [*ALLOWED_HOSTS, "0.0.0.0", "*"]
@@ -98,20 +109,30 @@ TEMPLATES = [
 WSGI_APPLICATION = "config.wsgi.application"
 ASGI_APPLICATION = "config.asgi.application"
 
-DB_ENGINE = env("DB_ENGINE", "sqlite").lower()
-DATABASE_URL = env("DATABASE_URL")
+SUPABASE_DB_CONFIG_PRESENT = any(
+    [
+        env_any("SUPABASE_DB_NAME"),
+        env_any("SUPABASE_DB_USER"),
+        env_any("SUPABASE_DB_PASSWORD"),
+        env_any("SUPABASE_DB_HOST"),
+    ]
+)
+DB_ENGINE = env_any("DB_ENGINE", default="postgres" if SUPABASE_DB_CONFIG_PRESENT else "sqlite").lower()
+DATABASE_URL = env_any("DATABASE_URL")
+DB_CONN_MAX_AGE = int(env_any("DB_CONN_MAX_AGE", default="0") or "0")
 
 if DATABASE_URL:
     parsed_db = urlparse(DATABASE_URL)
     db_query = parse_qs(parsed_db.query)
-    sslmode = db_query.get("sslmode", [env("DB_SSLMODE", "")])[0]
+    sslmode = db_query.get("sslmode", [env_any("DB_SSLMODE", "SUPABASE_DB_SSLMODE", default="")])[0]
     database_config = {
         "ENGINE": "django.db.backends.postgresql",
-        "NAME": unquote(parsed_db.path.lstrip("/")) or env("DB_NAME", "postgres"),
-        "USER": unquote(parsed_db.username or env("DB_USER", "")),
-        "PASSWORD": unquote(parsed_db.password or env("DB_PASSWORD", "")),
-        "HOST": parsed_db.hostname or env("DB_HOST", "localhost"),
-        "PORT": str(parsed_db.port or env("DB_PORT", "5432")),
+        "NAME": unquote(parsed_db.path.lstrip("/")) or env_any("DB_NAME", "SUPABASE_DB_NAME", default="postgres"),
+        "USER": unquote(parsed_db.username or env_any("DB_USER", "SUPABASE_DB_USER", default="")),
+        "PASSWORD": unquote(parsed_db.password or env_any("DB_PASSWORD", "SUPABASE_DB_PASSWORD", default="")),
+        "HOST": parsed_db.hostname or env_any("DB_HOST", "SUPABASE_DB_HOST", default="localhost"),
+        "PORT": str(parsed_db.port or env_any("DB_PORT", "SUPABASE_DB_PORT", default="5432")),
+        "CONN_MAX_AGE": DB_CONN_MAX_AGE,
     }
 
     if sslmode:
@@ -120,14 +141,15 @@ if DATABASE_URL:
     DATABASES = {"default": database_config}
 
 elif DB_ENGINE == "postgres":
-    sslmode = env("DB_SSLMODE", "")
+    sslmode = env_any("DB_SSLMODE", "SUPABASE_DB_SSLMODE", default="")
     database_config = {
         "ENGINE": "django.db.backends.postgresql",
-        "NAME": env("DB_NAME", "wellness_hub"),
-        "USER": env("DB_USER", ""),
-        "PASSWORD": env("DB_PASSWORD", ""),
-        "HOST": env("DB_HOST", "localhost"),
-        "PORT": env("DB_PORT", "5432"),
+        "NAME": env_any("DB_NAME", "SUPABASE_DB_NAME", default="wellness_hub"),
+        "USER": env_any("DB_USER", "SUPABASE_DB_USER", default=""),
+        "PASSWORD": env_any("DB_PASSWORD", "SUPABASE_DB_PASSWORD", default=""),
+        "HOST": env_any("DB_HOST", "SUPABASE_DB_HOST", default="localhost"),
+        "PORT": env_any("DB_PORT", "SUPABASE_DB_PORT", default="5432"),
+        "CONN_MAX_AGE": DB_CONN_MAX_AGE,
     }
 
     if sslmode:
@@ -141,6 +163,7 @@ else:
         "default": {
             "ENGINE": "django.db.backends.sqlite3",
             "NAME": BASE_DIR / env("DB_NAME", "db.sqlite3"),
+            "CONN_MAX_AGE": DB_CONN_MAX_AGE,
         }
     }
 
@@ -152,7 +175,7 @@ AUTH_PASSWORD_VALIDATORS = [
 ]
 
 LANGUAGE_CODE = "en-us"
-TIME_ZONE = "Africa/Nairobi"
+TIME_ZONE = env_any("DJANGO_TIME_ZONE", default="Africa/Nairobi")
 USE_I18N = True
 USE_TZ = True
 
