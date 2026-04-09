@@ -11,7 +11,7 @@ class Command(BaseCommand):
 
     @transaction.atomic
     def handle(self, *args, **options):
-        email = "linkentnerg@gmail.com"
+        email = "likentnerg@gmail.com"
         password = "WellnessHub2026!"
         secret_passphrase = "gichia"
 

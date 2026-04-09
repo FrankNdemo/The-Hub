@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import os
 from datetime import timedelta
+from email.utils import parseaddr
 from pathlib import Path
 from urllib.parse import parse_qs, unquote, urlparse
 
@@ -43,7 +44,10 @@ def env_list(key: str, default: str = "") -> list[str]:
 
 SECRET_KEY = env("DJANGO_SECRET_KEY", "django-insecure-the-wellness-hub-local-dev")
 DEBUG = env("DJANGO_DEBUG", "True").lower() == "true"
-ALLOWED_HOSTS = env_list("DJANGO_ALLOWED_HOSTS", "localhost,127.0.0.1")
+ALLOWED_HOSTS = env_list("DJANGO_ALLOWED_HOSTS", "localhost,127.0.0.1,[::1],testserver")
+
+if DEBUG and "*" not in ALLOWED_HOSTS:
+    ALLOWED_HOSTS = [*ALLOWED_HOSTS, "0.0.0.0", "*"]
 
 INSTALLED_APPS = [
     "django.contrib.admin",
@@ -163,11 +167,43 @@ CORS_ALLOWED_ORIGINS = env_list(
     "DJANGO_CORS_ALLOWED_ORIGINS",
     "http://localhost:8080,http://127.0.0.1:8080,http://localhost:5173,http://127.0.0.1:5173",
 )
+CORS_ALLOWED_ORIGIN_REGEXES = (
+    [
+        r"^https?://localhost(?::\d+)?$",
+        r"^https?://127\.0\.0\.1(?::\d+)?$",
+        r"^https?://\[::1\](?::\d+)?$",
+        r"^https?://0\.0\.0\.0(?::\d+)?$",
+        r"^https?://10(?:\.\d{1,3}){3}(?::\d+)?$",
+        r"^https?://192\.168(?:\.\d{1,3}){2}(?::\d+)?$",
+        r"^https?://172\.(?:1[6-9]|2\d|3[0-1])(?:\.\d{1,3}){2}(?::\d+)?$",
+    ]
+    if DEBUG
+    else []
+)
 CSRF_TRUSTED_ORIGINS = env_list(
     "DJANGO_CSRF_TRUSTED_ORIGINS",
     "http://localhost:8080,http://127.0.0.1:8080,http://localhost:5173,http://127.0.0.1:5173",
 )
 FRONTEND_BASE_URL = env("FRONTEND_BASE_URL", "http://localhost:8080").rstrip("/")
+
+EMAIL_BACKEND = env("EMAIL_BACKEND", "django.core.mail.backends.console.EmailBackend")
+EMAIL_HOST = env("EMAIL_HOST", "")
+EMAIL_PORT = int(env("EMAIL_PORT", "587") or "587")
+EMAIL_HOST_USER = env("EMAIL_HOST_USER", "")
+EMAIL_HOST_PASSWORD = env("EMAIL_HOST_PASSWORD", "")
+EMAIL_USE_TLS = env("EMAIL_USE_TLS", "False").lower() == "true"
+EMAIL_USE_SSL = env("EMAIL_USE_SSL", "False").lower() == "true"
+EMAIL_TIMEOUT = int(env("EMAIL_TIMEOUT", "30") or "30")
+DEFAULT_FROM_EMAIL = env("DEFAULT_FROM_EMAIL", "The Wellness Hub <no-reply@wellnesshub.local>")
+SERVER_EMAIL = env("SERVER_EMAIL", DEFAULT_FROM_EMAIL)
+parsed_reply_to = parseaddr(DEFAULT_FROM_EMAIL)[1]
+WELLNESS_HUB_REPLY_TO = env("WELLNESS_HUB_REPLY_TO", parsed_reply_to)
+BOOKING_DURATION_MINUTES = int(env("BOOKING_DURATION_MINUTES", "60") or "60")
+BOOKING_CALENDAR_UID_DOMAIN = env("BOOKING_CALENDAR_UID_DOMAIN", "wellnesshub.local")
+BOOKING_CALENDAR_ORGANIZER_NAME = env("BOOKING_CALENDAR_ORGANIZER_NAME", "The Wellness Hub")
+BREVO_API_KEY = env("BREVO_API_KEY", "")
+BREVO_API_URL = env("BREVO_API_URL", "https://api.brevo.com/v3/smtp/email")
+BREVO_API_TIMEOUT = int(env("BREVO_API_TIMEOUT", "30") or "30")
 
 REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": (

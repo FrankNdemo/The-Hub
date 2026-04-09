@@ -1,4 +1,4 @@
-import { FormEvent, useEffect, useState } from "react";
+import { FormEvent, useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { ShieldCheck } from "lucide-react";
 import { toast } from "sonner";
@@ -34,10 +34,46 @@ const TherapistPortalAccess = () => {
   const [isUnlocking, setIsUnlocking] = useState(false);
   const [isLoggingIn, setIsLoggingIn] = useState(false);
   const [isResettingPassword, setIsResettingPassword] = useState(false);
+  const passphraseInputRef = useRef<HTMLInputElement | null>(null);
+  const passwordInputRef = useRef<HTMLInputElement | null>(null);
+
+  const formatPassphraseError = (message: string) => {
+    const normalized = message.trim().toLowerCase();
+
+    if (normalized.includes("unable to reach the wellness api")) {
+      return "Unable to verify the secret passphrase right now. Refresh the page and try again.";
+    }
+
+    return message;
+  };
 
   useEffect(() => {
     setEmail(therapist.email);
   }, [therapist.email]);
+
+  useEffect(() => {
+    if (!showPassphrase || loginOpen) {
+      return;
+    }
+
+    const frame = window.requestAnimationFrame(() => {
+      passphraseInputRef.current?.focus();
+    });
+
+    return () => window.cancelAnimationFrame(frame);
+  }, [loginOpen, showPassphrase]);
+
+  useEffect(() => {
+    if (!loginOpen || mode !== "login") {
+      return;
+    }
+
+    const frame = window.requestAnimationFrame(() => {
+      passwordInputRef.current?.focus();
+    });
+
+    return () => window.cancelAnimationFrame(frame);
+  }, [loginOpen, mode]);
 
   const resetDialogState = () => {
     setMode("login");
@@ -55,19 +91,23 @@ const TherapistPortalAccess = () => {
   const unlockPortal = async (value: string) => {
     setIsUnlocking(true);
 
-    const isValid = await verifyTherapistPassphrase(value);
+    const result = await verifyTherapistPassphrase(value);
 
-    if (!isValid) {
-      setPassphraseError("Passphrase not recognized.");
+    if (!result.success) {
+      setPassphrase("");
+      setPassphraseError(formatPassphraseError(result.error));
       setIsUnlocking(false);
+      window.requestAnimationFrame(() => {
+        passphraseInputRef.current?.focus();
+      });
       return;
     }
 
     setPassphraseError("");
     setPassphrase("");
-    setShowPassphrase(false);
     resetDialogState();
     setLoginOpen(true);
+    setShowPassphrase(false);
     setIsUnlocking(false);
   };
 
@@ -81,7 +121,18 @@ const TherapistPortalAccess = () => {
 
   const handlePassphraseSubmit = async (event: FormEvent) => {
     event.preventDefault();
-    await unlockPortal(passphrase);
+    const value = passphrase.trim();
+
+    if (!value) {
+      setPassphrase("");
+      setPassphraseError("Enter the secret passphrase.");
+      window.requestAnimationFrame(() => {
+        passphraseInputRef.current?.focus();
+      });
+      return;
+    }
+
+    await unlockPortal(value);
   };
 
   const handleDialogChange = (open: boolean) => {
@@ -96,11 +147,11 @@ const TherapistPortalAccess = () => {
     event.preventDefault();
 
     setIsLoggingIn(true);
-    const success = await loginTherapist(email, password);
+    const result = await loginTherapist(email, password);
     setIsLoggingIn(false);
 
-    if (!success) {
-      setLoginError("Incorrect therapist credentials.");
+    if (!result.success) {
+      setLoginError(result.error);
       return;
     }
 
@@ -145,22 +196,21 @@ const TherapistPortalAccess = () => {
       {showPassphrase ? (
         <form
           onSubmit={handlePassphraseSubmit}
-          className="w-full max-w-xs rounded-full border border-primary/20 bg-primary/5 px-2 py-2 shadow-card"
+          className="w-full max-w-xs rounded-[1.75rem] border border-primary/20 bg-primary/5 px-4 py-3 shadow-card"
         >
           <div className="flex items-center">
             <Input
+              ref={passphraseInputRef}
               value={passphrase}
               onChange={(event) => handlePassphraseChange(event.target.value)}
               placeholder="Enter secure passphrase"
               className="h-10 rounded-full border-0 bg-transparent shadow-none focus-visible:ring-0"
               autoFocus
               aria-label="Enter secure passphrase"
+              disabled={isUnlocking}
             />
           </div>
           {passphraseError ? <p className="mt-2 text-xs text-destructive">{passphraseError}</p> : null}
-          <Button type="submit" variant="hero" className="mt-2 w-full rounded-full" disabled={isUnlocking}>
-            {isUnlocking ? "Checking..." : "Continue"}
-          </Button>
         </form>
       ) : (
         <button
@@ -207,6 +257,7 @@ const TherapistPortalAccess = () => {
                   <Label htmlFor="therapist-password">Password</Label>
                   <Input
                     id="therapist-password"
+                    ref={passwordInputRef}
                     type="password"
                     value={password}
                     onChange={(event) => setPassword(event.target.value)}

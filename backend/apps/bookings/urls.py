@@ -6,6 +6,7 @@ from .views import (
     BookingManageRescheduleView,
     PublicBookingCreateView,
     TherapistBookingCompleteView,
+    TherapistBookingDeleteView,
     TherapistBookingListView,
 )
 
@@ -28,5 +29,10 @@ urlpatterns = [
         "dashboard/bookings/<uuid:pk>/complete/",
         TherapistBookingCompleteView.as_view(),
         name="dashboard-booking-complete",
+    ),
+    path(
+        "dashboard/bookings/<uuid:pk>/delete/",
+        TherapistBookingDeleteView.as_view(),
+        name="dashboard-booking-delete",
     ),
 ]

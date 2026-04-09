@@ -72,8 +72,8 @@ const Navbar = () => {
     window.scrollTo({ top: 0, left: 0, behavior: "auto" });
   };
 
-  const handleTherapistLogout = async () => {
-    await logoutTherapist();
+  const handleTherapistLogout = () => {
+    void logoutTherapist();
     clearPendingPreview();
     clearPreviewPath();
     setOpen(false);

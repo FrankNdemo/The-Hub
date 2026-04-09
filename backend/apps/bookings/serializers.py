@@ -107,3 +107,13 @@ class BookingCreateSerializer(serializers.Serializer):
 class BookingRescheduleSerializer(serializers.Serializer):
     date = serializers.DateField()
     time = serializers.TimeField(input_formats=["%H:%M", "%H:%M:%S"])
+
+
+class BookingDeleteSerializer(serializers.Serializer):
+    reason = serializers.CharField(max_length=500)
+
+    def validate_reason(self, value: str) -> str:
+        cleaned = value.strip()
+        if not cleaned:
+            raise serializers.ValidationError("Please provide a reason before deleting this session.")
+        return cleaned

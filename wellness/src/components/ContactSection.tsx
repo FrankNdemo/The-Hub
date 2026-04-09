@@ -10,7 +10,7 @@ const ContactSection = () => (
         {[
           { icon: MapPin, title: "Location", lines: ["Nairobi, Westlands", "1st Floor Realite building", "Crescent Lane off Parklands Road"] },
           { icon: Phone, title: "Phone", lines: ["+254 726 759 850"] },
-          { icon: Mail, title: "Email", lines: ["linkentnerg@gmail.com"] },
+          { icon: Mail, title: "Email", lines: ["likentnerg@gmail.com"] },
           { icon: Clock, title: "Hours", lines: ["Tue – Sat", "10:00 AM – 7:00 PM"] },
         ].map((c) => (
           <div key={c.title} className="bg-card rounded-xl p-6 shadow-card text-center">

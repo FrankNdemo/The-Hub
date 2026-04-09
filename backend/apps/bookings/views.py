@@ -6,8 +6,9 @@ from rest_framework.views import APIView
 from apps.therapists.permissions import IsTherapistAuthenticated
 
 from .models import Booking
-from .serializers import BookingCreateSerializer, BookingDetailSerializer, BookingRescheduleSerializer
-from .services import cancel_booking, complete_booking, create_booking, reschedule_booking
+from .serializers import BookingCreateSerializer, BookingDeleteSerializer, BookingDetailSerializer, BookingRescheduleSerializer
+from .delivery import BookingDeliveryError
+from .services import cancel_booking, complete_booking, create_booking, delete_booking, reschedule_booking
 
 
 class PublicBookingCreateView(APIView):
@@ -17,10 +18,13 @@ class PublicBookingCreateView(APIView):
     def post(self, request):
         serializer = BookingCreateSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        booking = create_booking(
-            therapist=serializer.validated_data["therapist"],
-            data=serializer.validated_data,
-        )
+        try:
+            booking = create_booking(
+                therapist=serializer.validated_data["therapist"],
+                data=serializer.validated_data,
+            )
+        except BookingDeliveryError as exc:
+            return Response({"detail": str(exc)}, status=status.HTTP_503_SERVICE_UNAVAILABLE)
         return Response(BookingDetailSerializer(booking).data, status=status.HTTP_201_CREATED)
 
 
@@ -32,6 +36,7 @@ class BookingManageDetailView(APIView):
         booking = generics.get_object_or_404(
             Booking.objects.select_related("therapist").prefetch_related("emails", "history"),
             manage_token=token,
+            deleted_at__isnull=True,
         )
         return Response(BookingDetailSerializer(booking).data)
 
@@ -46,6 +51,7 @@ class BookingManageRescheduleView(APIView):
         booking = generics.get_object_or_404(
             Booking.objects.select_related("therapist").prefetch_related("emails", "history"),
             manage_token=token,
+            deleted_at__isnull=True,
         )
         try:
             updated_booking = reschedule_booking(
@@ -53,6 +59,8 @@ class BookingManageRescheduleView(APIView):
                 date=serializer.validated_data["date"],
                 time=serializer.validated_data["time"],
             )
+        except BookingDeliveryError as exc:
+            return Response({"detail": str(exc)}, status=status.HTTP_503_SERVICE_UNAVAILABLE)
         except ValueError as exc:
             return Response({"detail": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
 
@@ -67,9 +75,12 @@ class BookingManageCancelView(APIView):
         booking = generics.get_object_or_404(
             Booking.objects.select_related("therapist").prefetch_related("emails", "history"),
             manage_token=token,
+            deleted_at__isnull=True,
         )
         try:
             updated_booking = cancel_booking(booking=booking)
+        except BookingDeliveryError as exc:
+            return Response({"detail": str(exc)}, status=status.HTTP_503_SERVICE_UNAVAILABLE)
         except ValueError as exc:
             return Response({"detail": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
         return Response(BookingDetailSerializer(updated_booking).data)
@@ -80,7 +91,7 @@ class TherapistBookingListView(APIView):
 
     def get(self, request):
         bookings = (
-            Booking.objects.filter(therapist=request.user.therapist_profile)
+            Booking.objects.filter(therapist=request.user.therapist_profile, deleted_at__isnull=True)
             .select_related("therapist")
             .prefetch_related("emails", "history")
         )
@@ -95,9 +106,31 @@ class TherapistBookingCompleteView(APIView):
             Booking.objects.select_related("therapist").prefetch_related("emails", "history"),
             pk=pk,
             therapist=request.user.therapist_profile,
+            deleted_at__isnull=True,
         )
         try:
             updated_booking = complete_booking(booking=booking)
         except ValueError as exc:
             return Response({"detail": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
         return Response(BookingDetailSerializer(updated_booking).data)
+
+
+class TherapistBookingDeleteView(APIView):
+    permission_classes = [IsTherapistAuthenticated]
+
+    def post(self, request, pk):
+        serializer = BookingDeleteSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        booking = generics.get_object_or_404(
+            Booking.objects.select_related("therapist").prefetch_related("emails", "history"),
+            pk=pk,
+            therapist=request.user.therapist_profile,
+            deleted_at__isnull=True,
+        )
+        try:
+            delete_booking(booking=booking, reason=serializer.validated_data["reason"])
+        except ValueError as exc:
+            return Response({"detail": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
+
+        return Response({"success": True}, status=status.HTTP_200_OK)

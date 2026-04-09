@@ -6,6 +6,7 @@ import {
   ApiError,
   clearStoredAuthTokens,
   createBooking as createBookingRequest,
+  deleteBookingRequest,
   deleteBlogPostRequest,
   deleteNotificationRequest,
   fetchDashboardOverview,
@@ -38,7 +39,7 @@ import type {
   WellnessHubState,
 } from "@/types/wellness";
 
-type SecurityActionResult = { success: true } | { success: false; error: string };
+type ActionResult = { success: true } | { success: false; error: string };
 
 interface WellnessHubContextValue extends WellnessHubState {
   isInitializing: boolean;
@@ -50,30 +51,31 @@ interface WellnessHubContextValue extends WellnessHubState {
   rescheduleBooking: (input: { token: string; date: string; time: string }) => Promise<BookingRecord>;
   cancelBooking: (token: string) => Promise<BookingRecord>;
   markBookingCompleted: (id: string) => Promise<BookingRecord>;
+  deleteBooking: (id: string, reason: string) => Promise<void>;
   saveBlogPost: (draft: BlogPostDraft) => Promise<BlogPost>;
   deleteBlogPost: (id: string) => Promise<void>;
   dismissNotification: (id: string) => Promise<void>;
   markNotificationsRead: () => Promise<void>;
   updateTherapistProfile: (profile: TherapistProfile) => Promise<TherapistProfile>;
-  verifyTherapistPassphrase: (passphrase: string) => Promise<boolean>;
-  loginTherapist: (email: string, password: string) => Promise<boolean>;
-  updateTherapistPassword: (currentPassword: string, nextPassword: string) => Promise<SecurityActionResult>;
+  verifyTherapistPassphrase: (passphrase: string) => Promise<ActionResult>;
+  loginTherapist: (email: string, password: string) => Promise<ActionResult>;
+  updateTherapistPassword: (currentPassword: string, nextPassword: string) => Promise<ActionResult>;
   updateTherapistSecretPassphrase: (
     currentSecretPassphrase: string,
     nextSecretPassphrase: string,
-  ) => Promise<SecurityActionResult>;
+  ) => Promise<ActionResult>;
   resetTherapistPassword: (
     email: string,
     secretPassphrase: string,
     nextPassword: string,
-  ) => Promise<SecurityActionResult>;
+  ) => Promise<ActionResult>;
   logoutTherapist: () => Promise<void>;
 }
 
 const WellnessHubContext = createContext<WellnessHubContextValue | null>(null);
 
 const defaultState: WellnessHubState = {
-  blogPosts: [],
+  blogPosts: seedBlogPosts,
   bookings: [],
   notifications: [],
   therapist: primaryTherapist,
@@ -291,8 +293,10 @@ export const WellnessHubProvider = ({ children }: { children: React.ReactNode })
             .filter((post): post is BlogPost => Boolean(post))
         : undefined;
 
-    if (therapist || blogPosts) {
-      setPublicContent({ therapist, blogPosts });
+    const nextBlogPosts = blogPosts && blogPosts.length > 0 ? blogPosts : undefined;
+
+    if (therapist || nextBlogPosts) {
+      setPublicContent({ therapist, blogPosts: nextBlogPosts });
     }
   };
 
@@ -433,6 +437,16 @@ export const WellnessHubProvider = ({ children }: { children: React.ReactNode })
     return booking;
   };
 
+  const deleteBooking = async (id: string, reason: string) => {
+    await deleteBookingRequest(id, reason);
+    setState((current) => ({
+      ...current,
+      bookings: current.bookings.filter((booking) => booking.id !== id),
+    }));
+
+    void refreshDashboard().catch(() => undefined);
+  };
+
   const saveBlogPost = async (draft: BlogPostDraft) => {
     const post = normalizeBlogPost(await saveBlogPostRequest(draft));
 
@@ -499,9 +513,12 @@ export const WellnessHubProvider = ({ children }: { children: React.ReactNode })
   const verifyTherapistPassphrase = async (passphrase: string) => {
     try {
       await verifyTherapistPassphraseRequest(passphrase);
-      return true;
-    } catch {
-      return false;
+      return { success: true } as const;
+    } catch (error) {
+      return {
+        success: false,
+        error: getApiErrorMessage(error, "Unable to verify the therapist passphrase right now."),
+      } as const;
     }
   };
 
@@ -521,18 +538,21 @@ export const WellnessHubProvider = ({ children }: { children: React.ReactNode })
         // Keep the authenticated session even if the dashboard snapshot fails to hydrate immediately.
       }
 
-      return true;
-    } catch {
+      return { success: true } as const;
+    } catch (error) {
       clearStoredAuthTokens();
       resetAuthenticatedState();
-      return false;
+      return {
+        success: false,
+        error: getApiErrorMessage(error, "Unable to log in to the therapist portal right now."),
+      } as const;
     }
   };
 
   const updateTherapistPassword = async (
     currentPassword: string,
     nextPassword: string,
-  ): Promise<SecurityActionResult> => {
+  ): Promise<ActionResult> => {
     if (!nextPassword.trim()) {
       return { success: false, error: "Please enter a new password." };
     }
@@ -551,7 +571,7 @@ export const WellnessHubProvider = ({ children }: { children: React.ReactNode })
   const updateTherapistSecretPassphrase = async (
     currentSecretPassphrase: string,
     nextSecretPassphrase: string,
-  ): Promise<SecurityActionResult> => {
+  ): Promise<ActionResult> => {
     if (!nextSecretPassphrase.trim()) {
       return { success: false, error: "Please enter a new secret passphrase." };
     }
@@ -571,7 +591,7 @@ export const WellnessHubProvider = ({ children }: { children: React.ReactNode })
     email: string,
     secretPassphrase: string,
     nextPassword: string,
-  ): Promise<SecurityActionResult> => {
+  ): Promise<ActionResult> => {
     if (!nextPassword.trim()) {
       return { success: false, error: "Please enter a new password." };
     }
@@ -588,8 +608,10 @@ export const WellnessHubProvider = ({ children }: { children: React.ReactNode })
   };
 
   const logoutTherapist = async () => {
-    await logoutTherapistRequest();
     resetAuthenticatedState();
+    clearStoredAuthTokens();
+
+    void logoutTherapistRequest().catch(() => undefined);
 
     try {
       await refreshPublicContent();
@@ -609,6 +631,7 @@ export const WellnessHubProvider = ({ children }: { children: React.ReactNode })
     rescheduleBooking,
     cancelBooking,
     markBookingCompleted,
+    deleteBooking,
     saveBlogPost,
     deleteBlogPost,
     dismissNotification,

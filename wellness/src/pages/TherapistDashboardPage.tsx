@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, Navigate } from "react-router-dom";
 import {
   BellRing,
   CalendarCheck2,
@@ -20,6 +20,7 @@ import RichTextEditor from "@/components/RichTextEditor";
 import TherapistSecurityPanel from "@/components/TherapistSecurityPanel";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -36,7 +37,7 @@ import { useWellnessHub } from "@/context/WellnessHubContext";
 import { getApiErrorMessage } from "@/lib/api";
 import { softPageBackgroundStyle } from "@/lib/pageBackground";
 import { formatDisplayDate, formatDisplayTime, formatServiceType, stripHtml } from "@/lib/wellness";
-import type { BlogPostDraft, BookingStatus, TherapistProfile } from "@/types/wellness";
+import type { BlogPostDraft, BookingRecord, BookingStatus, TherapistProfile } from "@/types/wellness";
 
 interface TherapistProfileFormState {
   name: string;
@@ -158,6 +159,7 @@ const TherapistDashboardPage = () => {
     isInitializing,
     isTherapistAuthenticated,
     markBookingCompleted,
+    deleteBooking,
     saveBlogPost,
     deleteBlogPost,
     dismissNotification,
@@ -171,6 +173,9 @@ const TherapistDashboardPage = () => {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [expandedOverviewBookingId, setExpandedOverviewBookingId] = useState<string | null>(null);
   const [profileDraft, setProfileDraft] = useState<TherapistProfileFormState>(() => makeProfileDraft(therapist));
+  const [bookingToDelete, setBookingToDelete] = useState<BookingRecord | null>(null);
+  const [deleteReason, setDeleteReason] = useState("");
+  const [isDeletingBooking, setIsDeletingBooking] = useState(false);
 
   useEffect(() => {
     setProfileDraft(makeProfileDraft(therapist));
@@ -360,6 +365,46 @@ const TherapistDashboardPage = () => {
     setExpandedOverviewBookingId((current) => (current === id ? null : id));
   };
 
+  const openDeleteBookingDialog = (booking: BookingRecord) => {
+    setBookingToDelete(booking);
+    setDeleteReason("");
+  };
+
+  const closeDeleteBookingDialog = () => {
+    if (isDeletingBooking) {
+      return;
+    }
+
+    setBookingToDelete(null);
+    setDeleteReason("");
+  };
+
+  const handleDeleteBooking = async () => {
+    if (!bookingToDelete) {
+      return;
+    }
+
+    const reason = deleteReason.trim();
+
+    if (!reason) {
+      toast.error("Please provide a reason before deleting this session.");
+      return;
+    }
+
+    setIsDeletingBooking(true);
+
+    try {
+      await deleteBooking(bookingToDelete.id, reason);
+      toast.success("Session removed from the dashboard.");
+      setBookingToDelete(null);
+      setDeleteReason("");
+    } catch (error) {
+      toast.error(getApiErrorMessage(error, "This session could not be deleted right now."));
+    } finally {
+      setIsDeletingBooking(false);
+    }
+  };
+
   if (isInitializing) {
     return (
       <div className="min-h-screen" style={softPageBackgroundStyle}>
@@ -380,25 +425,7 @@ const TherapistDashboardPage = () => {
   }
 
   if (!isTherapistAuthenticated) {
-    return (
-      <div className="min-h-screen" style={softPageBackgroundStyle}>
-        <section className="pt-32 pb-24">
-          <div className="container mx-auto px-4">
-            <div className="mx-auto max-w-2xl rounded-[2rem] border border-border/60 bg-card p-10 text-center shadow-card">
-              <p className="text-sm font-semibold uppercase tracking-[0.24em] text-primary/75">Secure Portal</p>
-              <h1 className="mt-4 font-heading text-4xl font-semibold text-foreground">Therapist access only</h1>
-              <p className="mt-4 text-muted-foreground leading-8">
-                Use the discreet footer access point and therapist credentials to enter the dashboard.
-              </p>
-              <Button variant="hero" className="mt-8 rounded-full" asChild>
-                <Link to="/">Return to Home</Link>
-              </Button>
-            </div>
-          </div>
-        </section>
-        <Footer />
-      </div>
-    );
+    return <Navigate to="/" replace />;
   }
 
   return (
@@ -686,16 +713,28 @@ const TherapistDashboardPage = () => {
                             ) : null}
                           </div>
 
-                          <Button
-                            type="button"
-                            variant="heroBorder"
-                            size="sm"
-                            className="mt-4 w-full rounded-full"
-                            onClick={() => handleMarkCompleted(booking.id)}
-                            disabled={booking.status === "completed" || booking.status === "cancelled"}
-                          >
-                            Mark Completed
-                          </Button>
+                          <div className="mt-4 flex gap-2">
+                            <Button
+                              type="button"
+                              variant="heroBorder"
+                              size="sm"
+                              className="w-full rounded-full"
+                              onClick={() => handleMarkCompleted(booking.id)}
+                              disabled={booking.status === "completed" || booking.status === "cancelled"}
+                            >
+                              Mark Completed
+                            </Button>
+                            <Button
+                              type="button"
+                              variant="heroBorder"
+                              size="icon"
+                              className="h-9 w-9 rounded-full"
+                              onClick={() => openDeleteBookingDialog(booking)}
+                              aria-label={`Delete ${booking.clientName}'s session`}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
                         </div>
                       ))}
                       {sortedBookings.length === 0 ? (
@@ -747,16 +786,28 @@ const TherapistDashboardPage = () => {
                                 </Badge>
                               </TableCell>
                               <TableCell className="text-right">
-                                <Button
-                                  type="button"
-                                  variant="heroBorder"
-                                  size="sm"
-                                  className="rounded-full"
-                                  onClick={() => handleMarkCompleted(booking.id)}
-                                  disabled={booking.status === "completed" || booking.status === "cancelled"}
-                                >
-                                  Mark Completed
-                                </Button>
+                                <div className="flex justify-end gap-2">
+                                  <Button
+                                    type="button"
+                                    variant="heroBorder"
+                                    size="sm"
+                                    className="rounded-full"
+                                    onClick={() => handleMarkCompleted(booking.id)}
+                                    disabled={booking.status === "completed" || booking.status === "cancelled"}
+                                  >
+                                    Mark Completed
+                                  </Button>
+                                  <Button
+                                    type="button"
+                                    variant="heroBorder"
+                                    size="icon"
+                                    className="rounded-full"
+                                    onClick={() => openDeleteBookingDialog(booking)}
+                                    aria-label={`Delete ${booking.clientName}'s session`}
+                                  >
+                                    <Trash2 className="h-4 w-4" />
+                                  </Button>
+                                </div>
                               </TableCell>
                             </TableRow>
                           ))}
@@ -1190,6 +1241,39 @@ const TherapistDashboardPage = () => {
           </div>
         </div>
       </section>
+      <Dialog open={Boolean(bookingToDelete)} onOpenChange={(open) => (open ? undefined : closeDeleteBookingDialog())}>
+        <DialogContent className="max-w-lg rounded-[1.75rem] border-border/60">
+          <DialogHeader>
+            <DialogTitle className="font-heading text-2xl text-foreground">Delete session</DialogTitle>
+            <DialogDescription className="leading-6">
+              {bookingToDelete
+                ? `Add a reason for removing ${bookingToDelete.clientName}'s session.`
+                : "Add a reason for removing this session."}
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-3">
+            <Label htmlFor="delete-session-reason">Reason</Label>
+            <Textarea
+              id="delete-session-reason"
+              value={deleteReason}
+              onChange={(event) => setDeleteReason(event.target.value)}
+              className="min-h-[120px]"
+              placeholder="Example: Duplicate booking created by mistake."
+              disabled={isDeletingBooking}
+            />
+          </div>
+
+          <DialogFooter className="gap-2 sm:justify-end">
+            <Button type="button" variant="heroBorder" className="rounded-full" onClick={closeDeleteBookingDialog} disabled={isDeletingBooking}>
+              Cancel
+            </Button>
+            <Button type="button" variant="hero" className="rounded-full" onClick={handleDeleteBooking} disabled={isDeletingBooking}>
+              {isDeletingBooking ? "Deleting..." : "Confirm Delete"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
       <Footer />
     </div>
   );

@@ -5,6 +5,7 @@ This backend is designed around the current frontend flows already present in `w
 - Public therapist profile
 - Blog list/detail pages
 - Booking creation with manage-token access
+- Transactional booking emails with calendar invite attachments
 - Booking reschedule/cancel flows from a private link
 - Therapist portal login and password reset
 - Therapist dashboard for bookings, notifications, profile updates, and blog publishing
@@ -122,3 +123,4 @@ For this Django backend, `python manage.py migrate` is the correct schema push c
 - Therapist passwords use Django's built-in password hashing.
 - Secret passphrases are stored separately as hashed values.
 - Blog tags, specialties, locations, and email recipients use `JSONField` for easier Postgres portability.
+- Booking confirmation, reschedule, and cancellation emails are sent through Django's configured email backend. With Brevo SMTP configured, the client and therapist each receive a calendar invite (`.ics`) that can be added to their calendars and updated on reschedule/cancel.

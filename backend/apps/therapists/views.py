@@ -152,7 +152,7 @@ class DashboardOverviewView(APIView):
 
         therapist = request.user.therapist_profile
         bookings = (
-            Booking.objects.filter(therapist=therapist)
+            Booking.objects.filter(therapist=therapist, deleted_at__isnull=True)
             .select_related("therapist")
             .prefetch_related("emails", "history")
         )

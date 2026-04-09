@@ -1,4 +1,5 @@
 from django.db import models
+from django.utils import timezone
 
 from apps.common.models import TimeStampedUUIDModel
 
@@ -39,12 +40,22 @@ class Booking(TimeStampedUUIDModel):
     calendar_event_id = models.CharField(max_length=255, blank=True)
     meet_link = models.URLField(blank=True)
     notes = models.TextField(blank=True)
+    deleted_at = models.DateTimeField(null=True, blank=True)
+    deleted_reason = models.TextField(blank=True)
 
     class Meta:
         ordering = ["-updated_at"]
 
     def __str__(self) -> str:
         return f"{self.client_name} - {self.date} {self.time}"
+
+    @property
+    def is_deleted(self) -> bool:
+        return self.deleted_at is not None
+
+    def mark_deleted(self, *, reason: str) -> None:
+        self.deleted_reason = reason.strip()
+        self.deleted_at = timezone.now()
 
 
 class BookingHistoryEvent(TimeStampedUUIDModel):
