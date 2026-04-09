@@ -107,6 +107,8 @@ You can also use:
 DATABASE_URL=postgresql://postgres:YOUR_SUPABASE_DB_PASSWORD@db.YOUR_PROJECT_REF.supabase.co:5432/postgres?sslmode=require
 ```
 
+The backend also accepts raw special characters in the password segment of `DATABASE_URL`, which helps with provider-generated secrets on platforms like Vercel. If you prefer, you can avoid connection-string parsing entirely by setting the individual `DB_*` variables instead.
+
 For this Django backend, `python manage.py migrate` is the correct schema push command. `supabase db push` is only needed if you are maintaining Supabase SQL migrations separately.
 
 ## Notes

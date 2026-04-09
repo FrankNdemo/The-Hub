@@ -4,7 +4,7 @@ import os
 from datetime import timedelta
 from email.utils import parseaddr
 from pathlib import Path
-from urllib.parse import parse_qs, unquote, urlparse
+from urllib.parse import parse_qs, unquote
 
 
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -49,6 +49,51 @@ def env_any(*keys: str, default: str = "") -> str:
 def env_list(key: str, default: str = "") -> list[str]:
     raw = env(key, default)
     return [value.strip() for value in raw.split(",") if value.strip()]
+
+
+def parse_database_url(value: str) -> dict[str, str]:
+    raw = value.strip()
+    _, separator, remainder = raw.partition("://")
+    if not separator:
+        remainder = raw
+
+    userinfo = ""
+    host_path_query = remainder
+    if "@" in remainder:
+        userinfo, _, host_path_query = remainder.rpartition("@")
+
+    host_path, _, query = host_path_query.partition("?")
+    hostinfo, _, path = host_path.partition("/")
+
+    username = ""
+    password = ""
+    if userinfo:
+        username, separator, password = userinfo.partition(":")
+        if not separator:
+            username = userinfo
+
+    host = hostinfo
+    port = ""
+    if hostinfo.startswith("[") and "]" in hostinfo:
+        closing_index = hostinfo.find("]")
+        host = hostinfo[1:closing_index]
+        remainder = hostinfo[closing_index + 1 :]
+        if remainder.startswith(":"):
+            port = remainder[1:]
+    elif ":" in hostinfo:
+        possible_host, possible_port = hostinfo.rsplit(":", 1)
+        if possible_port.isdigit():
+            host = possible_host
+            port = possible_port
+
+    return {
+        "name": unquote(path.lstrip("/")),
+        "user": unquote(username),
+        "password": unquote(password),
+        "host": host,
+        "port": port,
+        "query": query,
+    }
 
 
 SECRET_KEY = env("DJANGO_SECRET_KEY", "django-insecure-the-wellness-hub-local-dev")
@@ -118,20 +163,21 @@ SUPABASE_DB_CONFIG_PRESENT = any(
     ]
 )
 DB_ENGINE = env_any("DB_ENGINE", default="postgres" if SUPABASE_DB_CONFIG_PRESENT else "sqlite").lower()
-DATABASE_URL = env_any("DATABASE_URL")
+DATABASE_URL = env_any("DATABASE_URL").strip()
 DB_CONN_MAX_AGE = int(env_any("DB_CONN_MAX_AGE", default="0") or "0")
 
 if DATABASE_URL:
-    parsed_db = urlparse(DATABASE_URL)
-    db_query = parse_qs(parsed_db.query)
+    # Hosted providers often expose DB URLs with raw special characters in the password.
+    parsed_db = parse_database_url(DATABASE_URL)
+    db_query = parse_qs(parsed_db["query"])
     sslmode = db_query.get("sslmode", [env_any("DB_SSLMODE", "SUPABASE_DB_SSLMODE", default="")])[0]
     database_config = {
         "ENGINE": "django.db.backends.postgresql",
-        "NAME": unquote(parsed_db.path.lstrip("/")) or env_any("DB_NAME", "SUPABASE_DB_NAME", default="postgres"),
-        "USER": unquote(parsed_db.username or env_any("DB_USER", "SUPABASE_DB_USER", default="")),
-        "PASSWORD": unquote(parsed_db.password or env_any("DB_PASSWORD", "SUPABASE_DB_PASSWORD", default="")),
-        "HOST": parsed_db.hostname or env_any("DB_HOST", "SUPABASE_DB_HOST", default="localhost"),
-        "PORT": str(parsed_db.port or env_any("DB_PORT", "SUPABASE_DB_PORT", default="5432")),
+        "NAME": parsed_db["name"] or env_any("DB_NAME", "SUPABASE_DB_NAME", default="postgres"),
+        "USER": parsed_db["user"] or env_any("DB_USER", "SUPABASE_DB_USER", default=""),
+        "PASSWORD": parsed_db["password"] or env_any("DB_PASSWORD", "SUPABASE_DB_PASSWORD", default=""),
+        "HOST": parsed_db["host"] or env_any("DB_HOST", "SUPABASE_DB_HOST", default="localhost"),
+        "PORT": parsed_db["port"] or env_any("DB_PORT", "SUPABASE_DB_PORT", default="5432"),
         "CONN_MAX_AGE": DB_CONN_MAX_AGE,
     }
 
