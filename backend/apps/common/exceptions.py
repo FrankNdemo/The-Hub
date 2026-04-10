@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 
-from django.db import DatabaseError, InterfaceError, OperationalError, ProgrammingError
+from django.db import DataError, DatabaseError, IntegrityError, InterfaceError, OperationalError, ProgrammingError
 from rest_framework import status
 from rest_framework.response import Response
 from rest_framework.views import exception_handler
@@ -36,6 +36,26 @@ def api_exception_handler(exc, context):
             {
                 "detail": "The booking service cannot reach the database right now. Please try again shortly.",
                 "code": "database_unavailable",
+            },
+            status=status.HTTP_503_SERVICE_UNAVAILABLE,
+        )
+
+    if isinstance(exc, DataError):
+        log_api_error("Database data error while handling API request", exc)
+        return Response(
+            {
+                "detail": "The booking database needs the latest migration before this session can be saved.",
+                "code": "database_data_error",
+            },
+            status=status.HTTP_503_SERVICE_UNAVAILABLE,
+        )
+
+    if isinstance(exc, IntegrityError):
+        log_api_error("Database integrity error while handling API request", exc)
+        return Response(
+            {
+                "detail": "The booking service could not save this session because the database rejected a required record.",
+                "code": "database_integrity_error",
             },
             status=status.HTTP_503_SERVICE_UNAVAILABLE,
         )

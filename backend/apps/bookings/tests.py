@@ -73,6 +73,8 @@ class BookingApiTests(APITestCase):
         self.assertIn("likentnerg@gmail.com", mail.outbox[0].attachments[0][1])
         self.assertNotIn(create_response.data["manageUrl"], mail.outbox[0].attachments[0][1])
         self.assertTrue(create_response.data["meetLink"].startswith("https://calendar.google.com/calendar/render?"))
+        self.assertGreater(len(create_response.data["meetLink"]), 200)
+        self.assertGreaterEqual(Booking._meta.get_field("meet_link").max_length, 2048)
 
         token = create_response.data["token"]
         detail_response = self.client.get(f"/api/v1/bookings/manage/{token}/")

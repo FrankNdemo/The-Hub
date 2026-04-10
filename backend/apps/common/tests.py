@@ -1,4 +1,4 @@
-from django.db import OperationalError, ProgrammingError
+from django.db import DataError, OperationalError, ProgrammingError
 from django.test import SimpleTestCase
 
 from .exceptions import api_exception_handler
@@ -18,3 +18,10 @@ class ApiExceptionHandlerTests(SimpleTestCase):
 
         self.assertEqual(response.status_code, 503)
         self.assertEqual(response.data["code"], "database_schema_error")
+
+    def test_database_data_errors_return_migration_guidance(self):
+        with self.assertLogs("apps.common.exceptions", level="ERROR"):
+            response = api_exception_handler(DataError("value too long for type character varying(200)"), {})
+
+        self.assertEqual(response.status_code, 503)
+        self.assertEqual(response.data["code"], "database_data_error")

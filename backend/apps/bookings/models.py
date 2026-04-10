@@ -38,7 +38,7 @@ class Booking(TimeStampedUUIDModel):
     status = models.CharField(max_length=20, choices=Status.choices, default=Status.UPCOMING)
     location_summary = models.TextField()
     calendar_event_id = models.CharField(max_length=255, blank=True)
-    meet_link = models.URLField(blank=True)
+    meet_link = models.URLField(blank=True, max_length=2048)
     notes = models.TextField(blank=True)
     deleted_at = models.DateTimeField(null=True, blank=True)
     deleted_reason = models.TextField(blank=True)
