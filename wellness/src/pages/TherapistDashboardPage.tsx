@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { type MouseEvent, useEffect, useMemo, useState } from "react";
 import { Link, Navigate } from "react-router-dom";
 import {
   BellRing,
@@ -148,6 +148,72 @@ const getStatusBadgeClassName = (status: BookingStatus) => {
     default:
       return "bg-primary/10 text-primary border border-primary/15";
   }
+};
+
+const getTherapistSessionLink = (booking: BookingRecord) => booking.therapistSessionUrl || booking.meetLink || "";
+
+interface BookingDashboardLinksProps {
+  booking: BookingRecord;
+  compact?: boolean;
+  stopPropagation?: boolean;
+}
+
+const BookingDashboardLinks = ({ booking, compact = false, stopPropagation = false }: BookingDashboardLinksProps) => {
+  const therapistSessionLink = getTherapistSessionLink(booking);
+  const handleClick = (event: MouseEvent<HTMLAnchorElement>) => {
+    if (stopPropagation) {
+      event.stopPropagation();
+    }
+  };
+  const linkClassName = compact
+    ? "inline-flex items-center gap-1 text-xs font-semibold text-foreground underline-offset-4 transition-colors hover:text-primary hover:underline"
+    : "inline-flex w-full items-center justify-center gap-2 rounded-lg border border-primary/25 px-3 py-2 text-sm font-semibold text-foreground transition-colors hover:border-primary hover:text-primary sm:w-auto";
+
+  return (
+    <div className={compact ? "mt-3 flex flex-wrap gap-x-3 gap-y-2" : "mt-4 space-y-3"}>
+      {!compact ? (
+        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-primary/80">Session Links</p>
+      ) : null}
+      <div className={compact ? "contents" : "flex flex-col gap-2 sm:flex-row sm:flex-wrap"}>
+        {booking.therapistAddToCalendarUrl ? (
+          <a
+            href={booking.therapistAddToCalendarUrl}
+            target="_blank"
+            rel="noreferrer"
+            onClick={handleClick}
+            className={linkClassName}
+          >
+            Add to calendar
+            <ExternalLink className="h-3.5 w-3.5" />
+          </a>
+        ) : null}
+        {booking.sessionType === "virtual" && therapistSessionLink ? (
+          <a
+            href={therapistSessionLink}
+            target="_blank"
+            rel="noreferrer"
+            onClick={handleClick}
+            className={linkClassName}
+          >
+            Open therapist session
+            <ExternalLink className="h-3.5 w-3.5" />
+          </a>
+        ) : null}
+        {booking.manageUrl ? (
+          <a
+            href={booking.manageUrl}
+            target="_blank"
+            rel="noreferrer"
+            onClick={handleClick}
+            className={linkClassName}
+          >
+            Client manage page
+            <ExternalLink className="h-3.5 w-3.5" />
+          </a>
+        ) : null}
+      </div>
+    </div>
+  );
 };
 
 const TherapistDashboardPage = () => {
@@ -561,7 +627,6 @@ const TherapistDashboardPage = () => {
                   <TabsContent value="overview" className="mt-8 space-y-5">
                     {sortedBookings.slice(0, 3).map((booking) => {
                       const isExpanded = expandedOverviewBookingId === booking.id;
-                      const therapistSessionLink = booking.therapistSessionUrl || booking.meetLink;
 
                       return (
                         <div
@@ -646,49 +711,7 @@ const TherapistDashboardPage = () => {
                               </div>
                             ) : null}
                           </div>
-                          <p className="mt-4 text-sm leading-7 text-muted-foreground">
-                            Therapist calendar:{" "}
-                            {booking.therapistAddToCalendarUrl ? (
-                              <a
-                                href={booking.therapistAddToCalendarUrl}
-                                target="_blank"
-                                rel="noreferrer"
-                                onClick={(event) => event.stopPropagation()}
-                                className="inline-flex items-center gap-1 font-semibold text-foreground underline-offset-4 transition-colors hover:text-primary hover:underline"
-                              >
-                                Add to calendar
-                                <ExternalLink className="h-3.5 w-3.5" />
-                              </a>
-                            ) : null}
-                            {booking.sessionType === "virtual" && therapistSessionLink ? (
-                              <>
-                                <span className="mx-2 text-primary/50">|</span>
-                                Therapist room:{" "}
-                                <a
-                                  href={therapistSessionLink}
-                                  target="_blank"
-                                  rel="noreferrer"
-                                  onClick={(event) => event.stopPropagation()}
-                                  className="inline-flex items-center gap-1 font-semibold text-foreground underline-offset-4 transition-colors hover:text-primary hover:underline"
-                                >
-                                  Open virtual session
-                                  <ExternalLink className="h-3.5 w-3.5" />
-                                </a>
-                              </>
-                            ) : null}
-                            <span className="mx-2 text-primary/50">|</span>
-                            Client manage page:{" "}
-                            <a
-                              href={booking.manageUrl}
-                              target="_blank"
-                              rel="noreferrer"
-                              onClick={(event) => event.stopPropagation()}
-                              className="inline-flex items-center gap-1 font-semibold text-foreground underline-offset-4 transition-colors hover:text-primary hover:underline"
-                            >
-                              Open manage page
-                              <ExternalLink className="h-3.5 w-3.5" />
-                            </a>
-                          </p>
+                          <BookingDashboardLinks booking={booking} stopPropagation />
                         </div>
                         </div>
                       );
@@ -745,6 +768,8 @@ const TherapistDashboardPage = () => {
                               </p>
                             ) : null}
                           </div>
+
+                          <BookingDashboardLinks booking={booking} />
 
                           <div className="mt-4 flex gap-2">
                             <Button
@@ -805,6 +830,7 @@ const TherapistDashboardPage = () => {
                                 <div className="space-y-1">
                                   <p className="text-sm text-foreground">{booking.clientEmail}</p>
                                   <p className="text-xs text-muted-foreground">{booking.clientPhone}</p>
+                                  <BookingDashboardLinks booking={booking} compact />
                                 </div>
                               </TableCell>
                               <TableCell>{formatDisplayDate(booking.date)}</TableCell>
