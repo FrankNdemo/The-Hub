@@ -135,12 +135,14 @@ const optimizeProfileImage = (file: File) =>
     reader.readAsDataURL(file);
   });
 
-const getStatusBadgeClassName = (status: BookingStatus) => {
+const getStatusBadgeClassName = (status: BookingStatus | "expired") => {
   switch (status) {
     case "upcoming":
       return "bg-amber-100 text-amber-800 border border-amber-200";
     case "completed":
       return "bg-blue-100 text-blue-800 border border-blue-200";
+    case "expired":
+      return "bg-stone-100 text-stone-800 border border-stone-200";
     case "cancelled":
       return "bg-rose-100 text-rose-800 border border-rose-200";
     case "rescheduled":
@@ -151,6 +153,27 @@ const getStatusBadgeClassName = (status: BookingStatus) => {
 };
 
 const getTherapistSessionLink = (booking: BookingRecord) => booking.therapistSessionUrl || booking.meetLink || "";
+
+const BOOKING_SESSION_DURATION_MINUTES = 60;
+
+const getBookingEndTimestamp = (booking: BookingRecord) => {
+  const start = new Date(`${booking.date}T${booking.time}`);
+
+  if (Number.isNaN(start.getTime())) {
+    return Number.POSITIVE_INFINITY;
+  }
+
+  return start.getTime() + BOOKING_SESSION_DURATION_MINUTES * 60 * 1000;
+};
+
+const isExpiredBooking = (booking: BookingRecord, now = Date.now()) =>
+  booking.status !== "completed" && booking.status !== "cancelled" && getBookingEndTimestamp(booking) < now;
+
+const isCompletedOrExpiredBooking = (booking: BookingRecord, now = Date.now()) =>
+  booking.status === "completed" || isExpiredBooking(booking, now);
+
+const getBookingStatusLabel = (booking: BookingRecord, now = Date.now()): BookingStatus | "expired" =>
+  isExpiredBooking(booking, now) ? "expired" : booking.status;
 
 const hasBookingDashboardLinks = (booking: BookingRecord) =>
   Boolean(
@@ -247,6 +270,8 @@ const TherapistDashboardPage = () => {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [expandedOverviewBookingId, setExpandedOverviewBookingId] = useState<string | null>(null);
   const [profileDraft, setProfileDraft] = useState<TherapistProfileFormState>(() => makeProfileDraft(therapist));
+  const [bookingToComplete, setBookingToComplete] = useState<BookingRecord | null>(null);
+  const [isCompletingBooking, setIsCompletingBooking] = useState(false);
   const [bookingToDelete, setBookingToDelete] = useState<BookingRecord | null>(null);
   const [deleteReason, setDeleteReason] = useState("");
   const [isDeletingBooking, setIsDeletingBooking] = useState(false);
@@ -258,24 +283,26 @@ const TherapistDashboardPage = () => {
     }
   }, [editingId, therapist]);
 
-  const metrics = useMemo(
-    () => ({
-      total: bookings.length,
-      upcoming: bookings.filter((booking) => booking.status === "upcoming" || booking.status === "rescheduled").length,
-      cancelled: bookings.filter((booking) => booking.status === "cancelled").length,
-      rescheduled: bookings.filter((booking) => booking.history.some((event) => event.type === "rescheduled")).length,
-    }),
-    [bookings],
-  );
-
   const unreadNotificationCount = useMemo(
     () => notifications.filter((notification) => !notification.read).length,
     [notifications],
   );
   const unreadNotificationCountLabel = unreadNotificationCount > 99 ? "99+" : String(unreadNotificationCount);
+  const currentTime = Date.now();
   const sortedBookings = useMemo(
     () => [...bookings].sort((left, right) => right.updatedAt.localeCompare(left.updatedAt)),
     [bookings],
+  );
+  const activeBookings = sortedBookings.filter((booking) => !isCompletedOrExpiredBooking(booking, currentTime));
+  const completedBookings = sortedBookings.filter((booking) => isCompletedOrExpiredBooking(booking, currentTime));
+  const metrics = useMemo(
+    () => ({
+      total: bookings.length,
+      upcoming: bookings.filter((booking) => !isCompletedOrExpiredBooking(booking, currentTime) && booking.status !== "cancelled").length,
+      cancelled: bookings.filter((booking) => booking.status === "cancelled").length,
+      rescheduled: bookings.filter((booking) => booking.history.some((event) => event.type === "rescheduled")).length,
+    }),
+    [bookings, currentTime],
   );
 
   const setDraftField = (field: keyof BlogPostDraft, value: string | string[]) => {
@@ -426,12 +453,33 @@ const TherapistDashboardPage = () => {
     }
   };
 
-  const handleMarkCompleted = async (id: string) => {
+  const openCompleteBookingDialog = (booking: BookingRecord) => {
+    setBookingToComplete(booking);
+  };
+
+  const closeCompleteBookingDialog = () => {
+    if (isCompletingBooking) {
+      return;
+    }
+
+    setBookingToComplete(null);
+  };
+
+  const handleMarkCompleted = async () => {
+    if (!bookingToComplete) {
+      return;
+    }
+
+    setIsCompletingBooking(true);
+
     try {
-      await markBookingCompleted(id);
+      await markBookingCompleted(bookingToComplete.id);
       toast.success("Booking marked as completed.");
+      setBookingToComplete(null);
     } catch (error) {
       toast.error(getApiErrorMessage(error, "This booking could not be marked as completed."));
+    } finally {
+      setIsCompletingBooking(false);
     }
   };
 
@@ -623,6 +671,9 @@ const TherapistDashboardPage = () => {
                         <span className="sm:hidden">Alerts</span>
                       </span>
                     </TabsTrigger>
+                    <TabsTrigger value="completed" className="h-auto shrink-0 rounded-full px-3 py-2 text-[10px] sm:px-4 sm:text-sm lg:px-5">
+                      Completed
+                    </TabsTrigger>
                     <TabsTrigger
                       value="security"
                       className="h-auto shrink-0 rounded-full px-3 py-2 text-[10px] sm:px-4 sm:text-sm lg:px-5"
@@ -632,7 +683,7 @@ const TherapistDashboardPage = () => {
                   </TabsList>
 
                   <TabsContent value="overview" className="mt-8 space-y-5">
-                    {sortedBookings.slice(0, 3).map((booking) => {
+                    {activeBookings.slice(0, 3).map((booking) => {
                       const isExpanded = expandedOverviewBookingId === booking.id;
 
                       return (
@@ -723,7 +774,7 @@ const TherapistDashboardPage = () => {
                         </div>
                       );
                     })}
-                    {sortedBookings.length === 0 ? (
+                    {activeBookings.length === 0 ? (
                       <div className="rounded-[1.75rem] bg-secondary/50 p-6 text-sm text-muted-foreground">
                         No sessions have been booked yet.
                       </div>
@@ -732,7 +783,7 @@ const TherapistDashboardPage = () => {
 
                   <TabsContent value="sessions" className="mt-8">
                     <div className="space-y-4 md:hidden">
-                      {sortedBookings.map((booking) => (
+                      {activeBookings.map((booking) => (
                         <div
                           key={booking.id}
                           className="rounded-[1.5rem] border border-border/60 bg-secondary/25 p-4 shadow-card"
@@ -782,8 +833,8 @@ const TherapistDashboardPage = () => {
                               variant="heroBorder"
                               size="sm"
                               className="w-full rounded-full"
-                              onClick={() => handleMarkCompleted(booking.id)}
-                              disabled={booking.status === "completed" || booking.status === "cancelled"}
+                              onClick={() => openCompleteBookingDialog(booking)}
+                              disabled={isCompletedOrExpiredBooking(booking, currentTime) || booking.status === "cancelled"}
                             >
                               Mark Completed
                             </Button>
@@ -808,7 +859,7 @@ const TherapistDashboardPage = () => {
                           ) : null}
                         </div>
                       ))}
-                      {sortedBookings.length === 0 ? (
+                      {activeBookings.length === 0 ? (
                         <div className="rounded-[1.5rem] bg-secondary/50 p-5 text-sm text-muted-foreground">
                           No bookings to display yet.
                         </div>
@@ -829,7 +880,7 @@ const TherapistDashboardPage = () => {
                           </TableRow>
                         </TableHeader>
                         <TableBody>
-                          {sortedBookings.map((booking) => (
+                          {activeBookings.map((booking) => (
                             <Fragment key={booking.id}>
                             <TableRow>
                               <TableCell>
@@ -864,8 +915,8 @@ const TherapistDashboardPage = () => {
                                     variant="heroBorder"
                                     size="sm"
                                     className="rounded-full"
-                                    onClick={() => handleMarkCompleted(booking.id)}
-                                    disabled={booking.status === "completed" || booking.status === "cancelled"}
+                                    onClick={() => openCompleteBookingDialog(booking)}
+                                    disabled={isCompletedOrExpiredBooking(booking, currentTime) || booking.status === "cancelled"}
                                   >
                                     Mark Completed
                                   </Button>
@@ -896,7 +947,7 @@ const TherapistDashboardPage = () => {
                             ) : null}
                             </Fragment>
                           ))}
-                          {sortedBookings.length === 0 ? (
+                          {activeBookings.length === 0 ? (
                             <TableRow>
                               <TableCell colSpan={7} className="text-center text-muted-foreground">
                                 No bookings to display yet.
@@ -1298,6 +1349,140 @@ const TherapistDashboardPage = () => {
                       </div>
                     </div>
                   </TabsContent>
+
+                  <TabsContent value="completed" className="mt-8">
+                    <div className="rounded-[1.75rem] border border-border/60 bg-card/80 p-5 shadow-card sm:p-6">
+                      <div>
+                        <h2 className="font-heading text-xl font-semibold text-foreground sm:text-2xl">Completed Sessions</h2>
+                        <p className="mt-2 text-sm leading-7 text-muted-foreground">
+                          Completed sessions and sessions whose scheduled time has passed are kept here.
+                        </p>
+                      </div>
+
+                      <div className="mt-6 space-y-4 md:hidden">
+                        {completedBookings.map((booking) => {
+                          const statusLabel = getBookingStatusLabel(booking, currentTime);
+
+                          return (
+                            <div key={booking.id} className="rounded-[1.5rem] border border-border/60 bg-secondary/25 p-4 shadow-card">
+                              <div className="flex items-start justify-between gap-3">
+                                <div className="min-w-0">
+                                  <p className="font-medium text-foreground">{booking.clientName}</p>
+                                  <p className="mt-1 text-xs uppercase tracking-[0.18em] text-primary/65">
+                                    {formatServiceType(booking.serviceType)} Â· {booking.sessionType} session
+                                  </p>
+                                </div>
+                                <Badge
+                                  variant="secondary"
+                                  className={`rounded-full px-3 py-1 capitalize ${getStatusBadgeClassName(statusLabel)}`}
+                                >
+                                  {statusLabel}
+                                </Badge>
+                              </div>
+                              <div className="mt-4 space-y-2 text-sm leading-6 text-muted-foreground">
+                                <p>
+                                  <span className="font-medium text-foreground">Date:</span> {formatDisplayDate(booking.date)}
+                                </p>
+                                <p>
+                                  <span className="font-medium text-foreground">Time:</span> {formatDisplayTime(booking.time)}
+                                </p>
+                                <p className="break-all">
+                                  <span className="font-medium text-foreground">Email:</span> {booking.clientEmail}
+                                </p>
+                                <p>
+                                  <span className="font-medium text-foreground">Phone:</span> {booking.clientPhone}
+                                </p>
+                              </div>
+                              {hasBookingDashboardLinks(booking) ? (
+                                <div className="mt-4 border-t border-border/40 pt-3">
+                                  <p className="mb-2 text-xs font-semibold uppercase tracking-[0.18em] text-primary/70">
+                                    Session Links
+                                  </p>
+                                  <BookingDashboardLinks booking={booking} compact />
+                                </div>
+                              ) : null}
+                            </div>
+                          );
+                        })}
+                        {completedBookings.length === 0 ? (
+                          <div className="rounded-[1.5rem] bg-secondary/45 p-4 text-sm text-muted-foreground">
+                            Completed and expired sessions will appear here.
+                          </div>
+                        ) : null}
+                      </div>
+
+                      <div className="mt-6 hidden overflow-x-auto md:block">
+                        <Table>
+                          <TableHeader>
+                            <TableRow>
+                              <TableHead>Client</TableHead>
+                              <TableHead>Contact</TableHead>
+                              <TableHead>Date</TableHead>
+                              <TableHead>Time</TableHead>
+                              <TableHead>Type</TableHead>
+                              <TableHead>Status</TableHead>
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                            {completedBookings.map((booking) => {
+                              const statusLabel = getBookingStatusLabel(booking, currentTime);
+
+                              return (
+                                <Fragment key={booking.id}>
+                                  <TableRow>
+                                    <TableCell>
+                                      <div className="space-y-1">
+                                        <p className="font-medium text-foreground">{booking.clientName}</p>
+                                        <p className="text-xs uppercase tracking-[0.18em] text-primary/65">
+                                          {formatServiceType(booking.serviceType)} Â· {booking.sessionType} session
+                                        </p>
+                                      </div>
+                                    </TableCell>
+                                    <TableCell>
+                                      <div className="space-y-1">
+                                        <p className="text-sm text-foreground">{booking.clientEmail}</p>
+                                        <p className="text-xs text-muted-foreground">{booking.clientPhone}</p>
+                                      </div>
+                                    </TableCell>
+                                    <TableCell>{formatDisplayDate(booking.date)}</TableCell>
+                                    <TableCell>{formatDisplayTime(booking.time)}</TableCell>
+                                    <TableCell className="capitalize">{booking.sessionType}</TableCell>
+                                    <TableCell>
+                                      <Badge
+                                        variant="secondary"
+                                        className={`rounded-full px-3 py-1 capitalize ${getStatusBadgeClassName(statusLabel)}`}
+                                      >
+                                        {statusLabel}
+                                      </Badge>
+                                    </TableCell>
+                                  </TableRow>
+                                  {hasBookingDashboardLinks(booking) ? (
+                                    <TableRow>
+                                      <TableCell colSpan={6} className="pt-0">
+                                        <div className="flex flex-wrap items-center gap-x-4 gap-y-2 border-t border-border/40 pt-3">
+                                          <span className="text-xs font-semibold uppercase tracking-[0.18em] text-primary/70">
+                                            Session Links
+                                          </span>
+                                          <BookingDashboardLinks booking={booking} compact />
+                                        </div>
+                                      </TableCell>
+                                    </TableRow>
+                                  ) : null}
+                                </Fragment>
+                              );
+                            })}
+                            {completedBookings.length === 0 ? (
+                              <TableRow>
+                                <TableCell colSpan={6} className="text-center text-muted-foreground">
+                                  Completed and expired sessions will appear here.
+                                </TableCell>
+                              </TableRow>
+                            ) : null}
+                          </TableBody>
+                        </Table>
+                      </div>
+                    </div>
+                  </TabsContent>
                 </Tabs>
               </div>
 
@@ -1326,6 +1511,42 @@ const TherapistDashboardPage = () => {
           </div>
         </div>
       </section>
+      <Dialog open={Boolean(bookingToComplete)} onOpenChange={(open) => (open ? undefined : closeCompleteBookingDialog())}>
+        <DialogContent className="max-w-lg rounded-[1.75rem] border-border/60">
+          <DialogHeader>
+            <DialogTitle className="font-heading text-2xl text-foreground">Mark session completed</DialogTitle>
+            <DialogDescription className="leading-6">
+              {bookingToComplete
+                ? `Confirm that ${bookingToComplete.clientName}'s session is finished. It will move to Completed.`
+                : "Confirm that this session is finished."}
+            </DialogDescription>
+          </DialogHeader>
+
+          {bookingToComplete ? (
+            <div className="rounded-[1.25rem] border border-border/60 bg-secondary/30 p-4 text-sm leading-7 text-muted-foreground">
+              <p>
+                <span className="font-medium text-foreground">Date:</span> {formatDisplayDate(bookingToComplete.date)}
+              </p>
+              <p>
+                <span className="font-medium text-foreground">Time:</span> {formatDisplayTime(bookingToComplete.time)}
+              </p>
+              <p>
+                <span className="font-medium text-foreground">Session:</span>{" "}
+                {formatServiceType(bookingToComplete.serviceType)} {bookingToComplete.sessionType}
+              </p>
+            </div>
+          ) : null}
+
+          <DialogFooter className="gap-2 sm:justify-end">
+            <Button type="button" variant="heroBorder" className="rounded-full" onClick={closeCompleteBookingDialog} disabled={isCompletingBooking}>
+              Cancel
+            </Button>
+            <Button type="button" variant="hero" className="rounded-full" onClick={handleMarkCompleted} disabled={isCompletingBooking}>
+              {isCompletingBooking ? "Completing..." : "Confirm Complete"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
       <Dialog open={Boolean(bookingToDelete)} onOpenChange={(open) => (open ? undefined : closeDeleteBookingDialog())}>
         <DialogContent className="max-w-lg rounded-[1.75rem] border-border/60">
           <DialogHeader>
