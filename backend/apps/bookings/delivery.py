@@ -334,7 +334,7 @@ def get_summary_card_values(booking: Booking, audience: str) -> list[tuple[str, 
                     else "Open the therapist room directly from this link or from your saved calendar event."
                 ),
                 get_virtual_access_url(booking, audience),
-                "Join Virtual Session" if audience == CLIENT_AUDIENCE else "Open Therapist Room",
+                "Join Virtual Session",
             )
         )
     else:
