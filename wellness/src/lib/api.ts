@@ -156,6 +156,21 @@ const isLikelyNetworkErrorMessage = (message: string) => {
   );
 };
 
+const isHtmlDocumentText = (value: string) =>
+  /^\s*<!doctype\s+html/i.test(value) || /<html[\s>]/i.test(value) || /<body[\s>]/i.test(value);
+
+const getHttpErrorMessage = (status: number) => {
+  if (status === 503) {
+    return "The wellness API is temporarily unavailable. Please try again shortly.";
+  }
+
+  if (status >= 500) {
+    return "The wellness API hit a server error while confirming your request. Please try again shortly.";
+  }
+
+  return `Request failed with status ${status}.`;
+};
+
 const parseStoredTokens = (): AuthTokens | null => {
   if (typeof window === "undefined") {
     return null;
@@ -229,7 +244,8 @@ const extractErrorMessage = (value: unknown): string | null => {
   }
 
   if (typeof value === "string") {
-    return value;
+    const cleaned = value.trim();
+    return cleaned && !isHtmlDocumentText(cleaned) ? cleaned : null;
   }
 
   if (Array.isArray(value)) {
@@ -267,7 +283,11 @@ const parseResponseBody = async (response: Response) => {
 
   const contentType = response.headers.get("content-type") ?? "";
   if (contentType.includes("application/json")) {
-    return response.json();
+    try {
+      return await response.json();
+    } catch {
+      return null;
+    }
   }
 
   const text = await response.text();
@@ -355,7 +375,7 @@ const request = async <T>(
 
   if (!response.ok) {
     throw new ApiError(
-      extractErrorMessage(payload) ?? `Request failed with status ${response.status}.`,
+      extractErrorMessage(payload) ?? getHttpErrorMessage(response.status),
       response.status,
       payload,
     );

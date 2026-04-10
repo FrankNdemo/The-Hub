@@ -284,6 +284,7 @@ REST_FRAMEWORK = {
     "DEFAULT_PERMISSION_CLASSES": (
         "rest_framework.permissions.AllowAny",
     ),
+    "EXCEPTION_HANDLER": "apps.common.exceptions.api_exception_handler",
 }
 
 SIMPLE_JWT = {
