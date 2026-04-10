@@ -1,4 +1,5 @@
 import html
+from datetime import timedelta
 
 from django.core.management import call_command
 from django.core import mail
@@ -8,6 +9,7 @@ from rest_framework import status
 from rest_framework.test import APITestCase
 
 from apps.bookings.models import Booking
+from apps.bookings.delivery import REMINDER_EMAIL_KIND
 from apps.notifications.models import Notification
 
 
@@ -18,6 +20,7 @@ from apps.notifications.models import Notification
     BOOKING_CALENDAR_UID_DOMAIN="wellnesshub.local",
     BOOKING_CALENDAR_ORGANIZER_NAME="The Wellness Hub",
     BREVO_API_KEY="",
+    CRON_SECRET="test-cron-secret",
 )
 class BookingApiTests(APITestCase):
     def setUp(self):
@@ -56,6 +59,8 @@ class BookingApiTests(APITestCase):
         )
 
         self.assertEqual(len(mail.outbox), 2)
+        actual_meet_link = Booking.objects.get(pk=create_response.data["id"]).meet_link
+        self.assertEqual(create_response.data["meetLink"], "")
         self.assertEqual(mail.outbox[0].subject, "Your Session Is Confirmed | The Wellness Hub")
         self.assertEqual(mail.outbox[0].to, ["client@example.com"])
         client_html = mail.outbox[0].alternatives[0][0]
@@ -73,10 +78,10 @@ class BookingApiTests(APITestCase):
         self.assertNotIn(f">{escaped_manage_url}<", client_html)
         self.assertNotIn(f">{escaped_join_url}<", client_html)
         self.assertNotIn(f">{escaped_calendar_url}<", client_html)
-        self.assertNotIn(create_response.data["meetLink"], client_html)
+        self.assertNotIn(actual_meet_link, client_html)
         self.assertNotIn(create_response.data["manageUrl"], mail.outbox[0].body)
         self.assertNotIn(create_response.data["joinUrl"], mail.outbox[0].body)
-        self.assertNotIn(create_response.data["meetLink"], mail.outbox[0].body)
+        self.assertNotIn(actual_meet_link, mail.outbox[0].body)
         self.assertIn("Virtual Session Link", mail.outbox[0].body)
         self.assertEqual(mail.outbox[1].to, ["likentnerg@gmail.com"])
         self.assertEqual(mail.outbox[1].subject, "New Session Booked | The Wellness Hub")
@@ -86,10 +91,10 @@ class BookingApiTests(APITestCase):
         self.assertIn("Join Virtual Session", therapist_html)
         self.assertNotIn(f">{escaped_join_url}<", therapist_html)
         self.assertNotIn(f">{escaped_therapist_calendar_url}<", therapist_html)
-        self.assertNotIn(create_response.data["meetLink"], therapist_html)
+        self.assertNotIn(actual_meet_link, therapist_html)
         self.assertIn("Virtual Session Link", mail.outbox[1].body)
         self.assertNotIn(create_response.data["joinUrl"], mail.outbox[1].body)
-        self.assertNotIn(create_response.data["meetLink"], mail.outbox[1].body)
+        self.assertNotIn(actual_meet_link, mail.outbox[1].body)
         self.assertNotIn(create_response.data["manageUrl"], mail.outbox[1].body)
         self.assertEqual(mail.outbox[0].attachments[0][0], "wellness-session.ics")
         self.assertIn("METHOD:REQUEST", mail.outbox[0].attachments[0][1])
@@ -97,11 +102,12 @@ class BookingApiTests(APITestCase):
         self.assertIn(create_response.data["joinUrl"], mail.outbox[0].attachments[0][1])
         self.assertIn(f"URL:{create_response.data['joinUrl']}", mail.outbox[0].attachments[0][1])
         self.assertIn(f"LOCATION:{create_response.data['joinUrl']}", mail.outbox[0].attachments[0][1])
+        self.assertIn("BEGIN:VALARM", mail.outbox[0].attachments[0][1])
         self.assertIn("client@example.com", mail.outbox[0].attachments[0][1])
         self.assertIn("likentnerg@gmail.com", mail.outbox[0].attachments[0][1])
-        self.assertNotIn(create_response.data["meetLink"], mail.outbox[0].attachments[0][1])
+        self.assertNotIn(actual_meet_link, mail.outbox[0].attachments[0][1])
         self.assertNotIn(create_response.data["manageUrl"], mail.outbox[0].attachments[0][1])
-        self.assertTrue(create_response.data["meetLink"].startswith("https://meet.jit.si/the-wellness-hub-"))
+        self.assertTrue(actual_meet_link.startswith("https://meet.jit.si/the-wellness-hub-"))
         self.assertTrue(create_response.data["joinUrl"].startswith("http://localhost:8080/join/"))
         self.assertTrue(create_response.data["addToCalendarUrl"].startswith("https://calendar.google.com/calendar/render?"))
         self.assertTrue(create_response.data["therapistAddToCalendarUrl"].startswith("https://calendar.google.com/calendar/render?"))
@@ -111,11 +117,43 @@ class BookingApiTests(APITestCase):
         self.assertGreaterEqual(Booking._meta.get_field("meet_link").max_length, 2048)
 
         token = create_response.data["token"]
-        detail_response = self.client.get(f"/api/v1/bookings/manage/{token}/")
+        blocked_detail_response = self.client.get(f"/api/v1/bookings/manage/{token}/")
+        self.assertEqual(blocked_detail_response.status_code, status.HTTP_403_FORBIDDEN)
+
+        wrong_detail_response = self.client.post(
+            f"/api/v1/bookings/manage/{token}/",
+            {"email": "other@example.com"},
+            format="json",
+        )
+        self.assertEqual(wrong_detail_response.status_code, status.HTTP_403_FORBIDDEN)
+        self.assertNotIn("clientEmail", wrong_detail_response.data)
+
+        detail_response = self.client.post(
+            f"/api/v1/bookings/manage/{token}/",
+            {"email": "client@example.com"},
+            format="json",
+        )
         self.assertEqual(detail_response.status_code, status.HTTP_200_OK)
         self.assertEqual(detail_response.data["clientName"], "Test Client")
+        self.assertEqual(detail_response.data["clientEmail"], "client@example.com")
 
         join_response = self.client.get(f"/api/v1/bookings/join/{token}/")
+        self.assertEqual(join_response.status_code, status.HTTP_403_FORBIDDEN)
+        self.assertNotIn("clientEmail", join_response.data)
+
+        wrong_join_response = self.client.post(
+            f"/api/v1/bookings/join/{token}/",
+            {"email": "other@example.com"},
+            format="json",
+        )
+        self.assertEqual(wrong_join_response.status_code, status.HTTP_403_FORBIDDEN)
+        self.assertNotIn("clientEmail", wrong_join_response.data)
+
+        join_response = self.client.post(
+            f"/api/v1/bookings/join/{token}/",
+            {"email": "client@example.com"},
+            format="json",
+        )
         self.assertEqual(join_response.status_code, status.HTTP_200_OK)
         self.assertEqual(join_response.data["joinUrl"], create_response.data["joinUrl"])
         self.assertFalse(join_response.data["canJoinSession"])
@@ -125,14 +163,18 @@ class BookingApiTests(APITestCase):
         self.assertNotIn("emails", join_response.data)
 
         Booking.objects.filter(pk=create_response.data["id"]).update(date=timezone.localdate())
-        open_join_response = self.client.get(f"/api/v1/bookings/join/{token}/")
+        open_join_response = self.client.post(
+            f"/api/v1/bookings/join/{token}/",
+            {"email": "client@example.com"},
+            format="json",
+        )
         self.assertEqual(open_join_response.status_code, status.HTTP_200_OK)
         self.assertTrue(open_join_response.data["canJoinSession"])
-        self.assertEqual(open_join_response.data["meetLink"], create_response.data["meetLink"])
+        self.assertEqual(open_join_response.data["meetLink"], actual_meet_link)
 
         reschedule_response = self.client.post(
             f"/api/v1/bookings/manage/{token}/reschedule/",
-            {"date": "2026-04-15", "time": "12:15"},
+            {"clientEmail": "client@example.com", "date": "2026-04-15", "time": "12:15"},
             format="json",
         )
         self.assertEqual(reschedule_response.status_code, status.HTTP_200_OK)
@@ -146,7 +188,11 @@ class BookingApiTests(APITestCase):
         self.assertIn("SEQUENCE:1", mail.outbox[2].attachments[0][1])
         self.assertIn(reschedule_response.data["joinUrl"], mail.outbox[2].attachments[0][1])
 
-        cancel_response = self.client.post(f"/api/v1/bookings/manage/{token}/cancel/", {}, format="json")
+        cancel_response = self.client.post(
+            f"/api/v1/bookings/manage/{token}/cancel/",
+            {"email": "client@example.com"},
+            format="json",
+        )
         self.assertEqual(cancel_response.status_code, status.HTTP_200_OK)
         self.assertEqual(cancel_response.data["status"], Booking.Status.CANCELLED)
         self.assertEqual(len(mail.outbox), 6)
@@ -158,6 +204,74 @@ class BookingApiTests(APITestCase):
         self.assertIn("SEQUENCE:2", mail.outbox[4].attachments[0][1])
 
         self.assertEqual(Notification.objects.count(), 3)
+
+    def test_physical_calendar_uses_actual_location_without_site_url(self):
+        response = self.client.post(
+            "/api/v1/bookings/",
+            {
+                "clientName": "Physical Client",
+                "clientEmail": "physical@example.com",
+                "clientPhone": "+254700000777",
+                "therapistId": "caroline-gichia",
+                "date": "2026-04-14",
+                "time": "13:00",
+                "serviceType": "individual",
+                "sessionType": "physical",
+            },
+            format="json",
+        )
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        calendar_invite = mail.outbox[0].attachments[0][1]
+        self.assertIn("LOCATION:Nairobi\\, Westlands", calendar_invite)
+        self.assertNotIn("URL:http://localhost:8080", calendar_invite)
+        self.assertNotIn("/join/", calendar_invite)
+        self.assertIn("Nairobi", response.data["addToCalendarUrl"])
+
+    def test_reminder_cron_requires_secret_and_sends_once(self):
+        create_response = self.client.post(
+            "/api/v1/bookings/",
+            {
+                "clientName": "Reminder Client",
+                "clientEmail": "reminder@example.com",
+                "clientPhone": "+254700000888",
+                "therapistId": "caroline-gichia",
+                "date": "2026-04-14",
+                "time": "14:00",
+                "serviceType": "individual",
+                "sessionType": "virtual",
+            },
+            format="json",
+        )
+        self.assertEqual(create_response.status_code, status.HTTP_201_CREATED)
+        booking = Booking.objects.get(pk=create_response.data["id"])
+        start_at = timezone.localtime(timezone.now() + timedelta(minutes=30)).replace(second=0, microsecond=0)
+        booking.date = start_at.date()
+        booking.time = start_at.time()
+        booking.save(update_fields=["date", "time", "updated_at"])
+
+        unauthorized_response = self.client.get("/api/v1/bookings/reminders/run/")
+        self.assertEqual(unauthorized_response.status_code, status.HTTP_401_UNAUTHORIZED)
+
+        reminder_response = self.client.get(
+            "/api/v1/bookings/reminders/run/",
+            HTTP_AUTHORIZATION="Bearer test-cron-secret",
+        )
+        self.assertEqual(reminder_response.status_code, status.HTTP_200_OK)
+        self.assertEqual(reminder_response.data, {"sent": 1, "failed": 0})
+        self.assertEqual(len(mail.outbox), 4)
+        self.assertEqual(mail.outbox[2].subject, "Your Session Is Almost Here | The Wellness Hub")
+        self.assertEqual(mail.outbox[3].subject, "Upcoming Session Reminder | The Wellness Hub")
+        self.assertEqual(mail.outbox[2].attachments[0][0], "wellness-session-reminder.ics")
+        self.assertIn("BEGIN:VALARM", mail.outbox[2].attachments[0][1])
+        self.assertTrue(Booking.objects.filter(pk=booking.pk, emails__kind=REMINDER_EMAIL_KIND).exists())
+
+        duplicate_response = self.client.get(
+            "/api/v1/bookings/reminders/run/",
+            HTTP_AUTHORIZATION="Bearer test-cron-secret",
+        )
+        self.assertEqual(duplicate_response.status_code, status.HTTP_200_OK)
+        self.assertEqual(duplicate_response.data, {"sent": 0, "failed": 0})
+        self.assertEqual(len(mail.outbox), 4)
 
     def test_rejects_out_of_hours_booking_and_suggests_first_open_slot(self):
         response = self.client.post(

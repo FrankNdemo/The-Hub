@@ -1,3 +1,5 @@
+from django.conf import settings
+from django.utils.crypto import constant_time_compare
 from rest_framework import generics, status
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
@@ -7,15 +9,55 @@ from apps.therapists.permissions import IsTherapistAuthenticated
 
 from .models import Booking
 from .serializers import (
+    BookingAccessSerializer,
     BookingCreateSerializer,
     BookingDeleteSerializer,
     BookingDetailSerializer,
     BookingJoinSerializer,
     BookingRescheduleSerializer,
 )
-from .delivery import BookingDeliveryError
-from .services import cancel_booking, complete_booking, create_booking, delete_booking, reschedule_booking
+from .delivery import BookingDeliveryError, CLIENT_AUDIENCE, THERAPIST_AUDIENCE
+from .services import (
+    cancel_booking,
+    complete_booking,
+    create_booking,
+    delete_booking,
+    reschedule_booking,
+    send_upcoming_session_reminders,
+)
 from .scheduling import BookingAvailabilityError
+
+
+def normalize_email(value: str) -> str:
+    return value.strip().lower()
+
+
+def client_email_matches(booking: Booking, email: str) -> bool:
+    return normalize_email(booking.client_email) == normalize_email(email)
+
+
+def session_access_email_matches(booking: Booking, email: str) -> bool:
+    return client_email_matches(booking, email) or (
+        normalize_email(booking.therapist.email) == normalize_email(email)
+    )
+
+
+def access_denied_response() -> Response:
+    return Response(
+        {
+            "detail": "Please enter the email address connected to this session.",
+            "code": "booking_email_required",
+        },
+        status=status.HTTP_403_FORBIDDEN,
+    )
+
+
+def get_public_booking(token: str) -> Booking:
+    return generics.get_object_or_404(
+        Booking.objects.select_related("therapist").prefetch_related("emails", "history"),
+        manage_token=token,
+        deleted_at__isnull=True,
+    )
 
 
 class PublicBookingCreateView(APIView):
@@ -42,11 +84,17 @@ class BookingManageDetailView(APIView):
     authentication_classes = []
 
     def get(self, request, token):
-        booking = generics.get_object_or_404(
-            Booking.objects.select_related("therapist"),
-            manage_token=token,
-            deleted_at__isnull=True,
-        )
+        get_public_booking(token)
+        return access_denied_response()
+
+    def post(self, request, token):
+        serializer = BookingAccessSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        booking = get_public_booking(token)
+
+        if not client_email_matches(booking, serializer.validated_data["email"]):
+            return access_denied_response()
+
         return Response(BookingDetailSerializer(booking).data)
 
 
@@ -55,12 +103,26 @@ class BookingJoinDetailView(APIView):
     authentication_classes = []
 
     def get(self, request, token):
-        booking = generics.get_object_or_404(
-            Booking.objects.select_related("therapist").prefetch_related("emails", "history"),
-            manage_token=token,
-            deleted_at__isnull=True,
+        get_public_booking(token)
+        return access_denied_response()
+
+    def post(self, request, token):
+        serializer = BookingAccessSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        booking = get_public_booking(token)
+
+        email = serializer.validated_data["email"]
+
+        if not session_access_email_matches(booking, email):
+            return access_denied_response()
+
+        audience = (
+            THERAPIST_AUDIENCE
+            if normalize_email(booking.therapist.email) == normalize_email(email)
+            else CLIENT_AUDIENCE
         )
-        return Response(BookingJoinSerializer(booking).data)
+
+        return Response(BookingJoinSerializer(booking, context={"access_verified": True, "audience": audience}).data)
 
 
 class BookingManageRescheduleView(APIView):
@@ -70,11 +132,11 @@ class BookingManageRescheduleView(APIView):
     def post(self, request, token):
         serializer = BookingRescheduleSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        booking = generics.get_object_or_404(
-            Booking.objects.select_related("therapist").prefetch_related("emails", "history"),
-            manage_token=token,
-            deleted_at__isnull=True,
-        )
+        booking = get_public_booking(token)
+
+        if not client_email_matches(booking, serializer.validated_data["clientEmail"]):
+            return access_denied_response()
+
         try:
             updated_booking = reschedule_booking(
                 booking=booking,
@@ -96,11 +158,13 @@ class BookingManageCancelView(APIView):
     authentication_classes = []
 
     def post(self, request, token):
-        booking = generics.get_object_or_404(
-            Booking.objects.select_related("therapist").prefetch_related("emails", "history"),
-            manage_token=token,
-            deleted_at__isnull=True,
-        )
+        serializer = BookingAccessSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        booking = get_public_booking(token)
+
+        if not client_email_matches(booking, serializer.validated_data["email"]):
+            return access_denied_response()
+
         try:
             updated_booking = cancel_booking(booking=booking)
         except BookingDeliveryError as exc:
@@ -158,3 +222,17 @@ class TherapistBookingDeleteView(APIView):
             return Response({"detail": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
 
         return Response({"success": True}, status=status.HTTP_200_OK)
+
+
+class BookingReminderRunView(APIView):
+    permission_classes = [AllowAny]
+    authentication_classes = []
+
+    def get(self, request):
+        expected = f"Bearer {settings.CRON_SECRET}" if settings.CRON_SECRET else ""
+        provided = request.headers.get("Authorization", "")
+
+        if not expected or not constant_time_compare(provided, expected):
+            return Response({"detail": "Unauthorized reminder run."}, status=status.HTTP_401_UNAUTHORIZED)
+
+        return Response(send_upcoming_session_reminders())

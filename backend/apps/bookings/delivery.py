@@ -26,6 +26,7 @@ SERVICE_TYPE_LABELS = {
 }
 CLIENT_AUDIENCE = "client"
 THERAPIST_AUDIENCE = "therapist"
+REMINDER_EMAIL_KIND = "reminder"
 SESSION_QUOTES = (
     "Healing often begins when someone feels seen, safe, and heard.",
     "Small steady steps can become life-changing progress.",
@@ -182,6 +183,10 @@ def get_email_subject(kind: str, audience: str) -> str:
             CLIENT_AUDIENCE: "Your Session Has Been Cancelled | The Wellness Hub",
             THERAPIST_AUDIENCE: "Session Cancellation Notice | The Wellness Hub",
         },
+        REMINDER_EMAIL_KIND: {
+            CLIENT_AUDIENCE: "Your Session Is Almost Here | The Wellness Hub",
+            THERAPIST_AUDIENCE: "Upcoming Session Reminder | The Wellness Hub",
+        },
     }
     return subject_map[kind][audience]
 
@@ -200,6 +205,10 @@ def get_email_heading(kind: str, audience: str) -> str:
             CLIENT_AUDIENCE: "Your session has been cancelled",
             THERAPIST_AUDIENCE: "A session has been cancelled",
         },
+        REMINDER_EMAIL_KIND: {
+            CLIENT_AUDIENCE: "Your session is almost here",
+            THERAPIST_AUDIENCE: "Your next session is coming up",
+        },
     }
     return heading_map[kind][audience]
 
@@ -216,6 +225,9 @@ def get_email_intro(booking: Booking, kind: str, audience: str) -> str:
             EmailRecord.EmailKind.CANCELLATION: (
                 "This message confirms that your session has been cancelled. The attached calendar update lets your calendar remove or mark the event correctly."
             ),
+            REMINDER_EMAIL_KIND: (
+                f"Your session with {booking.therapist_name_snapshot} is almost here. Keep this email close, and use the private session link when it is time."
+            ),
         }
         return intro_map[kind]
 
@@ -228,6 +240,9 @@ def get_email_intro(booking: Booking, kind: str, audience: str) -> str:
         ),
         EmailRecord.EmailKind.CANCELLATION: (
             f"Hello {booking.therapist_name_snapshot}, a client has cancelled a scheduled session. The updated calendar notice is attached so your calendar can stay in sync."
+        ),
+        REMINDER_EMAIL_KIND: (
+            f"Hello {booking.therapist_name_snapshot}, your upcoming {booking.session_type} {SERVICE_TYPE_LABELS[booking.service_type].lower()} session is almost here. The client details, session link, and calendar reminder are below."
         ),
     }
     return intro_map[kind]
@@ -271,7 +286,7 @@ def get_summary_card_values(booking: Booking, audience: str) -> list[tuple[str, 
         cards.append(
             (
                 "Virtual Session Link",
-                "Use this private link on the session day. It will open the room when it is time.",
+                "The room will be available on the session day. Keep in touch with your email for updates; there is no need to worry.",
                 build_join_url(booking.manage_token),
                 "Join Virtual Session",
             )
@@ -506,7 +521,7 @@ def build_calendar_invite(booking: Booking, kind: str) -> str:
     summary_prefix = "Cancelled" if kind == EmailRecord.EmailKind.CANCELLATION else "The Wellness Hub"
     summary = f"{summary_prefix}: {get_booking_session_title(booking)} with {booking.therapist_name_snapshot}"
     location = get_session_location(booking)
-    url = build_join_url(booking.manage_token) if booking.session_type == Booking.SessionType.VIRTUAL else settings.FRONTEND_BASE_URL
+    url = build_join_url(booking.manage_token) if booking.session_type == Booking.SessionType.VIRTUAL else ""
 
     lines = [
         "BEGIN:VCALENDAR",
@@ -523,7 +538,6 @@ def build_calendar_invite(booking: Booking, kind: str) -> str:
         fold_ical_line(f"SUMMARY:{escape_ical_text(summary)}"),
         fold_ical_line(f"DESCRIPTION:{escape_ical_text(build_calendar_description(booking))}"),
         fold_ical_line(f"LOCATION:{escape_ical_text(location)}"),
-        fold_ical_line(f"URL:{escape_ical_text(url)}"),
         f"STATUS:{status}",
         "TRANSP:OPAQUE",
         fold_ical_line(f"ORGANIZER;CN={escape_ical_text(settings.BOOKING_CALENDAR_ORGANIZER_NAME)}:mailto:{organizer_email}"),
@@ -533,9 +547,28 @@ def build_calendar_invite(booking: Booking, kind: str) -> str:
         fold_ical_line(
             f"ATTENDEE;CN={escape_ical_text(booking.therapist_name_snapshot)};ROLE=REQ-PARTICIPANT;PARTSTAT=ACCEPTED:mailto:{booking.therapist.email}"
         ),
-        "END:VEVENT",
-        "END:VCALENDAR",
     ]
+
+    if url:
+        lines.append(fold_ical_line(f"URL:{escape_ical_text(url)}"))
+
+    if kind != EmailRecord.EmailKind.CANCELLATION:
+        lines.extend(
+            [
+                "BEGIN:VALARM",
+                "ACTION:DISPLAY",
+                "DESCRIPTION:Your Wellness Hub session is almost here.",
+                "TRIGGER:-PT30M",
+                "END:VALARM",
+            ]
+        )
+
+    lines.extend(
+        [
+            "END:VEVENT",
+            "END:VCALENDAR",
+        ]
+    )
 
     return "\r\n".join(lines) + "\r\n"
 
@@ -546,6 +579,9 @@ def build_calendar_filename(kind: str) -> str:
 
     if kind == EmailRecord.EmailKind.RESCHEDULE:
         return "wellness-session-updated.ics"
+
+    if kind == REMINDER_EMAIL_KIND:
+        return "wellness-session-reminder.ics"
 
     return "wellness-session.ics"
 

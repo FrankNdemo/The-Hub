@@ -5,8 +5,10 @@ import { toast } from "sonner";
 
 import Footer from "@/components/Footer";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { primaryTherapist } from "@/data/siteData";
-import { ApiError, fetchJoinBooking, getApiErrorMessage } from "@/lib/api";
+import { ApiError, getApiErrorMessage, verifyJoinBooking } from "@/lib/api";
 import { softPageBackgroundStyle } from "@/lib/pageBackground";
 import { formatDisplayDate, formatDisplayTime, formatServiceType } from "@/lib/wellness";
 import type { BookingJoinRecord } from "@/types/wellness";
@@ -16,74 +18,53 @@ const sessionImage = primaryTherapist.image;
 const JoinSessionPage = () => {
   const { token } = useParams();
   const [booking, setBooking] = useState<BookingJoinRecord | null | undefined>(undefined);
-  const [isLoading, setIsLoading] = useState(true);
+  const [accessEmail, setAccessEmail] = useState("");
+  const [accessError, setAccessError] = useState("");
+  const [isVerifying, setIsVerifying] = useState(false);
 
   useEffect(() => {
-    let isActive = true;
-
-    const loadBooking = async () => {
-      if (!token) {
-        if (isActive) {
-          setBooking(null);
-          setIsLoading(false);
-        }
-        return;
-      }
-
-      setIsLoading(true);
-
-      try {
-        const nextBooking = await fetchJoinBooking(token);
-
-        if (isActive) {
-          setBooking(nextBooking);
-        }
-      } catch (error) {
-        if (isActive) {
-          if (error instanceof ApiError && error.status === 404) {
-            setBooking(null);
-            return;
-          }
-
-          setBooking(null);
-          toast.error(getApiErrorMessage(error, "We could not load this session link right now."));
-        }
-      } finally {
-        if (isActive) {
-          setIsLoading(false);
-        }
-      }
-    };
-
-    void loadBooking();
-
-    return () => {
-      isActive = false;
-    };
+    setBooking(undefined);
+    setAccessEmail("");
+    setAccessError("");
+    setIsVerifying(false);
   }, [token]);
 
   const canJoinSession = Boolean(booking?.canJoinSession && booking.meetLink);
 
-  if (isLoading) {
-    return (
-      <div className="min-h-screen" style={softPageBackgroundStyle}>
-        <section className="pt-32 pb-24">
-          <div className="container mx-auto px-4">
-            <div className="mx-auto max-w-2xl rounded-lg border border-border/60 bg-card p-8 text-center shadow-card">
-              <p className="text-sm font-semibold uppercase tracking-[0.24em] text-primary/75">Session Link</p>
-              <h1 className="mt-4 font-heading text-4xl font-semibold text-foreground">Loading your session</h1>
-              <p className="mt-4 text-muted-foreground leading-8">
-                We&apos;re checking the private link and preparing your next step.
-              </p>
-            </div>
-          </div>
-        </section>
-        <Footer />
-      </div>
-    );
-  }
+  const handleVerifyAccess = async (event: React.FormEvent) => {
+    event.preventDefault();
 
-  if (!booking) {
+    if (!token) {
+      return;
+    }
+
+    const email = accessEmail.trim();
+
+    if (!email) {
+      setAccessError("Enter the email connected to this session.");
+      return;
+    }
+
+    setIsVerifying(true);
+    setAccessError("");
+
+    try {
+      setBooking(await verifyJoinBooking(token, email));
+      setAccessEmail(email);
+    } catch (error) {
+      const message =
+        error instanceof ApiError && error.status === 404
+          ? "This private session link could not be found."
+          : getApiErrorMessage(error, "We could not verify this session link right now.");
+      setBooking(null);
+      setAccessError(message);
+      toast.error(message);
+    } finally {
+      setIsVerifying(false);
+    }
+  };
+
+  if (!token) {
     return (
       <div className="min-h-screen" style={softPageBackgroundStyle}>
         <section className="pt-32 pb-24">
@@ -101,6 +82,55 @@ const JoinSessionPage = () => {
                 <Link to="/booking">Book a New Session</Link>
               </Button>
             </div>
+          </div>
+        </section>
+        <Footer />
+      </div>
+    );
+  }
+
+  if (!booking) {
+    return (
+      <div className="min-h-screen" style={softPageBackgroundStyle}>
+        <section className="pt-32 pb-24">
+          <div className="container mx-auto px-4">
+            <form
+              onSubmit={handleVerifyAccess}
+              className="mx-auto max-w-2xl rounded-lg border border-border/60 bg-card p-8 text-center shadow-card"
+            >
+              <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                <ShieldCheck className="h-6 w-6" />
+              </div>
+              <p className="mt-5 text-sm font-semibold uppercase tracking-[0.24em] text-primary/75">Session Link</p>
+              <h1 className="mt-4 font-heading text-4xl font-semibold text-foreground">Confirm your session email</h1>
+              <p className="mt-4 text-muted-foreground leading-8">
+                Enter the client email or therapist email connected to this booking. The session room stays private and
+                opens only on the session day.
+              </p>
+              <div className="mx-auto mt-7 max-w-md text-left">
+                <Label htmlFor="join-access-email">Session email</Label>
+                <Input
+                  id="join-access-email"
+                  type="email"
+                  value={accessEmail}
+                  onChange={(event) => {
+                    setAccessError("");
+                    setAccessEmail(event.target.value);
+                  }}
+                  className="mt-2"
+                  placeholder="you@example.com"
+                  required
+                />
+                {accessError ? (
+                  <p className="mt-3 rounded-md bg-destructive/10 px-4 py-3 text-sm leading-6 text-foreground">
+                    {accessError}
+                  </p>
+                ) : null}
+              </div>
+              <Button variant="hero" className="mt-8 rounded-md" type="submit" disabled={isVerifying}>
+                {isVerifying ? "Checking..." : "Continue"}
+              </Button>
+            </form>
           </div>
         </section>
         <Footer />
@@ -132,8 +162,8 @@ const JoinSessionPage = () => {
                     {canJoinSession ? "Your session room is ready" : "Your session is scheduled"}
                   </h1>
                   <p className="mt-4 text-muted-foreground leading-8">
-                    Add this appointment to your calendar and keep the confirmation email close. This is the same
-                    private link sent to the client, the therapist, and the calendar event.
+                    Add this appointment to your calendar and keep the confirmation email close. The room will be
+                    available on the session day, and you will receive email updates before it starts.
                   </p>
                 </div>
               </div>
@@ -190,7 +220,7 @@ const JoinSessionPage = () => {
                     <p className="font-semibold text-foreground">The room opens on the session day.</p>
                     <p className="mt-2 text-sm leading-7 text-muted-foreground">
                       Until {formatDisplayDate(booking.date)}, save the calendar event and check your email for the
-                      confirmation package.
+                      confirmation package. The session room will be available on the session day, so no need to worry.
                     </p>
                   </>
                 ) : (

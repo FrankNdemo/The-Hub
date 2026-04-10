@@ -1,14 +1,19 @@
 from __future__ import annotations
 
 import secrets
+from datetime import timedelta
 
+from django.conf import settings
 from django.db import transaction
+from django.utils import timezone
 
 from apps.notifications.models import Notification
 
 from .delivery import (
     BookingDeliveryError,
+    REMINDER_EMAIL_KIND,
     SERVICE_TYPE_LABELS,
+    get_booking_time_window,
     build_virtual_session_link,
     send_booking_email,
 )
@@ -167,6 +172,43 @@ def cancel_booking(*, booking: Booking) -> Booking:
         description=f"{booking.client_name} cancelled a {booking.session_type} session.",
     )
     return booking
+
+
+def send_upcoming_session_reminders(now=None) -> dict[str, int]:
+    current_time = now or timezone.now()
+    lead_window_end = current_time + timedelta(minutes=settings.BOOKING_REMINDER_LEAD_MINUTES)
+    local_start_date = timezone.localtime(current_time).date()
+    local_end_date = timezone.localtime(lead_window_end).date()
+    sent_count = 0
+    failed_count = 0
+
+    bookings = (
+        Booking.objects.filter(
+            deleted_at__isnull=True,
+            status__in=[Booking.Status.UPCOMING, Booking.Status.RESCHEDULED],
+            date__range=(local_start_date, local_end_date),
+        )
+        .select_related("therapist")
+        .exclude(emails__kind=REMINDER_EMAIL_KIND)
+        .distinct()
+    )
+
+    for booking in bookings:
+        start_at, _ = get_booking_time_window(booking)
+
+        if start_at < current_time or start_at > lead_window_end:
+            continue
+
+        try:
+            send_booking_email(
+                booking=booking,
+                kind=REMINDER_EMAIL_KIND,
+            )
+            sent_count += 1
+        except BookingDeliveryError:
+            failed_count += 1
+
+    return {"sent": sent_count, "failed": failed_count}
 
 
 @transaction.atomic

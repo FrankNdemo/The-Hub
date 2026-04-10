@@ -48,7 +48,7 @@ export interface BlogPostDraft {
 
 export interface EmailRecord {
   id: string;
-  kind: "confirmation" | "reschedule" | "cancellation";
+  kind: "confirmation" | "reschedule" | "cancellation" | "reminder";
   subject: string;
   recipients: string[];
   html: string;

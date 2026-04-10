@@ -448,28 +448,42 @@ export const createBooking = (input: BookingInput) =>
     { auth: false },
   );
 
-export const fetchManageBooking = (token: string) =>
-  request<BookingRecord>(`/bookings/manage/${token}/`, { method: "GET" }, { auth: false });
-
-export const fetchJoinBooking = (token: string) =>
-  request<BookingJoinRecord>(`/bookings/join/${token}/`, { method: "GET" }, { auth: false });
-
-export const rescheduleManageBooking = (token: string, date: string, time: string) =>
+export const fetchManageBooking = (token: string, email: string) =>
   request<BookingRecord>(
-    `/bookings/manage/${token}/reschedule/`,
+    `/bookings/manage/${token}/`,
     {
       method: "POST",
-      body: JSON.stringify({ date, time }),
+      body: JSON.stringify({ email }),
     },
     { auth: false },
   );
 
-export const cancelManageBooking = (token: string) =>
+export const verifyJoinBooking = (token: string, email: string) =>
+  request<BookingJoinRecord>(
+    `/bookings/join/${token}/`,
+    {
+      method: "POST",
+      body: JSON.stringify({ email }),
+    },
+    { auth: false },
+  );
+
+export const rescheduleManageBooking = (token: string, clientEmail: string, date: string, time: string) =>
+  request<BookingRecord>(
+    `/bookings/manage/${token}/reschedule/`,
+    {
+      method: "POST",
+      body: JSON.stringify({ clientEmail, date, time }),
+    },
+    { auth: false },
+  );
+
+export const cancelManageBooking = (token: string, email: string) =>
   request<BookingRecord>(
     `/bookings/manage/${token}/cancel/`,
     {
       method: "POST",
-      body: JSON.stringify({}),
+      body: JSON.stringify({ email }),
     },
     { auth: false },
   );

@@ -26,55 +26,24 @@ import type { BookingRecord } from "@/types/wellness";
 const ManageBookingPage = () => {
   const { token } = useParams();
   const { getBookingByToken, rescheduleBooking, cancelBooking } = useWellnessHub();
-  const [booking, setBooking] = useState<BookingRecord | null | undefined>(undefined);
+  const [booking, setBooking] = useState<BookingRecord | null>(null);
+  const [accessEmail, setAccessEmail] = useState("");
+  const [accessError, setAccessError] = useState("");
   const [date, setDate] = useState("");
   const [time, setTime] = useState("");
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);
   const [isUpdating, setIsUpdating] = useState(false);
   const [bookingGuidance, setBookingGuidance] = useState("");
   const todayDate = getTodayDateInputValue();
 
   useEffect(() => {
-    let isActive = true;
-
-    const loadBooking = async () => {
-      if (!token) {
-        if (isActive) {
-          setBooking(null);
-          setIsLoading(false);
-        }
-        return;
-      }
-
-      setIsLoading(true);
-
-      try {
-        const nextBooking = await getBookingByToken(token);
-
-        if (!isActive) {
-          return;
-        }
-
-        setBooking(nextBooking);
-        setDate(nextBooking?.date ?? "");
-        setTime(nextBooking?.time ?? "");
-      } catch (error) {
-        if (isActive) {
-          setBooking(null);
-          toast.error(getApiErrorMessage(error, "We could not load this booking right now."));
-        }
-      } finally {
-        if (isActive) {
-          setIsLoading(false);
-        }
-      }
-    };
-
-    void loadBooking();
-
-    return () => {
-      isActive = false;
-    };
+    setBooking(null);
+    setDate("");
+    setTime("");
+    setAccessEmail("");
+    setAccessError("");
+    setBookingGuidance("");
+    setIsLoading(false);
   }, [token]);
 
   const statusLabel = useMemo(() => {
@@ -84,6 +53,44 @@ const ManageBookingPage = () => {
 
     return booking.status.charAt(0).toUpperCase() + booking.status.slice(1);
   }, [booking]);
+
+  const handleVerifyAccess = async (event: React.FormEvent) => {
+    event.preventDefault();
+
+    if (!token) {
+      return;
+    }
+
+    const email = accessEmail.trim();
+
+    if (!email) {
+      setAccessError("Enter the email address you used when booking this session.");
+      return;
+    }
+
+    setIsLoading(true);
+    setAccessError("");
+
+    try {
+      const nextBooking = await getBookingByToken(token, email);
+
+      if (!nextBooking) {
+        setAccessError("This private link could not be matched to a booking.");
+        return;
+      }
+
+      setBooking(nextBooking);
+      setDate(nextBooking.date);
+      setTime(nextBooking.time);
+      setAccessEmail(email);
+    } catch (error) {
+      const message = getApiErrorMessage(error, "We could not verify this booking right now.");
+      setAccessError(message);
+      toast.error(message);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   if (isLoading) {
     return (
@@ -104,7 +111,7 @@ const ManageBookingPage = () => {
     );
   }
 
-  if (!booking) {
+  if (!token) {
     return (
       <div className="min-h-screen" style={softPageBackgroundStyle}>
         <section className="pt-32 pb-24">
@@ -127,11 +134,59 @@ const ManageBookingPage = () => {
     );
   }
 
+  if (!booking) {
+    return (
+      <div className="min-h-screen" style={softPageBackgroundStyle}>
+        <section className="pt-32 pb-24">
+          <div className="container mx-auto px-4">
+            <form
+              onSubmit={handleVerifyAccess}
+              className="mx-auto max-w-2xl rounded-[2rem] border border-border/60 bg-card p-8 text-center shadow-card sm:p-10"
+            >
+              <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+                <ShieldCheck className="h-5 w-5" />
+              </div>
+              <p className="mt-5 text-sm font-semibold uppercase tracking-[0.24em] text-primary/75">Secure Session Access</p>
+              <h1 className="mt-4 font-heading text-4xl font-semibold text-foreground">Confirm your booking email</h1>
+              <p className="mt-4 text-muted-foreground leading-8">
+                For privacy, session details only open after the booking email matches this private link.
+              </p>
+              <div className="mx-auto mt-7 max-w-md text-left">
+                <Label htmlFor="manage-access-email">Booking email</Label>
+                <Input
+                  id="manage-access-email"
+                  type="email"
+                  value={accessEmail}
+                  onChange={(event) => {
+                    setAccessError("");
+                    setAccessEmail(event.target.value);
+                  }}
+                  className="mt-2"
+                  placeholder="you@example.com"
+                  required
+                />
+                {accessError ? (
+                  <p className="mt-3 rounded-[1rem] bg-destructive/10 px-4 py-3 text-sm leading-6 text-foreground">
+                    {accessError}
+                  </p>
+                ) : null}
+              </div>
+              <Button variant="hero" className="mt-7 rounded-full" type="submit">
+                Open My Session
+              </Button>
+            </form>
+          </div>
+        </section>
+        <Footer />
+      </div>
+    );
+  }
+
   const handleReschedule = async () => {
     setIsUpdating(true);
 
     try {
-      const updated = await rescheduleBooking({ token: booking.token, date, time });
+      const updated = await rescheduleBooking({ token: booking.token, clientEmail: accessEmail, date, time });
       setBooking(updated);
       setDate(updated.date);
       setTime(updated.time);
@@ -159,7 +214,7 @@ const ManageBookingPage = () => {
     setIsUpdating(true);
 
     try {
-      const cancelled = await cancelBooking(booking.token);
+      const cancelled = await cancelBooking(booking.token, accessEmail);
       setBooking(cancelled);
       toast.success("Your session has been cancelled.");
     } catch (error) {
@@ -182,7 +237,7 @@ const ManageBookingPage = () => {
                     Reschedule or cancel your session
                   </h1>
                   <p className="mt-4 max-w-2xl text-muted-foreground leading-8">
-                    Your booking details are loaded automatically from your private link. No login is required.
+                    Your booking details are shown only after the booking email has been confirmed.
                   </p>
                 </div>
                 <div className="inline-flex rounded-full bg-primary/10 px-4 py-2 text-sm font-medium text-primary">

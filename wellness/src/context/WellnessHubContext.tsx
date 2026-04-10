@@ -47,9 +47,9 @@ interface WellnessHubContextValue extends WellnessHubState {
   refreshPublicContent: () => Promise<void>;
   refreshDashboard: () => Promise<void>;
   submitBooking: (input: BookingInput) => Promise<BookingRecord>;
-  getBookingByToken: (token: string) => Promise<BookingRecord | null>;
-  rescheduleBooking: (input: { token: string; date: string; time: string }) => Promise<BookingRecord>;
-  cancelBooking: (token: string) => Promise<BookingRecord>;
+  getBookingByToken: (token: string, email: string) => Promise<BookingRecord | null>;
+  rescheduleBooking: (input: { token: string; clientEmail: string; date: string; time: string }) => Promise<BookingRecord>;
+  cancelBooking: (token: string, email: string) => Promise<BookingRecord>;
   markBookingCompleted: (id: string) => Promise<BookingRecord>;
   deleteBooking: (id: string, reason: string) => Promise<void>;
   saveBlogPost: (draft: BlogPostDraft) => Promise<BlogPost>;
@@ -361,9 +361,9 @@ export const WellnessHubProvider = ({ children }: { children: React.ReactNode })
     return booking;
   };
 
-  const getBookingByToken = async (token: string) => {
+  const getBookingByToken = async (token: string, email: string) => {
     try {
-      const booking = normalizeBooking(await fetchManageBooking(token));
+      const booking = normalizeBooking(await fetchManageBooking(token, email));
 
       if (booking && getStoredAuthTokens()) {
         setState((current) => ({
@@ -382,8 +382,18 @@ export const WellnessHubProvider = ({ children }: { children: React.ReactNode })
     }
   };
 
-  const rescheduleBooking = async ({ token, date, time }: { token: string; date: string; time: string }) => {
-    const booking = normalizeBooking(await rescheduleManageBooking(token, date, time));
+  const rescheduleBooking = async ({
+    token,
+    clientEmail,
+    date,
+    time,
+  }: {
+    token: string;
+    clientEmail: string;
+    date: string;
+    time: string;
+  }) => {
+    const booking = normalizeBooking(await rescheduleManageBooking(token, clientEmail, date, time));
 
     if (!booking) {
       throw new Error("The booking response was incomplete.");
@@ -403,8 +413,8 @@ export const WellnessHubProvider = ({ children }: { children: React.ReactNode })
     return booking;
   };
 
-  const cancelBooking = async (token: string) => {
-    const booking = normalizeBooking(await cancelManageBookingRequest(token));
+  const cancelBooking = async (token: string, email: string) => {
+    const booking = normalizeBooking(await cancelManageBookingRequest(token, email));
 
     if (!booking) {
       throw new Error("The booking response was incomplete.");
