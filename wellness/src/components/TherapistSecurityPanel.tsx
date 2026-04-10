@@ -77,10 +77,6 @@ const TherapistSecurityPanel = () => {
     <section className="min-w-0 space-y-5">
       <div>
         <h2 className="font-heading text-2xl font-semibold text-foreground sm:text-3xl">Portal security</h2>
-        <p className="mt-2 text-sm leading-7 text-muted-foreground">
-          Open one action at a time to update the therapist password or the hidden footer passphrase. The portal email
-          follows the profile email saved in the profile tab.
-        </p>
       </div>
 
       <div className="grid gap-4 lg:grid-cols-2">

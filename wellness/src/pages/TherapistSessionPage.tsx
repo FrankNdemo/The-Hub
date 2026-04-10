@@ -139,7 +139,7 @@ const TherapistSessionPage = () => {
                     Therapist Session Access
                   </p>
                   <h1 className="mt-3 font-heading text-4xl font-semibold text-foreground md:text-5xl">
-                    Session access is ready
+                    Your session is live—ready when you are.
                   </h1>
                   <p className="mt-4 text-muted-foreground leading-8">
                     This therapist link is already verified. No booking email confirmation is needed.

@@ -651,9 +651,6 @@ const TherapistDashboardPage = () => {
                       <span className="sm:hidden">Blog</span>
                       <span className="hidden sm:inline">Blog Manager</span>
                     </TabsTrigger>
-                    <TabsTrigger value="profile" className="h-auto shrink-0 rounded-full px-3 py-2 text-[11px] sm:px-4 sm:text-sm lg:px-5">
-                      Profile
-                    </TabsTrigger>
                     <TabsTrigger
                       value="notifications"
                       className="h-auto shrink-0 rounded-full px-3 py-2 text-[10px] sm:px-4 sm:text-sm lg:px-5"
@@ -673,6 +670,9 @@ const TherapistDashboardPage = () => {
                     </TabsTrigger>
                     <TabsTrigger value="completed" className="h-auto shrink-0 rounded-full px-3 py-2 text-[10px] sm:px-4 sm:text-sm lg:px-5">
                       Completed
+                    </TabsTrigger>
+                    <TabsTrigger value="profile" className="h-auto shrink-0 rounded-full px-3 py-2 text-[11px] sm:px-4 sm:text-sm lg:px-5">
+                      Profile
                     </TabsTrigger>
                     <TabsTrigger
                       value="security"

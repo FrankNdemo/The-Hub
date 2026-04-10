@@ -237,7 +237,7 @@ const ManageBookingPage = () => {
                     Reschedule or cancel your session
                   </h1>
                   <p className="mt-4 max-w-2xl text-muted-foreground leading-8">
-                    Your booking details are shown only after the booking email has been confirmed.
+                    “You showed up for yourself—that matters.”
                   </p>
                 </div>
                 <div className="inline-flex rounded-full bg-primary/10 px-4 py-2 text-sm font-medium text-primary">
