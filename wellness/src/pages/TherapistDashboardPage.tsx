@@ -1,4 +1,4 @@
-import { type MouseEvent, useEffect, useMemo, useState } from "react";
+import { Fragment, type MouseEvent, useEffect, useMemo, useState } from "react";
 import { Link, Navigate } from "react-router-dom";
 import {
   BellRing,
@@ -152,6 +152,13 @@ const getStatusBadgeClassName = (status: BookingStatus) => {
 
 const getTherapistSessionLink = (booking: BookingRecord) => booking.therapistSessionUrl || booking.meetLink || "";
 
+const hasBookingDashboardLinks = (booking: BookingRecord) =>
+  Boolean(
+    booking.therapistAddToCalendarUrl ||
+      booking.manageUrl ||
+      (booking.sessionType === "virtual" && getTherapistSessionLink(booking)),
+  );
+
 interface BookingDashboardLinksProps {
   booking: BookingRecord;
   compact?: boolean;
@@ -170,7 +177,7 @@ const BookingDashboardLinks = ({ booking, compact = false, stopPropagation = fal
     : "inline-flex w-full items-center justify-center gap-2 rounded-lg border border-primary/25 px-3 py-2 text-sm font-semibold text-foreground transition-colors hover:border-primary hover:text-primary sm:w-auto";
 
   return (
-    <div className={compact ? "mt-3 flex flex-wrap gap-x-3 gap-y-2" : "mt-4 space-y-3"}>
+    <div className={compact ? "flex flex-wrap items-center gap-x-3 gap-y-2" : "mt-4 space-y-3"}>
       {!compact ? (
         <p className="text-xs font-semibold uppercase tracking-[0.18em] text-primary/80">Session Links</p>
       ) : null}
@@ -769,8 +776,6 @@ const TherapistDashboardPage = () => {
                             ) : null}
                           </div>
 
-                          <BookingDashboardLinks booking={booking} />
-
                           <div className="mt-4 flex gap-2">
                             <Button
                               type="button"
@@ -793,6 +798,14 @@ const TherapistDashboardPage = () => {
                               <Trash2 className="h-4 w-4" />
                             </Button>
                           </div>
+                          {hasBookingDashboardLinks(booking) ? (
+                            <div className="mt-4 border-t border-border/40 pt-3">
+                              <p className="mb-2 text-xs font-semibold uppercase tracking-[0.18em] text-primary/70">
+                                Session Links
+                              </p>
+                              <BookingDashboardLinks booking={booking} compact />
+                            </div>
+                          ) : null}
                         </div>
                       ))}
                       {sortedBookings.length === 0 ? (
@@ -817,7 +830,8 @@ const TherapistDashboardPage = () => {
                         </TableHeader>
                         <TableBody>
                           {sortedBookings.map((booking) => (
-                            <TableRow key={booking.id}>
+                            <Fragment key={booking.id}>
+                            <TableRow>
                               <TableCell>
                                 <div className="space-y-1">
                                   <p className="font-medium text-foreground">{booking.clientName}</p>
@@ -830,7 +844,6 @@ const TherapistDashboardPage = () => {
                                 <div className="space-y-1">
                                   <p className="text-sm text-foreground">{booking.clientEmail}</p>
                                   <p className="text-xs text-muted-foreground">{booking.clientPhone}</p>
-                                  <BookingDashboardLinks booking={booking} compact />
                                 </div>
                               </TableCell>
                               <TableCell>{formatDisplayDate(booking.date)}</TableCell>
@@ -869,6 +882,19 @@ const TherapistDashboardPage = () => {
                                 </div>
                               </TableCell>
                             </TableRow>
+                            {hasBookingDashboardLinks(booking) ? (
+                              <TableRow>
+                                <TableCell colSpan={7} className="pt-0">
+                                  <div className="flex flex-wrap items-center gap-x-4 gap-y-2 border-t border-border/40 pt-3">
+                                    <span className="text-xs font-semibold uppercase tracking-[0.18em] text-primary/70">
+                                      Session Links
+                                    </span>
+                                    <BookingDashboardLinks booking={booking} compact />
+                                  </div>
+                                </TableCell>
+                              </TableRow>
+                            ) : null}
+                            </Fragment>
                           ))}
                           {sortedBookings.length === 0 ? (
                             <TableRow>
