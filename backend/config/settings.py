@@ -4,7 +4,7 @@ import os
 from datetime import timedelta
 from email.utils import parseaddr
 from pathlib import Path
-from urllib.parse import parse_qs, unquote
+from urllib.parse import parse_qs, unquote, urlparse
 
 
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -49,6 +49,32 @@ def env_any(*keys: str, default: str = "") -> str:
 def env_list(key: str, default: str = "") -> list[str]:
     raw = env(key, default)
     return [value.strip() for value in raw.split(",") if value.strip()]
+
+
+def unique_values(values: list[str]) -> list[str]:
+    seen: set[str] = set()
+    unique: list[str] = []
+
+    for value in values:
+        if not value:
+            continue
+
+        if value in seen:
+            continue
+
+        seen.add(value)
+        unique.append(value)
+
+    return unique
+
+
+def hostname_from_url(value: str) -> str:
+    raw = value.strip()
+    if not raw:
+        return ""
+
+    parsed = urlparse(raw if "://" in raw else f"//{raw}")
+    return parsed.hostname or ""
 
 
 def parse_database_url(value: str) -> dict[str, str]:
@@ -101,6 +127,17 @@ DEBUG = env("DJANGO_DEBUG", "True").lower() == "true"
 ALLOWED_HOSTS = env_list("DJANGO_ALLOWED_HOSTS", "localhost,127.0.0.1,[::1],testserver")
 USE_X_FORWARDED_HOST = True
 SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
+
+if env("DJANGO_AUTO_ALLOW_VERCEL_HOSTS", "True").lower() == "true":
+    ALLOWED_HOSTS = unique_values(
+        [
+            *ALLOWED_HOSTS,
+            ".vercel.app",
+            hostname_from_url(env("VERCEL_URL")),
+            hostname_from_url(env("VERCEL_BRANCH_URL")),
+            hostname_from_url(env("VERCEL_PROJECT_PRODUCTION_URL")),
+        ]
+    )
 
 if DEBUG and "*" not in ALLOWED_HOSTS:
     ALLOWED_HOSTS = [*ALLOWED_HOSTS, "0.0.0.0", "*"]
