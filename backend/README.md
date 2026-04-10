@@ -133,4 +133,5 @@ If booking returns a `500` on Vercel, check these first:
 python manage.py migrate
 ```
 
-5. Check `https://your-backend-project.vercel.app/api/v1/health/?database=1`. It should return `{"status":"ok","database":"ok"}` before public booking can succeed.
+5. On Vercel Hobby, cron jobs can run at most once per day. The bundled reminder cron is set to `0 6 * * *`; use Vercel Pro or an external scheduler if near-session reminders need to run more frequently.
+6. Check `https://your-backend-project.vercel.app/api/v1/health/?database=1`. It should return `{"status":"ok","database":"ok"}` before public booking can succeed.
