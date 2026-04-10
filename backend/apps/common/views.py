@@ -1,5 +1,3 @@
-import os
-
 from django.db import connection
 from django.db.utils import DatabaseError
 from rest_framework.response import Response
@@ -7,17 +5,7 @@ from rest_framework.views import APIView
 
 
 def build_health_payload() -> dict[str, object]:
-    return {
-        "status": "ok",
-        "service": "wellness-backend",
-        "release": {
-            "commit": os.getenv("VERCEL_GIT_COMMIT_SHA", ""),
-            "branch": os.getenv("VERCEL_GIT_COMMIT_REF", ""),
-            "deployment": os.getenv("VERCEL_URL", ""),
-            "bookingJoinPost": True,
-            "therapistSessionRoute": True,
-        },
-    }
+    return {"status": "ok"}
 
 
 class HealthCheckView(APIView):
