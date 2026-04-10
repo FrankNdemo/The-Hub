@@ -685,6 +685,7 @@ const TherapistDashboardPage = () => {
                   <TabsContent value="overview" className="mt-8 space-y-5">
                     {activeBookings.slice(0, 3).map((booking) => {
                       const isExpanded = expandedOverviewBookingId === booking.id;
+                      const serviceLabel = formatServiceType(booking.serviceType);
 
                       return (
                         <div
@@ -731,39 +732,52 @@ const TherapistDashboardPage = () => {
                               : "max-h-0 opacity-0 lg:group-hover:mt-5 lg:group-hover:max-h-80 lg:group-hover:opacity-100"
                           }`}
                         >
-                          <div className="grid gap-3 sm:grid-cols-2">
-                            <div className="rounded-[1.25rem] bg-secondary/40 p-4">
-                              <div className="flex items-center gap-2 text-primary/80">
-                                <Mail className="h-4 w-4" />
-                                <p className="text-xs font-semibold uppercase tracking-[0.18em]">Email</p>
+                          <div className="grid grid-cols-3 gap-2 sm:gap-3">
+                            <div className="min-w-0 rounded-2xl bg-secondary/40 px-2 py-3 sm:rounded-[1.25rem] sm:p-4">
+                              <div className="flex min-w-0 items-center gap-1.5 text-primary/80 sm:gap-2">
+                                <Mail className="h-3.5 w-3.5 shrink-0 sm:h-4 sm:w-4" />
+                                <p className="truncate text-[0.58rem] font-semibold uppercase leading-4 tracking-[0.08em] sm:text-xs sm:tracking-[0.18em]">
+                                  Email
+                                </p>
                               </div>
                               <a
                                 href={`mailto:${booking.clientEmail}`}
+                                title={booking.clientEmail}
                                 onClick={(event) => event.stopPropagation()}
-                                className="mt-2 inline-block break-all text-sm leading-7 text-foreground underline-offset-4 transition-colors hover:text-primary hover:underline"
+                                className="mt-2 block truncate text-[0.68rem] leading-5 text-foreground underline-offset-4 transition-colors hover:text-primary hover:underline sm:text-sm sm:leading-7"
                               >
                                 {booking.clientEmail}
                               </a>
                             </div>
-                            <div className="rounded-[1.25rem] bg-secondary/40 p-4">
-                              <div className="flex items-center gap-2 text-primary/80">
-                                <Phone className="h-4 w-4" />
-                                <p className="text-xs font-semibold uppercase tracking-[0.18em]">Phone</p>
+                            <div className="min-w-0 rounded-2xl bg-secondary/40 px-2 py-3 sm:rounded-[1.25rem] sm:p-4">
+                              <div className="flex min-w-0 items-center gap-1.5 text-primary/80 sm:gap-2">
+                                <Phone className="h-3.5 w-3.5 shrink-0 sm:h-4 sm:w-4" />
+                                <p className="truncate text-[0.58rem] font-semibold uppercase leading-4 tracking-[0.08em] sm:text-xs sm:tracking-[0.18em]">
+                                  Phone
+                                </p>
                               </div>
                               <a
                                 href={`tel:${booking.clientPhone.replace(/\s+/g, "")}`}
+                                title={booking.clientPhone}
                                 onClick={(event) => event.stopPropagation()}
-                                className="mt-2 inline-block text-sm leading-7 text-foreground underline-offset-4 transition-colors hover:text-primary hover:underline"
+                                className="mt-2 block truncate text-[0.68rem] leading-5 text-foreground underline-offset-4 transition-colors hover:text-primary hover:underline sm:text-sm sm:leading-7"
                               >
                                 {booking.clientPhone}
                               </a>
                             </div>
-                            <div className="rounded-[1.25rem] bg-secondary/40 p-4">
-                              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-primary/80">Service Type</p>
-                              <p className="mt-2 text-sm leading-7 text-foreground">{formatServiceType(booking.serviceType)}</p>
+                            <div className="min-w-0 rounded-2xl bg-secondary/40 px-2 py-3 sm:rounded-[1.25rem] sm:p-4">
+                              <p className="truncate text-[0.58rem] font-semibold uppercase leading-4 tracking-[0.08em] text-primary/80 sm:text-xs sm:tracking-[0.18em]">
+                                Service Type
+                              </p>
+                              <p
+                                title={serviceLabel}
+                                className="mt-2 truncate text-[0.68rem] leading-5 text-foreground sm:text-sm sm:leading-7"
+                              >
+                                {serviceLabel}
+                              </p>
                             </div>
                             {booking.serviceType === "corporate" && booking.participantCount ? (
-                              <div className="rounded-[1.25rem] bg-secondary/40 p-4">
+                              <div className="col-span-3 rounded-2xl bg-secondary/40 px-3 py-3 sm:rounded-[1.25rem] sm:p-4">
                                 <p className="text-xs font-semibold uppercase tracking-[0.18em] text-primary/80">Participants</p>
                                 <p className="mt-2 text-sm leading-7 text-foreground">{booking.participantCount.toLocaleString()}</p>
                               </div>
