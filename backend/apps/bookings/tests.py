@@ -1,5 +1,6 @@
 import html
 from datetime import timedelta
+from urllib.parse import parse_qs, urlparse
 
 from django.core.management import call_command
 from django.core import mail
@@ -49,7 +50,8 @@ class BookingApiTests(APITestCase):
         self.assertTrue(create_response.data["calendarEventId"])
 
         self.assertEqual(len(mail.outbox), 2)
-        actual_meet_link = Booking.objects.get(pk=create_response.data["id"]).meet_link
+        booking_for_links = Booking.objects.select_related("therapist").get(pk=create_response.data["id"])
+        actual_meet_link = booking_for_links.meet_link
         self.assertEqual(create_response.data["meetLink"], "")
         self.assertEqual(create_response.data["therapistSessionUrl"], "")
         self.assertEqual(mail.outbox[0].subject, "Your Session Is Confirmed | The Wellness Hub")
@@ -65,7 +67,6 @@ class BookingApiTests(APITestCase):
         escaped_manage_url = html.escape(create_response.data["manageUrl"], quote=True)
         escaped_join_url = html.escape(create_response.data["joinUrl"], quote=True)
         escaped_calendar_url = html.escape(create_response.data["addToCalendarUrl"], quote=True)
-        escaped_meet_link = html.escape(actual_meet_link, quote=True)
         self.assertIn("Manage Your Session", client_html)
         self.assertIn(f'href="{escaped_manage_url}"', client_html)
         self.assertIn(f'href="{escaped_join_url}"', client_html)
@@ -83,8 +84,9 @@ class BookingApiTests(APITestCase):
         self.assertEqual(mail.outbox[1].to, ["likentnerg@gmail.com"])
         self.assertEqual(mail.outbox[1].subject, "New Session Booked | The Wellness Hub")
         self.assertIn("Client Email: client@example.com", mail.outbox[1].body)
-        self.assertIn(f'href="{escaped_meet_link}"', therapist_html)
+        self.assertIn('href="http://localhost:8080/therapist/session/', therapist_html)
         self.assertIn("Open Therapist Room", therapist_html)
+        self.assertNotIn(actual_meet_link, therapist_html)
         self.assertNotIn(f">{escaped_join_url}<", therapist_html)
         self.assertIn("Virtual Session Link", mail.outbox[1].body)
         self.assertNotIn(create_response.data["joinUrl"], mail.outbox[1].body)
@@ -101,10 +103,11 @@ class BookingApiTests(APITestCase):
         self.assertIn("likentnerg@gmail.com", mail.outbox[0].attachments[0][1])
         self.assertNotIn(actual_meet_link, mail.outbox[0].attachments[0][1])
         self.assertNotIn(create_response.data["manageUrl"], mail.outbox[0].attachments[0][1])
-        self.assertIn("https://meet.jit.si/the-wellness-hub-", mail.outbox[1].attachments[0][1])
-        self.assertIn("URL:https://meet.jit.si/the-wellness-hub-", mail.outbox[1].attachments[0][1])
-        self.assertIn("LOCATION:https://meet.jit.si/the-wellness-hub-", mail.outbox[1].attachments[0][1])
+        self.assertIn("/therapist/session/", mail.outbox[1].attachments[0][1])
+        self.assertIn("URL:http://localhost:8080/therapist/session/", mail.outbox[1].attachments[0][1])
+        self.assertIn("LOCATION:http://localhost:8080/therapist/session/", mail.outbox[1].attachments[0][1])
         self.assertNotIn(create_response.data["joinUrl"], mail.outbox[1].attachments[0][1])
+        self.assertNotIn(actual_meet_link, mail.outbox[1].attachments[0][1])
         self.assertTrue(actual_meet_link.startswith("https://meet.jit.si/the-wellness-hub-"))
         self.assertTrue(create_response.data["joinUrl"].startswith("http://localhost:8080/join/"))
         self.assertTrue(create_response.data["addToCalendarUrl"].startswith("https://calendar.google.com/calendar/render?"))
@@ -113,18 +116,30 @@ class BookingApiTests(APITestCase):
         self.assertGreater(len(create_response.data["addToCalendarUrl"]), 200)
         self.assertGreaterEqual(Booking._meta.get_field("meet_link").max_length, 2048)
 
+        token = create_response.data["token"]
         booking = Booking.objects.select_related("therapist__user").get(pk=create_response.data["id"])
         self.client.force_authenticate(user=booking.therapist.user)
         dashboard_response = self.client.get("/api/v1/dashboard/")
         self.assertEqual(dashboard_response.status_code, status.HTTP_200_OK)
         dashboard_booking = dashboard_response.data["bookings"][0]
         self.assertEqual(dashboard_booking["meetLink"], actual_meet_link)
-        self.assertEqual(dashboard_booking["therapistSessionUrl"], actual_meet_link)
+        self.assertTrue(dashboard_booking["therapistSessionUrl"].startswith("http://localhost:8080/therapist/session/"))
         self.assertEqual(len(dashboard_booking["emails"]), 2)
-        self.assertIn("meet.jit.si", dashboard_booking["therapistAddToCalendarUrl"])
+        self.assertIn("therapist%2Fsession", dashboard_booking["therapistAddToCalendarUrl"])
         self.client.force_authenticate(user=None)
 
-        token = create_response.data["token"]
+        blocked_therapist_session_response = self.client.get(f"/api/v1/bookings/therapist-session/{token}/")
+        self.assertEqual(blocked_therapist_session_response.status_code, status.HTTP_403_FORBIDDEN)
+
+        therapist_session_access = parse_qs(urlparse(dashboard_booking["therapistSessionUrl"]).query)["access"][0]
+        therapist_session_response = self.client.get(
+            f"/api/v1/bookings/therapist-session/{token}/",
+            {"access": therapist_session_access},
+        )
+        self.assertEqual(therapist_session_response.status_code, status.HTTP_200_OK)
+        self.assertTrue(therapist_session_response.data["canJoinSession"])
+        self.assertEqual(therapist_session_response.data["meetLink"], actual_meet_link)
+
         blocked_detail_response = self.client.get(f"/api/v1/bookings/manage/{token}/")
         self.assertEqual(blocked_detail_response.status_code, status.HTTP_403_FORBIDDEN)
 

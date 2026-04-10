@@ -4,7 +4,13 @@ from rest_framework import serializers
 
 from apps.therapists.models import TherapistProfile
 
-from .delivery import CLIENT_AUDIENCE, THERAPIST_AUDIENCE, build_google_calendar_add_url, build_join_url
+from .delivery import (
+    CLIENT_AUDIENCE,
+    THERAPIST_AUDIENCE,
+    build_google_calendar_add_url,
+    build_join_url,
+    build_therapist_session_url,
+)
 from .models import Booking, BookingHistoryEvent, EmailRecord
 
 
@@ -100,7 +106,7 @@ class BookingDetailSerializer(serializers.ModelSerializer):
         if not self.context.get("include_therapist_links") or obj.session_type != Booking.SessionType.VIRTUAL:
             return ""
 
-        return obj.meet_link
+        return build_therapist_session_url(obj)
 
     def get_meetLink(self, obj: Booking) -> str:
         if not self.context.get("include_meet_link"):
@@ -157,6 +163,9 @@ class BookingJoinSerializer(serializers.ModelSerializer):
         ]
 
     def get_meetLink(self, obj: Booking) -> str:
+        if self.context.get("therapist_access_verified"):
+            return obj.meet_link
+
         if not self.context.get("access_verified") or not is_virtual_session_open(obj):
             return ""
 
@@ -176,6 +185,9 @@ class BookingJoinSerializer(serializers.ModelSerializer):
         return build_google_calendar_add_url(obj, audience)
 
     def get_canJoinSession(self, obj: Booking) -> bool:
+        if self.context.get("therapist_access_verified"):
+            return bool(obj.meet_link)
+
         return bool(self.context.get("access_verified")) and is_virtual_session_open(obj) and bool(obj.meet_link)
 
 

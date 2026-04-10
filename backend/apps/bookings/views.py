@@ -16,7 +16,7 @@ from .serializers import (
     BookingJoinSerializer,
     BookingRescheduleSerializer,
 )
-from .delivery import BookingDeliveryError
+from .delivery import BookingDeliveryError, verify_therapist_session_access_token
 from .services import (
     cancel_booking,
     complete_booking,
@@ -109,6 +109,31 @@ class BookingJoinDetailView(APIView):
             return access_denied_response()
 
         return Response(BookingJoinSerializer(booking, context={"access_verified": True}).data)
+
+
+class BookingTherapistSessionDetailView(APIView):
+    permission_classes = [AllowAny]
+    authentication_classes = []
+
+    def get(self, request, token):
+        booking = get_public_booking(token)
+        access_token = request.query_params.get("access", "")
+
+        if not access_token or not verify_therapist_session_access_token(booking, access_token):
+            return Response(
+                {
+                    "detail": "This therapist session link is invalid or incomplete.",
+                    "code": "therapist_session_access_required",
+                },
+                status=status.HTTP_403_FORBIDDEN,
+            )
+
+        return Response(
+            BookingJoinSerializer(
+                booking,
+                context={"access_verified": True, "therapist_access_verified": True},
+            ).data
+        )
 
 
 class BookingManageRescheduleView(APIView):

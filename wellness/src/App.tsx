@@ -20,6 +20,7 @@ import NotFound from "./pages/NotFound";
 import ServicesPage from "./pages/ServicesPage";
 import TeamPage from "./pages/TeamPage";
 import TherapistDashboardPage from "./pages/TherapistDashboardPage";
+import TherapistSessionPage from "./pages/TherapistSessionPage";
 
 const queryClient = new QueryClient();
 
@@ -95,6 +96,7 @@ const PreviewRoutes = () => {
       <Route path="/join/:token" element={<JoinSessionPage />} />
       <Route path="/manage/:token" element={<ManageBookingPage />} />
       <Route path="/therapist/portal" element={<TherapistDashboardPage />} />
+      <Route path="/therapist/session/:token" element={<TherapistSessionPage />} />
       <Route path="*" element={<NotFound />} />
     </Routes>
   );

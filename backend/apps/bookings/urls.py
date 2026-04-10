@@ -6,6 +6,7 @@ from .views import (
     BookingManageDetailView,
     BookingManageRescheduleView,
     BookingReminderRunView,
+    BookingTherapistSessionDetailView,
     PublicBookingCreateView,
     TherapistBookingCompleteView,
     TherapistBookingDeleteView,
@@ -16,6 +17,11 @@ from .views import (
 urlpatterns = [
     path("bookings/", PublicBookingCreateView.as_view(), name="public-booking-create"),
     path("bookings/join/<str:token>/", BookingJoinDetailView.as_view(), name="booking-join-detail"),
+    path(
+        "bookings/therapist-session/<str:token>/",
+        BookingTherapistSessionDetailView.as_view(),
+        name="booking-therapist-session-detail",
+    ),
     path("bookings/manage/<str:token>/", BookingManageDetailView.as_view(), name="booking-manage-detail"),
     path("bookings/reminders/run/", BookingReminderRunView.as_view(), name="booking-reminder-run"),
     path(

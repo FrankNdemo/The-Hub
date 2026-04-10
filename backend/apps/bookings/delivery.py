@@ -9,10 +9,11 @@ from datetime import datetime, timedelta, timezone as dt_timezone
 from email.utils import parseaddr
 from urllib import error as urllib_error
 from urllib import request as urllib_request
-from urllib.parse import urlencode
+from urllib.parse import quote, urlencode
 from zoneinfo import ZoneInfo
 
 from django.conf import settings
+from django.core import signing
 from django.core.mail import EmailMultiAlternatives, get_connection
 from django.utils import timezone
 
@@ -27,6 +28,7 @@ SERVICE_TYPE_LABELS = {
 CLIENT_AUDIENCE = "client"
 THERAPIST_AUDIENCE = "therapist"
 REMINDER_EMAIL_KIND = "reminder"
+THERAPIST_SESSION_ACCESS_SALT = "wellness.booking.therapist-session"
 SESSION_QUOTES = (
     "Healing often begins when someone feels seen, safe, and heard.",
     "Small steady steps can become life-changing progress.",
@@ -46,6 +48,36 @@ def build_manage_url(token: str) -> str:
 
 def build_join_url(token: str) -> str:
     return f"{settings.FRONTEND_BASE_URL}/join/{token}"
+
+
+def build_therapist_session_access_token(booking: Booking) -> str:
+    return signing.dumps(
+        {
+            "booking": str(booking.pk),
+            "therapist": str(booking.therapist_id),
+            "token": booking.manage_token,
+        },
+        salt=THERAPIST_SESSION_ACCESS_SALT,
+    )
+
+
+def verify_therapist_session_access_token(booking: Booking, access_token: str) -> bool:
+    try:
+        payload = signing.loads(access_token, salt=THERAPIST_SESSION_ACCESS_SALT)
+    except signing.BadSignature:
+        return False
+
+    return (
+        isinstance(payload, dict)
+        and payload.get("booking") == str(booking.pk)
+        and payload.get("therapist") == str(booking.therapist_id)
+        and payload.get("token") == booking.manage_token
+    )
+
+
+def build_therapist_session_url(booking: Booking) -> str:
+    access_token = quote(build_therapist_session_access_token(booking), safe="")
+    return f"{settings.FRONTEND_BASE_URL}/therapist/session/{booking.manage_token}?access={access_token}"
 
 
 def build_therapist_dashboard_url() -> str:
@@ -122,8 +154,8 @@ def get_virtual_access_url(booking: Booking, audience: str = CLIENT_AUDIENCE) ->
     if booking.session_type != Booking.SessionType.VIRTUAL:
         return ""
 
-    if audience == THERAPIST_AUDIENCE and booking.meet_link:
-        return booking.meet_link
+    if audience == THERAPIST_AUDIENCE:
+        return build_therapist_session_url(booking)
 
     return build_join_url(booking.manage_token)
 

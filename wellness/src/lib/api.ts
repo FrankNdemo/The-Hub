@@ -468,6 +468,15 @@ export const verifyJoinBooking = (token: string, email: string) =>
     { auth: false },
   );
 
+export const fetchTherapistSessionBooking = (token: string, access: string) =>
+  request<BookingJoinRecord>(
+    `/bookings/therapist-session/${token}/?access=${encodeURIComponent(access)}`,
+    {
+      method: "GET",
+    },
+    { auth: false },
+  );
+
 export const rescheduleManageBooking = (token: string, clientEmail: string, date: string, time: string) =>
   request<BookingRecord>(
     `/bookings/manage/${token}/reschedule/`,
