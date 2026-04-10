@@ -16,7 +16,7 @@ from .serializers import (
     BookingJoinSerializer,
     BookingRescheduleSerializer,
 )
-from .delivery import BookingDeliveryError, CLIENT_AUDIENCE, THERAPIST_AUDIENCE
+from .delivery import BookingDeliveryError
 from .services import (
     cancel_booking,
     complete_booking,
@@ -36,16 +36,10 @@ def client_email_matches(booking: Booking, email: str) -> bool:
     return normalize_email(booking.client_email) == normalize_email(email)
 
 
-def session_access_email_matches(booking: Booking, email: str) -> bool:
-    return client_email_matches(booking, email) or (
-        normalize_email(booking.therapist.email) == normalize_email(email)
-    )
-
-
 def access_denied_response() -> Response:
     return Response(
         {
-            "detail": "Please enter the email address connected to this session.",
+            "detail": "Please enter the email address used to book this session.",
             "code": "booking_email_required",
         },
         status=status.HTTP_403_FORBIDDEN,
@@ -111,18 +105,10 @@ class BookingJoinDetailView(APIView):
         serializer.is_valid(raise_exception=True)
         booking = get_public_booking(token)
 
-        email = serializer.validated_data["email"]
-
-        if not session_access_email_matches(booking, email):
+        if not client_email_matches(booking, serializer.validated_data["email"]):
             return access_denied_response()
 
-        audience = (
-            THERAPIST_AUDIENCE
-            if normalize_email(booking.therapist.email) == normalize_email(email)
-            else CLIENT_AUDIENCE
-        )
-
-        return Response(BookingJoinSerializer(booking, context={"access_verified": True, "audience": audience}).data)
+        return Response(BookingJoinSerializer(booking, context={"access_verified": True}).data)
 
 
 class BookingManageRescheduleView(APIView):

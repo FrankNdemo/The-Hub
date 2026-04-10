@@ -149,6 +149,14 @@ class BookingApiTests(APITestCase):
         self.assertEqual(wrong_join_response.status_code, status.HTTP_403_FORBIDDEN)
         self.assertNotIn("clientEmail", wrong_join_response.data)
 
+        therapist_join_response = self.client.post(
+            f"/api/v1/bookings/join/{token}/",
+            {"email": "likentnerg@gmail.com"},
+            format="json",
+        )
+        self.assertEqual(therapist_join_response.status_code, status.HTTP_403_FORBIDDEN)
+        self.assertNotIn("clientEmail", therapist_join_response.data)
+
         join_response = self.client.post(
             f"/api/v1/bookings/join/{token}/",
             {"email": "client@example.com"},

@@ -41,7 +41,7 @@ const JoinSessionPage = () => {
     const email = accessEmail.trim();
 
     if (!email) {
-      setAccessError("Enter the email connected to this session.");
+      setAccessError("Enter the email used to book this session.");
       return;
     }
 
@@ -104,11 +104,11 @@ const JoinSessionPage = () => {
               <p className="mt-5 text-sm font-semibold uppercase tracking-[0.24em] text-primary/75">Session Link</p>
               <h1 className="mt-4 font-heading text-4xl font-semibold text-foreground">Confirm your session email</h1>
               <p className="mt-4 text-muted-foreground leading-8">
-                Enter the client email or therapist email connected to this booking. The session room stays private and
-                opens only on the session day.
+                Enter the email used to book this session. The session room stays private and opens only on the
+                session day.
               </p>
               <div className="mx-auto mt-7 max-w-md text-left">
-                <Label htmlFor="join-access-email">Session email</Label>
+                <Label htmlFor="join-access-email">Booking email</Label>
                 <Input
                   id="join-access-email"
                   type="email"
