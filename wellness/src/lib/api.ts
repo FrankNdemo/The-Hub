@@ -33,6 +33,9 @@ const normalizeHostname = (hostname: string) => (hostname === "::1" ? "[::1]" : 
 const buildApiBaseUrl = (hostname: string, protocol = "http:") =>
   `${protocol === "https:" ? "https:" : "http:"}//${normalizeHostname(hostname)}:8000/api/v1`;
 
+const getConfiguredApiBaseUrl = () =>
+  typeof import.meta.env.VITE_API_BASE_URL === "string" ? import.meta.env.VITE_API_BASE_URL : "";
+
 const parseStoredApiBaseUrl = (): string | null => {
   if (typeof window === "undefined") {
     return null;
@@ -61,8 +64,7 @@ const addApiBaseCandidate = (candidates: string[], candidate?: string | null) =>
 const getApiBaseCandidates = () => {
   const candidates: string[] = [];
 
-  addApiBaseCandidate(candidates, preferredApiBaseUrl);
-  addApiBaseCandidate(candidates, import.meta.env.VITE_API_BASE_URL);
+  addApiBaseCandidate(candidates, getConfiguredApiBaseUrl());
 
   if (typeof window !== "undefined") {
     const { hostname, protocol } = window.location;
@@ -72,6 +74,7 @@ const getApiBaseCandidates = () => {
     }
   }
 
+  addApiBaseCandidate(candidates, preferredApiBaseUrl);
   addApiBaseCandidate(candidates, FALLBACK_API_BASE_URL);
   addApiBaseCandidate(candidates, LOCALHOST_API_BASE_URL);
 
