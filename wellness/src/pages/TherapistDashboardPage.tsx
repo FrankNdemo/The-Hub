@@ -273,7 +273,6 @@ const TherapistDashboardPage = () => {
   const [bookingToComplete, setBookingToComplete] = useState<BookingRecord | null>(null);
   const [isCompletingBooking, setIsCompletingBooking] = useState(false);
   const [bookingToDelete, setBookingToDelete] = useState<BookingRecord | null>(null);
-  const [deleteReason, setDeleteReason] = useState("");
   const [isDeletingBooking, setIsDeletingBooking] = useState(false);
 
   useEffect(() => {
@@ -489,7 +488,6 @@ const TherapistDashboardPage = () => {
 
   const openDeleteBookingDialog = (booking: BookingRecord) => {
     setBookingToDelete(booking);
-    setDeleteReason("");
   };
 
   const closeDeleteBookingDialog = () => {
@@ -498,7 +496,6 @@ const TherapistDashboardPage = () => {
     }
 
     setBookingToDelete(null);
-    setDeleteReason("");
   };
 
   const handleDeleteBooking = async () => {
@@ -506,20 +503,12 @@ const TherapistDashboardPage = () => {
       return;
     }
 
-    const reason = deleteReason.trim();
-
-    if (!reason) {
-      toast.error("Please provide a reason before deleting this session.");
-      return;
-    }
-
     setIsDeletingBooking(true);
 
     try {
-      await deleteBooking(bookingToDelete.id, reason);
+      await deleteBooking(bookingToDelete.id, "Deleted by therapist after confirmation.");
       toast.success("Session removed from the dashboard.");
       setBookingToDelete(null);
-      setDeleteReason("");
     } catch (error) {
       toast.error(getApiErrorMessage(error, "This session could not be deleted right now."));
     } finally {
@@ -1566,30 +1555,16 @@ const TherapistDashboardPage = () => {
           <DialogHeader>
             <DialogTitle className="font-heading text-2xl text-foreground">Delete session</DialogTitle>
             <DialogDescription className="leading-6">
-              {bookingToDelete
-                ? `Add a reason for removing ${bookingToDelete.clientName}'s session.`
-                : "Add a reason for removing this session."}
+              If you proceed, this session will be deleted permanently.
             </DialogDescription>
           </DialogHeader>
-
-          <div className="space-y-3">
-            <Label htmlFor="delete-session-reason">Reason</Label>
-            <Textarea
-              id="delete-session-reason"
-              value={deleteReason}
-              onChange={(event) => setDeleteReason(event.target.value)}
-              className="min-h-[120px]"
-              placeholder="Example: Duplicate booking created by mistake."
-              disabled={isDeletingBooking}
-            />
-          </div>
 
           <DialogFooter className="gap-2 sm:justify-end">
             <Button type="button" variant="heroBorder" className="rounded-full" onClick={closeDeleteBookingDialog} disabled={isDeletingBooking}>
               Cancel
             </Button>
             <Button type="button" variant="hero" className="rounded-full" onClick={handleDeleteBooking} disabled={isDeletingBooking}>
-              {isDeletingBooking ? "Deleting..." : "Confirm Delete"}
+              {isDeletingBooking ? "Deleting..." : "Delete Permanently"}
             </Button>
           </DialogFooter>
         </DialogContent>
