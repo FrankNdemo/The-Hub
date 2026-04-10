@@ -561,7 +561,7 @@ const TherapistDashboardPage = () => {
                   <TabsContent value="overview" className="mt-8 space-y-5">
                     {sortedBookings.slice(0, 3).map((booking) => {
                       const isExpanded = expandedOverviewBookingId === booking.id;
-                      const therapistSessionLink = booking.meetLink || booking.joinUrl;
+                      const therapistSessionLink = booking.therapistSessionUrl || booking.meetLink;
 
                       return (
                         <div

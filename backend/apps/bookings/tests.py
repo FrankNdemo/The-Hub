@@ -51,6 +51,7 @@ class BookingApiTests(APITestCase):
         self.assertEqual(len(mail.outbox), 2)
         actual_meet_link = Booking.objects.get(pk=create_response.data["id"]).meet_link
         self.assertEqual(create_response.data["meetLink"], "")
+        self.assertEqual(create_response.data["therapistSessionUrl"], "")
         self.assertEqual(mail.outbox[0].subject, "Your Session Is Confirmed | The Wellness Hub")
         self.assertEqual(mail.outbox[0].to, ["client@example.com"])
         client_html = mail.outbox[0].alternatives[0][0]
@@ -118,6 +119,7 @@ class BookingApiTests(APITestCase):
         self.assertEqual(dashboard_response.status_code, status.HTTP_200_OK)
         dashboard_booking = dashboard_response.data["bookings"][0]
         self.assertEqual(dashboard_booking["meetLink"], actual_meet_link)
+        self.assertEqual(dashboard_booking["therapistSessionUrl"], actual_meet_link)
         self.assertEqual(len(dashboard_booking["emails"]), 2)
         self.assertIn("meet.jit.si", dashboard_booking["therapistAddToCalendarUrl"])
         self.client.force_authenticate(user=None)

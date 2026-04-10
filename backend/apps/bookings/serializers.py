@@ -46,6 +46,7 @@ class BookingDetailSerializer(serializers.ModelSerializer):
     calendarEventId = serializers.CharField(source="calendar_event_id")
     meetLink = serializers.SerializerMethodField()
     joinUrl = serializers.SerializerMethodField()
+    therapistSessionUrl = serializers.SerializerMethodField()
     manageUrl = serializers.SerializerMethodField()
     addToCalendarUrl = serializers.SerializerMethodField()
     therapistAddToCalendarUrl = serializers.SerializerMethodField()
@@ -75,6 +76,7 @@ class BookingDetailSerializer(serializers.ModelSerializer):
             "calendarEventId",
             "meetLink",
             "joinUrl",
+            "therapistSessionUrl",
             "manageUrl",
             "addToCalendarUrl",
             "therapistAddToCalendarUrl",
@@ -93,6 +95,12 @@ class BookingDetailSerializer(serializers.ModelSerializer):
             return ""
 
         return build_join_url(obj.manage_token)
+
+    def get_therapistSessionUrl(self, obj: Booking) -> str:
+        if not self.context.get("include_therapist_links") or obj.session_type != Booking.SessionType.VIRTUAL:
+            return ""
+
+        return obj.meet_link
 
     def get_meetLink(self, obj: Booking) -> str:
         if not self.context.get("include_meet_link"):
