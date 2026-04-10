@@ -4,6 +4,7 @@ import {
   BellRing,
   CalendarCheck2,
   ChevronDown,
+  ExternalLink,
   FilePenLine,
   LayoutDashboard,
   Mail,
@@ -644,16 +645,31 @@ const TherapistDashboardPage = () => {
                               </div>
                             ) : null}
                           </div>
-                          <p className="mt-4 break-all text-sm leading-7 text-muted-foreground">
-                            Private client manage link:{" "}
+                          <p className="mt-4 text-sm leading-7 text-muted-foreground">
+                            Therapist calendar:{" "}
+                            {booking.therapistAddToCalendarUrl ? (
+                              <a
+                                href={booking.therapistAddToCalendarUrl}
+                                target="_blank"
+                                rel="noreferrer"
+                                onClick={(event) => event.stopPropagation()}
+                                className="inline-flex items-center gap-1 font-semibold text-foreground underline-offset-4 transition-colors hover:text-primary hover:underline"
+                              >
+                                Add to calendar
+                                <ExternalLink className="h-3.5 w-3.5" />
+                              </a>
+                            ) : null}
+                            <span className="mx-2 text-primary/50">|</span>
+                            Private client access:{" "}
                             <a
                               href={booking.manageUrl}
                               target="_blank"
                               rel="noreferrer"
                               onClick={(event) => event.stopPropagation()}
-                              className="text-foreground underline-offset-4 transition-colors hover:text-primary hover:underline"
+                              className="inline-flex items-center gap-1 font-semibold text-foreground underline-offset-4 transition-colors hover:text-primary hover:underline"
                             >
-                              {booking.manageUrl}
+                              Open manage page
+                              <ExternalLink className="h-3.5 w-3.5" />
                             </a>
                           </p>
                         </div>

@@ -6,6 +6,7 @@ import {
   CheckCircle2,
   Clock3,
   Copy,
+  ExternalLink,
   Mail,
   MapPin,
   ShieldCheck,
@@ -316,20 +317,11 @@ const BookingSection = () => {
                   </div>
 
                   {submittedBooking.sessionType === "virtual" && submittedBooking.meetLink ? (
-                    <div className="mt-6 rounded-[1.5rem] bg-primary/8 p-5">
-                      <p className="text-sm font-medium text-foreground">Virtual session calendar link</p>
+                    <div className="mt-6 rounded-[1.5rem] bg-primary/8 p-5 text-center sm:text-left">
+                      <p className="text-sm font-medium text-foreground">Virtual session access</p>
                       <p className="mt-2 text-sm leading-7 text-muted-foreground">
-                        Open this link to save the session timing, title, and reflection in Google Calendar before the
-                        session begins.
+                        Add the appointment to your calendar now. On the session day, use the private room link to join.
                       </p>
-                      <a
-                        href={submittedBooking.meetLink}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="mt-3 block break-all text-sm text-primary hover:underline"
-                      >
-                        {submittedBooking.meetLink}
-                      </a>
                     </div>
                   ) : (
                     <div className="mt-6 rounded-[1.5rem] bg-primary/8 p-5">
@@ -338,18 +330,63 @@ const BookingSection = () => {
                     </div>
                   )}
 
-                  <div className="mt-6 rounded-[1.5rem] border border-border/60 bg-background px-5 py-4">
-                    <p className="text-xs uppercase tracking-[0.24em] text-primary/70">Private manage link</p>
-                    <p className="mt-2 break-all text-sm text-muted-foreground">{submittedBooking.manageUrl}</p>
+                  <div className="mt-6 grid gap-3 sm:grid-cols-2">
+                    {submittedBooking.addToCalendarUrl ? (
+                      <a
+                        href={submittedBooking.addToCalendarUrl}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="group flex min-h-20 items-center justify-between gap-4 rounded-[1.25rem] border border-primary/20 bg-background px-5 py-4 text-left shadow-soft transition-colors hover:border-primary/45 hover:bg-primary/8"
+                      >
+                        <span>
+                          <span className="block text-xs font-semibold uppercase tracking-[0.2em] text-primary/70">
+                            Calendar
+                          </span>
+                          <span className="mt-1 block font-heading text-xl font-semibold text-foreground">
+                            Add to Google Calendar
+                          </span>
+                        </span>
+                        <ExternalLink className="h-5 w-5 shrink-0 text-primary transition-transform group-hover:-translate-y-0.5 group-hover:translate-x-0.5" />
+                      </a>
+                    ) : null}
+                    {submittedBooking.sessionType === "virtual" && submittedBooking.meetLink ? (
+                      <a
+                        href={submittedBooking.meetLink}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="group flex min-h-20 items-center justify-between gap-4 rounded-[1.25rem] border border-primary/20 bg-background px-5 py-4 text-left shadow-soft transition-colors hover:border-primary/45 hover:bg-primary/8"
+                      >
+                        <span>
+                          <span className="block text-xs font-semibold uppercase tracking-[0.2em] text-primary/70">
+                            Calendar
+                          </span>
+                          <span className="mt-1 block font-heading text-xl font-semibold text-foreground">
+                            Join virtual session
+                          </span>
+                        </span>
+                        <ExternalLink className="h-5 w-5 shrink-0 text-primary transition-transform group-hover:-translate-y-0.5 group-hover:translate-x-0.5" />
+                      </a>
+                    ) : null}
+                    <Link
+                      to={`/manage/${submittedBooking.token}`}
+                      className="group flex min-h-20 items-center justify-between gap-4 rounded-[1.25rem] border border-primary/20 bg-background px-5 py-4 text-left shadow-soft transition-colors hover:border-primary/45 hover:bg-primary/8"
+                    >
+                      <span>
+                        <span className="block text-xs font-semibold uppercase tracking-[0.2em] text-primary/70">
+                          Private link
+                        </span>
+                        <span className="mt-1 block font-heading text-xl font-semibold text-foreground">
+                          Manage this session
+                        </span>
+                      </span>
+                      <ExternalLink className="h-5 w-5 shrink-0 text-primary transition-transform group-hover:-translate-y-0.5 group-hover:translate-x-0.5" />
+                    </Link>
                   </div>
 
-                  <div className="mt-7 flex flex-col gap-3 sm:flex-row">
-                    <Button variant="hero" className="w-full rounded-full sm:w-auto" asChild>
-                      <Link to={`/manage/${submittedBooking.token}`}>Manage This Session</Link>
-                    </Button>
+                  <div className="mt-5 flex flex-col gap-3 sm:flex-row">
                     <Button type="button" variant="heroBorder" className="w-full rounded-full sm:w-auto" onClick={copyManageLink}>
                       <Copy className="h-4 w-4" />
-                      Copy Link
+                      Copy Private Link
                     </Button>
                   </div>
                 </div>

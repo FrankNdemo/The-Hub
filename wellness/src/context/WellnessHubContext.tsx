@@ -217,6 +217,9 @@ const normalizeBooking = (booking?: Partial<BookingRecord> | null): BookingRecor
     calendarEventId: booking.calendarEventId,
     meetLink: typeof booking.meetLink === "string" && booking.meetLink ? booking.meetLink : undefined,
     manageUrl: booking.manageUrl,
+    addToCalendarUrl: typeof booking.addToCalendarUrl === "string" ? booking.addToCalendarUrl : "",
+    therapistAddToCalendarUrl:
+      typeof booking.therapistAddToCalendarUrl === "string" ? booking.therapistAddToCalendarUrl : "",
     createdAt: booking.createdAt,
     updatedAt: booking.updatedAt,
     notes: typeof booking.notes === "string" && booking.notes ? booking.notes : undefined,

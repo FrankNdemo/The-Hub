@@ -3,6 +3,7 @@ from rest_framework import serializers
 
 from apps.therapists.models import TherapistProfile
 
+from .delivery import THERAPIST_AUDIENCE, build_google_calendar_add_url
 from .models import Booking, BookingHistoryEvent, EmailRecord
 
 
@@ -36,6 +37,8 @@ class BookingDetailSerializer(serializers.ModelSerializer):
     calendarEventId = serializers.CharField(source="calendar_event_id")
     meetLink = serializers.CharField(source="meet_link", allow_blank=True)
     manageUrl = serializers.SerializerMethodField()
+    addToCalendarUrl = serializers.SerializerMethodField()
+    therapistAddToCalendarUrl = serializers.SerializerMethodField()
     createdAt = serializers.DateTimeField(source="created_at")
     updatedAt = serializers.DateTimeField(source="updated_at")
     emails = EmailRecordSerializer(many=True, read_only=True)
@@ -62,6 +65,8 @@ class BookingDetailSerializer(serializers.ModelSerializer):
             "calendarEventId",
             "meetLink",
             "manageUrl",
+            "addToCalendarUrl",
+            "therapistAddToCalendarUrl",
             "createdAt",
             "updatedAt",
             "notes",
@@ -71,6 +76,12 @@ class BookingDetailSerializer(serializers.ModelSerializer):
 
     def get_manageUrl(self, obj: Booking) -> str:
         return f"{settings.FRONTEND_BASE_URL}/manage/{obj.manage_token}"
+
+    def get_addToCalendarUrl(self, obj: Booking) -> str:
+        return build_google_calendar_add_url(obj)
+
+    def get_therapistAddToCalendarUrl(self, obj: Booking) -> str:
+        return build_google_calendar_add_url(obj, THERAPIST_AUDIENCE)
 
 
 class BookingCreateSerializer(serializers.Serializer):

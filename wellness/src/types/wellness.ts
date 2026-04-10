@@ -81,6 +81,8 @@ export interface BookingRecord {
   calendarEventId: string;
   meetLink?: string;
   manageUrl: string;
+  addToCalendarUrl: string;
+  therapistAddToCalendarUrl: string;
   createdAt: string;
   updatedAt: string;
   notes?: string;

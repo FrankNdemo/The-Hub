@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useParams } from "react-router-dom";
-import { CalendarDays, Clock3, MapPin, RefreshCw, ShieldCheck, Trash2, Users, Video } from "lucide-react";
+import { CalendarDays, Clock3, ExternalLink, MapPin, RefreshCw, ShieldCheck, Trash2, Users, Video } from "lucide-react";
 import { toast } from "sonner";
 
 import Footer from "@/components/Footer";
@@ -242,11 +242,36 @@ const ManageBookingPage = () => {
                     <p className="text-xs uppercase tracking-[0.24em] text-primary/70">
                       {booking.sessionType === "virtual" ? "Virtual Session Link" : "Session Details"}
                     </p>
-                    <p className="mt-2 text-sm leading-7 text-muted-foreground">
-                      {booking.sessionType === "virtual"
-                        ? booking.meetLink || "Virtual session access will be included in your updated confirmation."
-                        : booking.locationSummary}
-                    </p>
+                    {booking.sessionType === "virtual" && booking.meetLink ? (
+                      <div className="mt-3 flex flex-wrap gap-2">
+                        {booking.addToCalendarUrl ? (
+                          <a
+                            href={booking.addToCalendarUrl}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="inline-flex items-center gap-2 rounded-full border border-primary/25 px-4 py-2 text-sm font-semibold text-primary transition-colors hover:border-primary/45 hover:bg-primary/8"
+                          >
+                            Add to calendar
+                            <ExternalLink className="h-4 w-4" />
+                          </a>
+                        ) : null}
+                        <a
+                          href={booking.meetLink}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="inline-flex items-center gap-2 rounded-full bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90"
+                        >
+                          Join virtual session
+                          <ExternalLink className="h-4 w-4" />
+                        </a>
+                      </div>
+                    ) : (
+                      <p className="mt-2 text-sm leading-7 text-muted-foreground">
+                        {booking.sessionType === "virtual"
+                          ? "Virtual session access will be included in your updated confirmation."
+                          : booking.locationSummary}
+                      </p>
+                    )}
                   </div>
                 </div>
 

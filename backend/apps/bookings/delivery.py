@@ -4,6 +4,7 @@ import base64
 import hashlib
 import html
 import json
+import re
 from datetime import datetime, timedelta, timezone as dt_timezone
 from email.utils import parseaddr
 from urllib import error as urllib_error
@@ -81,7 +82,18 @@ def escape_html_with_breaks(value: str) -> str:
     return escape_html(value).replace("\r\n", "\n").replace("\n", "<br />")
 
 
-def build_email_detail_card(label: str, value: str) -> str:
+def build_email_detail_card(label: str, value: str, href: str = "", link_label: str = "") -> str:
+    if href and link_label:
+        value_markup = f"""
+                              <a href="{escape_html(href)}" style="display:inline-block;font-size:16px;line-height:24px;font-weight:700;color:#23483d;text-decoration:none;border-bottom:1px solid #4e7c68;">
+                                {escape_html(link_label)}
+                              </a>
+                              <div style="margin-top:6px;font-size:13px;line-height:20px;color:#6f8f82;">
+                                {escape_html(value)}
+                              </div>"""
+    else:
+        value_markup = escape_html_with_breaks(value)
+
     return f"""
                     <tr>
                       <td style="padding:0 0 12px;">
@@ -93,7 +105,7 @@ def build_email_detail_card(label: str, value: str) -> str:
                           </tr>
                           <tr>
                             <td style="padding:0 18px 16px;font-size:16px;line-height:24px;color:#23483d;word-break:break-word;word-wrap:break-word;overflow-wrap:anywhere;">
-                              {escape_html_with_breaks(value)}
+                              {value_markup}
                             </td>
                           </tr>
                         </table>
@@ -109,17 +121,32 @@ def get_session_location(booking: Booking) -> str:
 
 
 def build_virtual_session_link(booking: Booking) -> str:
+    room_seed = booking.manage_token or booking.calendar_event_id or str(booking.pk)
+    room_name = re.sub(r"[^a-zA-Z0-9-]+", "-", f"{settings.VIRTUAL_SESSION_ROOM_PREFIX}-{room_seed}").strip("-")
+    return f"{settings.VIRTUAL_SESSION_BASE_URL}/{room_name.lower()}"
+
+
+def build_google_calendar_add_url(booking: Booking, audience: str = CLIENT_AUDIENCE) -> str:
     start_at, end_at = get_booking_time_window(booking)
-    title = get_virtual_session_title(booking)
-    details = "\n".join(
-        [
-            f"Therapist: {booking.therapist_name_snapshot}",
-            f"Service: {SERVICE_TYPE_LABELS[booking.service_type]}",
-            f"Session starts: {format_display_date(booking.date)} at {format_display_time(booking.time)}",
-            f"Reflection: {get_booking_quote(booking)}",
-            "Open this event in Google Calendar to save the session timing and prepare the virtual room details.",
-        ]
+    title = (
+        f"{booking.client_name} | {get_booking_session_title(booking)}"
+        if audience == THERAPIST_AUDIENCE
+        else f"The Wellness Hub Session with {booking.therapist_name_snapshot}"
     )
+    access_label = "Join Link" if booking.session_type == Booking.SessionType.VIRTUAL else "Location"
+    access_value = booking.meet_link if booking.session_type == Booking.SessionType.VIRTUAL else booking.location_summary
+    detail_lines = [
+        f"Therapist: {booking.therapist_name_snapshot}",
+        f"Service: {SERVICE_TYPE_LABELS[booking.service_type]}",
+        f"Session starts: {format_display_date(booking.date)} at {format_display_time(booking.time)}",
+        f"{access_label}: {access_value}",
+        f"Reflection: {get_booking_quote(booking)}",
+    ]
+
+    if audience == CLIENT_AUDIENCE:
+        detail_lines.append(f"Manage or reschedule privately: {build_manage_url(booking.manage_token)}")
+
+    details = "\n".join(detail_lines)
     query = urlencode(
         {
             "action": "TEMPLATE",
@@ -129,7 +156,7 @@ def build_virtual_session_link(booking: Booking) -> str:
                 f"{end_at.astimezone(dt_timezone.utc).strftime('%Y%m%dT%H%M%SZ')}"
             ),
             "details": details,
-            "location": "Online session",
+            "location": booking.meet_link if booking.session_type == Booking.SessionType.VIRTUAL else booking.location_summary,
         }
     )
     return f"https://calendar.google.com/calendar/render?{query}"
@@ -200,40 +227,56 @@ def get_email_intro(booking: Booking, kind: str, audience: str) -> str:
     return intro_map[kind]
 
 
-def get_summary_card_values(booking: Booking, audience: str) -> list[tuple[str, str]]:
-    cards: list[tuple[str, str]]
+def get_summary_card_values(booking: Booking, audience: str) -> list[tuple[str, str, str, str]]:
+    cards: list[tuple[str, str, str, str]]
 
     if audience == CLIENT_AUDIENCE:
         cards = [
-            ("Therapist", booking.therapist_name_snapshot),
-            ("Date", format_display_date(booking.date)),
-            ("Time", format_display_time(booking.time)),
-            ("Session Type", booking.session_type.capitalize()),
-            ("Service Type", SERVICE_TYPE_LABELS[booking.service_type]),
+            ("Therapist", booking.therapist_name_snapshot, "", ""),
+            ("Date", format_display_date(booking.date), "", ""),
+            ("Time", format_display_time(booking.time), "", ""),
+            ("Session Type", booking.session_type.capitalize(), "", ""),
+            ("Service Type", SERVICE_TYPE_LABELS[booking.service_type], "", ""),
         ]
     else:
         cards = [
-            ("Client", booking.client_name),
-            ("Client Email", booking.client_email),
-            ("Client Phone", booking.client_phone),
-            ("Date", format_display_date(booking.date)),
-            ("Time", format_display_time(booking.time)),
-            ("Session Type", booking.session_type.capitalize()),
-            ("Service Type", SERVICE_TYPE_LABELS[booking.service_type]),
+            ("Client", booking.client_name, "", ""),
+            ("Client Email", booking.client_email, "", ""),
+            ("Client Phone", booking.client_phone, "", ""),
+            ("Date", format_display_date(booking.date), "", ""),
+            ("Time", format_display_time(booking.time), "", ""),
+            ("Session Type", booking.session_type.capitalize(), "", ""),
+            ("Service Type", SERVICE_TYPE_LABELS[booking.service_type], "", ""),
         ]
 
     if booking.service_type == Booking.ServiceType.CORPORATE and booking.participant_count:
-        cards.append(("Participants", str(booking.participant_count)))
+        cards.append(("Participants", str(booking.participant_count), "", ""))
+
+    cards.append(
+        (
+            "Calendar",
+            "Adds the appointment with timing and access details.",
+            build_google_calendar_add_url(booking, audience),
+            "Add to Google Calendar",
+        )
+    )
 
     if booking.session_type == Booking.SessionType.VIRTUAL and booking.meet_link:
-        cards.append(("Virtual Session Link", booking.meet_link))
+        cards.append(
+            (
+                "Virtual Session Link",
+                "Use this private room on the session day.",
+                booking.meet_link,
+                "Join Virtual Session",
+            )
+        )
     else:
-        cards.append(("Location", booking.location_summary))
+        cards.append(("Location", booking.location_summary, "", ""))
 
     if booking.notes:
-        cards.append(("Notes", booking.notes))
+        cards.append(("Notes", booking.notes, "", ""))
 
-    cards.append(("Session Reflection", get_booking_quote(booking)))
+    cards.append(("Session Reflection", get_booking_quote(booking), "", ""))
 
     return cards
 
@@ -258,7 +301,10 @@ def get_email_cta(booking: Booking, audience: str) -> tuple[str, str, str, str]:
 def build_email_html(booking: Booking, kind: str, audience: str) -> str:
     heading = get_email_heading(kind, audience)
     intro = get_email_intro(booking, kind, audience)
-    summary_cards = [build_email_detail_card(label, value) for label, value in get_summary_card_values(booking, audience)]
+    summary_cards = [
+        build_email_detail_card(label, value, href, link_label)
+        for label, value, href, link_label in get_summary_card_values(booking, audience)
+    ]
     cta_title, cta_text, cta_label, cta_url = get_email_cta(booking, audience)
 
     return f"""<!DOCTYPE html>
@@ -329,8 +375,10 @@ def build_email_html(booking: Booking, kind: str, audience: str) -> str:
                                   </td>
                                 </tr>
                               </table>
-                              <p style="margin:0;font-size:13px;line-height:22px;color:#6f8f82;word-break:break-word;word-wrap:break-word;overflow-wrap:anywhere;">
-                                {escape_html(cta_url)}
+                              <p style="margin:0;font-size:13px;line-height:22px;color:#6f8f82;">
+                                <a href="{escape_html(cta_url)}" style="color:#6f8f82;text-decoration:none;border-bottom:1px solid #adc3b8;">
+                                  Open private booking link
+                                </a>
                               </p>
                             </td>
                           </tr>
@@ -351,7 +399,7 @@ def build_email_html(booking: Booking, kind: str, audience: str) -> str:
 def build_email_text(booking: Booking, kind: str, audience: str) -> str:
     heading = get_email_heading(kind, audience)
     intro = get_email_intro(booking, kind, audience)
-    cta_title, _, _, cta_url = get_email_cta(booking, audience)
+    cta_title, _, cta_label, _ = get_email_cta(booking, audience)
     summary_lines = [
         "The Wellness Hub",
         "",
@@ -361,14 +409,14 @@ def build_email_text(booking: Booking, kind: str, audience: str) -> str:
         "",
     ]
 
-    for label, value in get_summary_card_values(booking, audience):
-        summary_lines.append(f"{label}: {value}")
+    for label, value, href, link_label in get_summary_card_values(booking, audience):
+        summary_lines.append(f"{label}: {link_label if href and link_label else value}")
 
     summary_lines.extend(
         [
             "",
-            "Calendar Invite: Add the attached invite to your calendar to receive reminders and future updates.",
-            f"{cta_title}: {cta_url}",
+            "Calendar Invite: Add the attached invite to your calendar to receive reminders and session access details.",
+            f"{cta_title}: {cta_label}",
         ]
     )
 
@@ -451,7 +499,7 @@ def build_calendar_invite(booking: Booking, kind: str) -> str:
     start_at, end_at = get_booking_time_window(booking)
     summary_prefix = "Cancelled" if kind == EmailRecord.EmailKind.CANCELLATION else "The Wellness Hub"
     summary = f"{summary_prefix}: {get_booking_session_title(booking)} with {booking.therapist_name_snapshot}"
-    location = booking.location_summary if booking.session_type == Booking.SessionType.PHYSICAL else "Online virtual session"
+    location = booking.meet_link if booking.session_type == Booking.SessionType.VIRTUAL and booking.meet_link else booking.location_summary
     url = booking.meet_link or settings.FRONTEND_BASE_URL
 
     lines = [
