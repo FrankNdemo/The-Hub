@@ -181,7 +181,9 @@ const parseStoredTokens = (): AuthTokens | null => {
   }
 
   try {
-    const raw = window.localStorage.getItem(AUTH_STORAGE_KEY);
+    window.localStorage.removeItem(AUTH_STORAGE_KEY);
+
+    const raw = window.sessionStorage.getItem(AUTH_STORAGE_KEY);
 
     if (!raw) {
       return null;
@@ -234,12 +236,14 @@ const persistTokens = (tokens: AuthTokens | null) => {
     return;
   }
 
+  window.localStorage.removeItem(AUTH_STORAGE_KEY);
+
   if (!tokens) {
-    window.localStorage.removeItem(AUTH_STORAGE_KEY);
+    window.sessionStorage.removeItem(AUTH_STORAGE_KEY);
     return;
   }
 
-  window.localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(tokens));
+  window.sessionStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(tokens));
 };
 
 const extractErrorMessage = (value: unknown): string | null => {
