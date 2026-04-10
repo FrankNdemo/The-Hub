@@ -43,6 +43,10 @@ def build_manage_url(token: str) -> str:
     return f"{settings.FRONTEND_BASE_URL}/manage/{token}"
 
 
+def build_join_url(token: str) -> str:
+    return f"{settings.FRONTEND_BASE_URL}/join/{token}"
+
+
 def build_therapist_dashboard_url() -> str:
     return f"{settings.FRONTEND_BASE_URL}/therapist/portal"
 
@@ -115,7 +119,7 @@ def build_email_detail_card(label: str, value: str, href: str = "", link_label: 
 
 def get_session_location(booking: Booking) -> str:
     if booking.session_type == Booking.SessionType.VIRTUAL:
-        return booking.meet_link or "Virtual session access details will be shared shortly."
+        return build_join_url(booking.manage_token)
 
     return booking.location_summary
 
@@ -134,7 +138,7 @@ def build_google_calendar_add_url(booking: Booking, audience: str = CLIENT_AUDIE
         else f"The Wellness Hub Session with {booking.therapist_name_snapshot}"
     )
     access_label = "Join Link" if booking.session_type == Booking.SessionType.VIRTUAL else "Location"
-    access_value = booking.meet_link if booking.session_type == Booking.SessionType.VIRTUAL else booking.location_summary
+    access_value = get_session_location(booking)
     detail_lines = [
         f"Therapist: {booking.therapist_name_snapshot}",
         f"Service: {SERVICE_TYPE_LABELS[booking.service_type]}",
@@ -145,6 +149,8 @@ def build_google_calendar_add_url(booking: Booking, audience: str = CLIENT_AUDIE
 
     if audience == CLIENT_AUDIENCE:
         detail_lines.append(f"Manage or reschedule privately: {build_manage_url(booking.manage_token)}")
+    else:
+        detail_lines.append("You may adjust the calendar title before saving this therapist copy.")
 
     details = "\n".join(detail_lines)
     query = urlencode(
@@ -156,7 +162,7 @@ def build_google_calendar_add_url(booking: Booking, audience: str = CLIENT_AUDIE
                 f"{end_at.astimezone(dt_timezone.utc).strftime('%Y%m%dT%H%M%SZ')}"
             ),
             "details": details,
-            "location": booking.meet_link if booking.session_type == Booking.SessionType.VIRTUAL else booking.location_summary,
+            "location": access_value,
         }
     )
     return f"https://calendar.google.com/calendar/render?{query}"
@@ -255,7 +261,7 @@ def get_summary_card_values(booking: Booking, audience: str) -> list[tuple[str, 
     cards.append(
         (
             "Calendar",
-            "Adds the appointment with timing and access details.",
+            "Adds the appointment with timing and the private join link.",
             build_google_calendar_add_url(booking, audience),
             "Add to Google Calendar",
         )
@@ -265,8 +271,8 @@ def get_summary_card_values(booking: Booking, audience: str) -> list[tuple[str, 
         cards.append(
             (
                 "Virtual Session Link",
-                "Use this private room on the session day.",
-                booking.meet_link,
+                "Use this private link on the session day. It will open the room when it is time.",
+                build_join_url(booking.manage_token),
                 "Join Virtual Session",
             )
         )
@@ -292,7 +298,7 @@ def get_email_cta(booking: Booking, audience: str) -> tuple[str, str, str, str]:
 
     return (
         "Therapist Portal",
-        "This booking has been added to your calendar. Open the therapist portal any time you want to review the session alongside your dashboard updates.",
+        "Add the attached invite or Google Calendar link to your calendar. Open the therapist portal any time you want to review the session alongside your dashboard updates.",
         "Open Therapist Portal",
         build_therapist_dashboard_url(),
     )
@@ -482,7 +488,7 @@ def build_calendar_description(booking: Booking) -> str:
     ]
 
     if booking.session_type == Booking.SessionType.VIRTUAL and booking.meet_link:
-        lines.append(f"Virtual Session Link: {booking.meet_link}")
+        lines.append(f"Virtual Session Link: {build_join_url(booking.manage_token)}")
     else:
         lines.append(f"Location: {booking.location_summary}")
 
@@ -499,8 +505,8 @@ def build_calendar_invite(booking: Booking, kind: str) -> str:
     start_at, end_at = get_booking_time_window(booking)
     summary_prefix = "Cancelled" if kind == EmailRecord.EmailKind.CANCELLATION else "The Wellness Hub"
     summary = f"{summary_prefix}: {get_booking_session_title(booking)} with {booking.therapist_name_snapshot}"
-    location = booking.meet_link if booking.session_type == Booking.SessionType.VIRTUAL and booking.meet_link else booking.location_summary
-    url = booking.meet_link or settings.FRONTEND_BASE_URL
+    location = get_session_location(booking)
+    url = build_join_url(booking.manage_token) if booking.session_type == Booking.SessionType.VIRTUAL else settings.FRONTEND_BASE_URL
 
     lines = [
         "BEGIN:VCALENDAR",

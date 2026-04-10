@@ -2,6 +2,7 @@ import type {
   BlogPost,
   BlogPostDraft,
   BookingInput,
+  BookingJoinRecord,
   BookingRecord,
   NotificationItem,
   TherapistProfile,
@@ -449,6 +450,9 @@ export const createBooking = (input: BookingInput) =>
 
 export const fetchManageBooking = (token: string) =>
   request<BookingRecord>(`/bookings/manage/${token}/`, { method: "GET" }, { auth: false });
+
+export const fetchJoinBooking = (token: string) =>
+  request<BookingJoinRecord>(`/bookings/join/${token}/`, { method: "GET" }, { auth: false });
 
 export const rescheduleManageBooking = (token: string, date: string, time: string) =>
   request<BookingRecord>(

@@ -242,7 +242,7 @@ const ManageBookingPage = () => {
                     <p className="text-xs uppercase tracking-[0.24em] text-primary/70">
                       {booking.sessionType === "virtual" ? "Virtual Session Link" : "Session Details"}
                     </p>
-                    {booking.sessionType === "virtual" && booking.meetLink ? (
+                    {booking.sessionType === "virtual" && booking.joinUrl ? (
                       <div className="mt-3 flex flex-wrap gap-2">
                         {booking.addToCalendarUrl ? (
                           <a
@@ -256,14 +256,17 @@ const ManageBookingPage = () => {
                           </a>
                         ) : null}
                         <a
-                          href={booking.meetLink}
+                          href={booking.joinUrl}
                           target="_blank"
                           rel="noreferrer"
                           className="inline-flex items-center gap-2 rounded-full bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90"
                         >
-                          Join virtual session
+                          Open virtual session
                           <ExternalLink className="h-4 w-4" />
                         </a>
+                        <p className="w-full text-xs leading-6 text-muted-foreground">
+                          This is the same private session link sent by email and saved in the calendar event.
+                        </p>
                       </div>
                     ) : (
                       <p className="mt-2 text-sm leading-7 text-muted-foreground">

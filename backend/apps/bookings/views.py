@@ -6,7 +6,13 @@ from rest_framework.views import APIView
 from apps.therapists.permissions import IsTherapistAuthenticated
 
 from .models import Booking
-from .serializers import BookingCreateSerializer, BookingDeleteSerializer, BookingDetailSerializer, BookingRescheduleSerializer
+from .serializers import (
+    BookingCreateSerializer,
+    BookingDeleteSerializer,
+    BookingDetailSerializer,
+    BookingJoinSerializer,
+    BookingRescheduleSerializer,
+)
 from .delivery import BookingDeliveryError
 from .services import cancel_booking, complete_booking, create_booking, delete_booking, reschedule_booking
 from .scheduling import BookingAvailabilityError
@@ -37,11 +43,24 @@ class BookingManageDetailView(APIView):
 
     def get(self, request, token):
         booking = generics.get_object_or_404(
-            Booking.objects.select_related("therapist").prefetch_related("emails", "history"),
+            Booking.objects.select_related("therapist"),
             manage_token=token,
             deleted_at__isnull=True,
         )
         return Response(BookingDetailSerializer(booking).data)
+
+
+class BookingJoinDetailView(APIView):
+    permission_classes = [AllowAny]
+    authentication_classes = []
+
+    def get(self, request, token):
+        booking = generics.get_object_or_404(
+            Booking.objects.select_related("therapist").prefetch_related("emails", "history"),
+            manage_token=token,
+            deleted_at__isnull=True,
+        )
+        return Response(BookingJoinSerializer(booking).data)
 
 
 class BookingManageRescheduleView(APIView):

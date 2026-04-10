@@ -178,7 +178,7 @@ const BookingSection = () => {
 
       setSubmittedBooking(booking);
       setBookingGuidance("");
-      toast.success("Your booking has been confirmed.");
+      toast.success("Your booking is confirmed. Please check your email.");
     } catch (error) {
       const message = getApiErrorMessage(error, "We could not confirm your booking right now.");
       const suggestion = getSuggestedBookingSlot(error);
@@ -281,8 +281,8 @@ const BookingSection = () => {
                   </div>
                   <h3 className="mt-6 font-heading text-3xl font-semibold text-foreground">Your session is confirmed</h3>
                   <p className="mt-3 max-w-2xl text-muted-foreground leading-8">
-                    A confirmation package has been prepared for you and {therapist.name}. Use your private manage link
-                    below anytime you need to reschedule or cancel.
+                    Please check your email for the confirmation package sent to you and {therapist.name}. Add the
+                    appointment to your calendar now, then use the same private session link on the meeting day.
                   </p>
 
                   <div className="mt-8 grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
@@ -316,11 +316,12 @@ const BookingSection = () => {
                     ) : null}
                   </div>
 
-                  {submittedBooking.sessionType === "virtual" && submittedBooking.meetLink ? (
+                  {submittedBooking.sessionType === "virtual" && submittedBooking.joinUrl ? (
                     <div className="mt-6 rounded-[1.5rem] bg-primary/8 p-5 text-center sm:text-left">
                       <p className="text-sm font-medium text-foreground">Virtual session access</p>
                       <p className="mt-2 text-sm leading-7 text-muted-foreground">
-                        Add the appointment to your calendar now. On the session day, use the private room link to join.
+                        The private session link on this page, in your email, and in the calendar event is the same. It
+                        opens the room on the session day.
                       </p>
                     </div>
                   ) : (
@@ -349,19 +350,19 @@ const BookingSection = () => {
                         <ExternalLink className="h-5 w-5 shrink-0 text-primary transition-transform group-hover:-translate-y-0.5 group-hover:translate-x-0.5" />
                       </a>
                     ) : null}
-                    {submittedBooking.sessionType === "virtual" && submittedBooking.meetLink ? (
+                    {submittedBooking.sessionType === "virtual" && submittedBooking.joinUrl ? (
                       <a
-                        href={submittedBooking.meetLink}
+                        href={submittedBooking.joinUrl}
                         target="_blank"
                         rel="noreferrer"
                         className="group flex min-h-20 items-center justify-between gap-4 rounded-[1.25rem] border border-primary/20 bg-background px-5 py-4 text-left shadow-soft transition-colors hover:border-primary/45 hover:bg-primary/8"
                       >
                         <span>
                           <span className="block text-xs font-semibold uppercase tracking-[0.2em] text-primary/70">
-                            Calendar
+                            Session link
                           </span>
                           <span className="mt-1 block font-heading text-xl font-semibold text-foreground">
-                            Join virtual session
+                            Open virtual session
                           </span>
                         </span>
                         <ExternalLink className="h-5 w-5 shrink-0 text-primary transition-transform group-hover:-translate-y-0.5 group-hover:translate-x-0.5" />

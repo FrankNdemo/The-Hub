@@ -659,8 +659,24 @@ const TherapistDashboardPage = () => {
                                 <ExternalLink className="h-3.5 w-3.5" />
                               </a>
                             ) : null}
+                            {booking.sessionType === "virtual" && booking.joinUrl ? (
+                              <>
+                                <span className="mx-2 text-primary/50">|</span>
+                                Session link:{" "}
+                                <a
+                                  href={booking.joinUrl}
+                                  target="_blank"
+                                  rel="noreferrer"
+                                  onClick={(event) => event.stopPropagation()}
+                                  className="inline-flex items-center gap-1 font-semibold text-foreground underline-offset-4 transition-colors hover:text-primary hover:underline"
+                                >
+                                  Open virtual session
+                                  <ExternalLink className="h-3.5 w-3.5" />
+                                </a>
+                              </>
+                            ) : null}
                             <span className="mx-2 text-primary/50">|</span>
-                            Private client access:{" "}
+                            Client manage page:{" "}
                             <a
                               href={booking.manageUrl}
                               target="_blank"

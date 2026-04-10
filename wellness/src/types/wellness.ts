@@ -80,6 +80,7 @@ export interface BookingRecord {
   locationSummary: string;
   calendarEventId: string;
   meetLink?: string;
+  joinUrl: string;
   manageUrl: string;
   addToCalendarUrl: string;
   therapistAddToCalendarUrl: string;
@@ -88,6 +89,22 @@ export interface BookingRecord {
   notes?: string;
   emails: EmailRecord[];
   history: BookingHistoryEvent[];
+}
+
+export interface BookingJoinRecord {
+  token: string;
+  therapistName: string;
+  serviceType: ServiceType;
+  sessionType: SessionType;
+  date: string;
+  time: string;
+  status: BookingStatus;
+  locationSummary: string;
+  meetLink?: string;
+  joinUrl: string;
+  manageUrl: string;
+  addToCalendarUrl: string;
+  canJoinSession: boolean;
 }
 
 export interface NotificationItem {

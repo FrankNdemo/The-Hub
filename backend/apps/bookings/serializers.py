@@ -1,10 +1,19 @@
 from django.conf import settings
+from django.utils import timezone
 from rest_framework import serializers
 
 from apps.therapists.models import TherapistProfile
 
-from .delivery import THERAPIST_AUDIENCE, build_google_calendar_add_url
+from .delivery import THERAPIST_AUDIENCE, build_google_calendar_add_url, build_join_url
 from .models import Booking, BookingHistoryEvent, EmailRecord
+
+
+def is_virtual_session_open(booking: Booking) -> bool:
+    return (
+        booking.session_type == Booking.SessionType.VIRTUAL
+        and booking.status not in {Booking.Status.CANCELLED, Booking.Status.COMPLETED}
+        and timezone.localdate() >= booking.date
+    )
 
 
 class EmailRecordSerializer(serializers.ModelSerializer):
@@ -36,6 +45,7 @@ class BookingDetailSerializer(serializers.ModelSerializer):
     locationSummary = serializers.CharField(source="location_summary")
     calendarEventId = serializers.CharField(source="calendar_event_id")
     meetLink = serializers.CharField(source="meet_link", allow_blank=True)
+    joinUrl = serializers.SerializerMethodField()
     manageUrl = serializers.SerializerMethodField()
     addToCalendarUrl = serializers.SerializerMethodField()
     therapistAddToCalendarUrl = serializers.SerializerMethodField()
@@ -64,6 +74,7 @@ class BookingDetailSerializer(serializers.ModelSerializer):
             "locationSummary",
             "calendarEventId",
             "meetLink",
+            "joinUrl",
             "manageUrl",
             "addToCalendarUrl",
             "therapistAddToCalendarUrl",
@@ -77,11 +88,70 @@ class BookingDetailSerializer(serializers.ModelSerializer):
     def get_manageUrl(self, obj: Booking) -> str:
         return f"{settings.FRONTEND_BASE_URL}/manage/{obj.manage_token}"
 
+    def get_joinUrl(self, obj: Booking) -> str:
+        if obj.session_type != Booking.SessionType.VIRTUAL:
+            return ""
+
+        return build_join_url(obj.manage_token)
+
     def get_addToCalendarUrl(self, obj: Booking) -> str:
         return build_google_calendar_add_url(obj)
 
     def get_therapistAddToCalendarUrl(self, obj: Booking) -> str:
         return build_google_calendar_add_url(obj, THERAPIST_AUDIENCE)
+
+
+class BookingJoinSerializer(serializers.ModelSerializer):
+    token = serializers.CharField(source="manage_token")
+    therapistName = serializers.CharField(source="therapist_name_snapshot")
+    serviceType = serializers.CharField(source="service_type")
+    sessionType = serializers.CharField(source="session_type")
+    locationSummary = serializers.CharField(source="location_summary")
+    meetLink = serializers.SerializerMethodField()
+    joinUrl = serializers.SerializerMethodField()
+    manageUrl = serializers.SerializerMethodField()
+    addToCalendarUrl = serializers.SerializerMethodField()
+    canJoinSession = serializers.SerializerMethodField()
+    time = serializers.TimeField(format="%H:%M")
+
+    class Meta:
+        model = Booking
+        fields = [
+            "token",
+            "therapistName",
+            "serviceType",
+            "sessionType",
+            "date",
+            "time",
+            "status",
+            "locationSummary",
+            "meetLink",
+            "joinUrl",
+            "manageUrl",
+            "addToCalendarUrl",
+            "canJoinSession",
+        ]
+
+    def get_meetLink(self, obj: Booking) -> str:
+        if not is_virtual_session_open(obj):
+            return ""
+
+        return obj.meet_link
+
+    def get_joinUrl(self, obj: Booking) -> str:
+        if obj.session_type != Booking.SessionType.VIRTUAL:
+            return ""
+
+        return build_join_url(obj.manage_token)
+
+    def get_manageUrl(self, obj: Booking) -> str:
+        return f"{settings.FRONTEND_BASE_URL}/manage/{obj.manage_token}"
+
+    def get_addToCalendarUrl(self, obj: Booking) -> str:
+        return build_google_calendar_add_url(obj)
+
+    def get_canJoinSession(self, obj: Booking) -> bool:
+        return is_virtual_session_open(obj) and bool(obj.meet_link)
 
 
 class BookingCreateSerializer(serializers.Serializer):
