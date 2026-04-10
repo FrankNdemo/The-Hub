@@ -9,6 +9,7 @@ from rest_framework.views import APIView
 def build_health_payload() -> dict[str, object]:
     return {
         "status": "ok",
+        "service": "wellness-backend",
         "release": {
             "commit": os.getenv("VERCEL_GIT_COMMIT_SHA", ""),
             "branch": os.getenv("VERCEL_GIT_COMMIT_REF", ""),
