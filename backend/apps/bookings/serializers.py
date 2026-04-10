@@ -51,7 +51,7 @@ class BookingDetailSerializer(serializers.ModelSerializer):
     therapistAddToCalendarUrl = serializers.SerializerMethodField()
     createdAt = serializers.DateTimeField(source="created_at")
     updatedAt = serializers.DateTimeField(source="updated_at")
-    emails = EmailRecordSerializer(many=True, read_only=True)
+    emails = serializers.SerializerMethodField()
     history = BookingHistoryEventSerializer(many=True, read_only=True)
     time = serializers.TimeField(format="%H:%M")
 
@@ -105,7 +105,16 @@ class BookingDetailSerializer(serializers.ModelSerializer):
         return build_google_calendar_add_url(obj, audience)
 
     def get_therapistAddToCalendarUrl(self, obj: Booking) -> str:
+        if not self.context.get("include_therapist_links"):
+            return ""
+
         return build_google_calendar_add_url(obj, THERAPIST_AUDIENCE)
+
+    def get_emails(self, obj: Booking) -> list[dict]:
+        if not self.context.get("include_email_records"):
+            return []
+
+        return EmailRecordSerializer(obj.emails.all(), many=True).data
 
 
 class BookingJoinSerializer(serializers.ModelSerializer):

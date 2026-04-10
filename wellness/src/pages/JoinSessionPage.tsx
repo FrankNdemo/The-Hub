@@ -55,6 +55,8 @@ const JoinSessionPage = () => {
       const message =
         error instanceof ApiError && error.status === 404
           ? "This private session link could not be found."
+          : error instanceof ApiError && error.status === 405
+            ? "The session confirmation service is still updating. Please try again shortly."
           : getApiErrorMessage(error, "We could not verify this session link right now.");
       setBooking(null);
       setAccessError(message);
@@ -102,7 +104,7 @@ const JoinSessionPage = () => {
                 <ShieldCheck className="h-6 w-6" />
               </div>
               <p className="mt-5 text-sm font-semibold uppercase tracking-[0.24em] text-primary/75">Session Link</p>
-              <h1 className="mt-4 font-heading text-4xl font-semibold text-foreground">Confirm your session email</h1>
+              <h1 className="mt-4 font-heading text-4xl font-semibold text-foreground">Confirm your booking email</h1>
               <p className="mt-4 text-muted-foreground leading-8">
                 Enter the email used to book this session. The session room stays private and opens only on the
                 session day.

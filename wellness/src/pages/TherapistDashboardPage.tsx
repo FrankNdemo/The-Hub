@@ -561,6 +561,7 @@ const TherapistDashboardPage = () => {
                   <TabsContent value="overview" className="mt-8 space-y-5">
                     {sortedBookings.slice(0, 3).map((booking) => {
                       const isExpanded = expandedOverviewBookingId === booking.id;
+                      const therapistSessionLink = booking.meetLink || booking.joinUrl;
 
                       return (
                         <div
@@ -659,12 +660,12 @@ const TherapistDashboardPage = () => {
                                 <ExternalLink className="h-3.5 w-3.5" />
                               </a>
                             ) : null}
-                            {booking.sessionType === "virtual" && booking.joinUrl ? (
+                            {booking.sessionType === "virtual" && therapistSessionLink ? (
                               <>
                                 <span className="mx-2 text-primary/50">|</span>
-                                Session link:{" "}
+                                Therapist room:{" "}
                                 <a
-                                  href={booking.joinUrl}
+                                  href={therapistSessionLink}
                                   target="_blank"
                                   rel="noreferrer"
                                   onClick={(event) => event.stopPropagation()}

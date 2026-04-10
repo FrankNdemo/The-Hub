@@ -118,9 +118,19 @@ def build_email_detail_card(label: str, value: str, href: str = "", link_label: 
                     </tr>"""
 
 
-def get_session_location(booking: Booking) -> str:
+def get_virtual_access_url(booking: Booking, audience: str = CLIENT_AUDIENCE) -> str:
+    if booking.session_type != Booking.SessionType.VIRTUAL:
+        return ""
+
+    if audience == THERAPIST_AUDIENCE and booking.meet_link:
+        return booking.meet_link
+
+    return build_join_url(booking.manage_token)
+
+
+def get_session_location(booking: Booking, audience: str = CLIENT_AUDIENCE) -> str:
     if booking.session_type == Booking.SessionType.VIRTUAL:
-        return build_join_url(booking.manage_token)
+        return get_virtual_access_url(booking, audience)
 
     return booking.location_summary
 
@@ -139,7 +149,7 @@ def build_google_calendar_add_url(booking: Booking, audience: str = CLIENT_AUDIE
         else f"The Wellness Hub Session with {booking.therapist_name_snapshot}"
     )
     access_label = "Join Link" if booking.session_type == Booking.SessionType.VIRTUAL else "Location"
-    access_value = get_session_location(booking)
+    access_value = get_session_location(booking, audience)
     detail_lines = [
         f"Therapist: {booking.therapist_name_snapshot}",
         f"Service: {SERVICE_TYPE_LABELS[booking.service_type]}",
@@ -286,9 +296,13 @@ def get_summary_card_values(booking: Booking, audience: str) -> list[tuple[str, 
         cards.append(
             (
                 "Virtual Session Link",
-                "The room will be available on the session day. Keep in touch with your email for updates; there is no need to worry.",
-                build_join_url(booking.manage_token),
-                "Join Virtual Session",
+                (
+                    "The room will be available on the session day. Keep in touch with your email for updates; there is no need to worry."
+                    if audience == CLIENT_AUDIENCE
+                    else "Open the therapist room directly from this link or from your saved calendar event."
+                ),
+                get_virtual_access_url(booking, audience),
+                "Join Virtual Session" if audience == CLIENT_AUDIENCE else "Open Therapist Room",
             )
         )
     else:
@@ -492,7 +506,7 @@ def get_organizer_email(booking: Booking) -> str:
     return parsed or booking.therapist.email
 
 
-def build_calendar_description(booking: Booking) -> str:
+def build_calendar_description(booking: Booking, audience: str = CLIENT_AUDIENCE) -> str:
     lines = [
         f"Session Title: {get_booking_session_title(booking)}",
         f"Therapist: {booking.therapist_name_snapshot}",
@@ -503,7 +517,7 @@ def build_calendar_description(booking: Booking) -> str:
     ]
 
     if booking.session_type == Booking.SessionType.VIRTUAL and booking.meet_link:
-        lines.append(f"Virtual Session Link: {build_join_url(booking.manage_token)}")
+        lines.append(f"Virtual Session Link: {get_virtual_access_url(booking, audience)}")
     else:
         lines.append(f"Location: {booking.location_summary}")
 
@@ -513,15 +527,15 @@ def build_calendar_description(booking: Booking) -> str:
     return "\n".join(lines)
 
 
-def build_calendar_invite(booking: Booking, kind: str) -> str:
+def build_calendar_invite(booking: Booking, kind: str, audience: str = CLIENT_AUDIENCE) -> str:
     method = "CANCEL" if kind == EmailRecord.EmailKind.CANCELLATION else "REQUEST"
     status = "CANCELLED" if kind == EmailRecord.EmailKind.CANCELLATION else "CONFIRMED"
     organizer_email = get_organizer_email(booking)
     start_at, end_at = get_booking_time_window(booking)
     summary_prefix = "Cancelled" if kind == EmailRecord.EmailKind.CANCELLATION else "The Wellness Hub"
     summary = f"{summary_prefix}: {get_booking_session_title(booking)} with {booking.therapist_name_snapshot}"
-    location = get_session_location(booking)
-    url = build_join_url(booking.manage_token) if booking.session_type == Booking.SessionType.VIRTUAL else ""
+    location = get_session_location(booking, audience)
+    url = get_virtual_access_url(booking, audience)
 
     lines = [
         "BEGIN:VCALENDAR",
@@ -536,7 +550,7 @@ def build_calendar_invite(booking: Booking, kind: str) -> str:
         f"DTSTART:{start_at.astimezone(dt_timezone.utc).strftime('%Y%m%dT%H%M%SZ')}",
         f"DTEND:{end_at.astimezone(dt_timezone.utc).strftime('%Y%m%dT%H%M%SZ')}",
         fold_ical_line(f"SUMMARY:{escape_ical_text(summary)}"),
-        fold_ical_line(f"DESCRIPTION:{escape_ical_text(build_calendar_description(booking))}"),
+        fold_ical_line(f"DESCRIPTION:{escape_ical_text(build_calendar_description(booking, audience))}"),
         fold_ical_line(f"LOCATION:{escape_ical_text(location)}"),
         f"STATUS:{status}",
         "TRANSP:OPAQUE",
@@ -611,6 +625,7 @@ def get_email_deliveries(booking: Booking, kind: str) -> list[dict[str, str]]:
                 "subject": get_email_subject(kind, audience),
                 "html": build_email_html(booking, kind, audience),
                 "text": build_email_text(booking, kind, audience),
+                "calendar_invite": build_calendar_invite(booking, kind, audience),
             }
         )
 
@@ -627,14 +642,13 @@ def send_booking_email_via_brevo(
     booking: Booking,
     kind: str,
     deliveries: list[dict[str, str]],
-    calendar_invite: str,
 ) -> None:
     sender_name, sender_email = get_sender_identity(booking)
     reply_to_email = settings.WELLNESS_HUB_REPLY_TO or sender_email
     calendar_filename = build_calendar_filename(kind)
-    calendar_content = base64.b64encode(calendar_invite.encode("utf-8")).decode("ascii")
 
     for delivery in deliveries:
+        calendar_content = base64.b64encode(delivery["calendar_invite"].encode("utf-8")).decode("ascii")
         payload = {
             "sender": {
                 "name": sender_name,
@@ -691,14 +705,12 @@ def send_booking_email_via_brevo(
 
 def send_booking_email(*, booking: Booking, kind: str) -> list[EmailRecord]:
     deliveries = get_email_deliveries(booking, kind)
-    calendar_invite = build_calendar_invite(booking, kind)
 
     if settings.BREVO_API_KEY:
         send_booking_email_via_brevo(
             booking=booking,
             kind=kind,
             deliveries=deliveries,
-            calendar_invite=calendar_invite,
         )
     else:
         calendar_method = "CANCEL" if kind == EmailRecord.EmailKind.CANCELLATION else "REQUEST"
@@ -720,7 +732,7 @@ def send_booking_email(*, booking: Booking, kind: str) -> list[EmailRecord]:
             message.attach_alternative(delivery["html"], "text/html")
             message.attach(
                 build_calendar_filename(kind),
-                calendar_invite,
+                delivery["calendar_invite"],
                 f"text/calendar; method={calendar_method}; charset=UTF-8",
             )
             messages.append(message)

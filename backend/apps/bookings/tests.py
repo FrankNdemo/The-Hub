@@ -44,19 +44,9 @@ class BookingApiTests(APITestCase):
         )
         self.assertEqual(create_response.status_code, status.HTTP_201_CREATED)
         self.assertEqual(create_response.data["status"], Booking.Status.UPCOMING)
-        self.assertEqual(len(create_response.data["emails"]), 2)
+        self.assertEqual(create_response.data["emails"], [])
         self.assertEqual(len(create_response.data["history"]), 1)
         self.assertTrue(create_response.data["calendarEventId"])
-        self.assertTrue(all("max-width:600px" in email["html"] for email in create_response.data["emails"]))
-        self.assertTrue(all("word-break:break-word" in email["html"] for email in create_response.data["emails"]))
-        self.assertTrue(all("width:180px" not in email["html"] for email in create_response.data["emails"]))
-        self.assertEqual(
-            {email["subject"] for email in create_response.data["emails"]},
-            {
-                "Your Session Is Confirmed | The Wellness Hub",
-                "New Session Booked | The Wellness Hub",
-            },
-        )
 
         self.assertEqual(len(mail.outbox), 2)
         actual_meet_link = Booking.objects.get(pk=create_response.data["id"]).meet_link
@@ -65,10 +55,16 @@ class BookingApiTests(APITestCase):
         self.assertEqual(mail.outbox[0].to, ["client@example.com"])
         client_html = mail.outbox[0].alternatives[0][0]
         therapist_html = mail.outbox[1].alternatives[0][0]
+        self.assertIn("max-width:600px", client_html)
+        self.assertIn("max-width:600px", therapist_html)
+        self.assertIn("word-break:break-word", client_html)
+        self.assertIn("word-break:break-word", therapist_html)
+        self.assertNotIn("width:180px", client_html)
+        self.assertNotIn("width:180px", therapist_html)
         escaped_manage_url = html.escape(create_response.data["manageUrl"], quote=True)
         escaped_join_url = html.escape(create_response.data["joinUrl"], quote=True)
         escaped_calendar_url = html.escape(create_response.data["addToCalendarUrl"], quote=True)
-        escaped_therapist_calendar_url = html.escape(create_response.data["therapistAddToCalendarUrl"], quote=True)
+        escaped_meet_link = html.escape(actual_meet_link, quote=True)
         self.assertIn("Manage Your Session", client_html)
         self.assertIn(f'href="{escaped_manage_url}"', client_html)
         self.assertIn(f'href="{escaped_join_url}"', client_html)
@@ -86,15 +82,12 @@ class BookingApiTests(APITestCase):
         self.assertEqual(mail.outbox[1].to, ["likentnerg@gmail.com"])
         self.assertEqual(mail.outbox[1].subject, "New Session Booked | The Wellness Hub")
         self.assertIn("Client Email: client@example.com", mail.outbox[1].body)
-        self.assertIn(f'href="{escaped_join_url}"', therapist_html)
-        self.assertIn(f'href="{escaped_therapist_calendar_url}"', therapist_html)
-        self.assertIn("Join Virtual Session", therapist_html)
+        self.assertIn(f'href="{escaped_meet_link}"', therapist_html)
+        self.assertIn("Open Therapist Room", therapist_html)
         self.assertNotIn(f">{escaped_join_url}<", therapist_html)
-        self.assertNotIn(f">{escaped_therapist_calendar_url}<", therapist_html)
-        self.assertNotIn(actual_meet_link, therapist_html)
         self.assertIn("Virtual Session Link", mail.outbox[1].body)
         self.assertNotIn(create_response.data["joinUrl"], mail.outbox[1].body)
-        self.assertNotIn(actual_meet_link, mail.outbox[1].body)
+        self.assertIn("Open Therapist Room", mail.outbox[1].body)
         self.assertNotIn(create_response.data["manageUrl"], mail.outbox[1].body)
         self.assertEqual(mail.outbox[0].attachments[0][0], "wellness-session.ics")
         self.assertIn("METHOD:REQUEST", mail.outbox[0].attachments[0][1])
@@ -107,14 +100,27 @@ class BookingApiTests(APITestCase):
         self.assertIn("likentnerg@gmail.com", mail.outbox[0].attachments[0][1])
         self.assertNotIn(actual_meet_link, mail.outbox[0].attachments[0][1])
         self.assertNotIn(create_response.data["manageUrl"], mail.outbox[0].attachments[0][1])
+        self.assertIn("https://meet.jit.si/the-wellness-hub-", mail.outbox[1].attachments[0][1])
+        self.assertIn("URL:https://meet.jit.si/the-wellness-hub-", mail.outbox[1].attachments[0][1])
+        self.assertIn("LOCATION:https://meet.jit.si/the-wellness-hub-", mail.outbox[1].attachments[0][1])
+        self.assertNotIn(create_response.data["joinUrl"], mail.outbox[1].attachments[0][1])
         self.assertTrue(actual_meet_link.startswith("https://meet.jit.si/the-wellness-hub-"))
         self.assertTrue(create_response.data["joinUrl"].startswith("http://localhost:8080/join/"))
         self.assertTrue(create_response.data["addToCalendarUrl"].startswith("https://calendar.google.com/calendar/render?"))
-        self.assertTrue(create_response.data["therapistAddToCalendarUrl"].startswith("https://calendar.google.com/calendar/render?"))
-        self.assertIn("Test+Client", create_response.data["therapistAddToCalendarUrl"])
+        self.assertEqual(create_response.data["therapistAddToCalendarUrl"], "")
         self.assertIn("join", create_response.data["addToCalendarUrl"])
         self.assertGreater(len(create_response.data["addToCalendarUrl"]), 200)
         self.assertGreaterEqual(Booking._meta.get_field("meet_link").max_length, 2048)
+
+        booking = Booking.objects.select_related("therapist__user").get(pk=create_response.data["id"])
+        self.client.force_authenticate(user=booking.therapist.user)
+        dashboard_response = self.client.get("/api/v1/dashboard/")
+        self.assertEqual(dashboard_response.status_code, status.HTTP_200_OK)
+        dashboard_booking = dashboard_response.data["bookings"][0]
+        self.assertEqual(dashboard_booking["meetLink"], actual_meet_link)
+        self.assertEqual(len(dashboard_booking["emails"]), 2)
+        self.assertIn("meet.jit.si", dashboard_booking["therapistAddToCalendarUrl"])
+        self.client.force_authenticate(user=None)
 
         token = create_response.data["token"]
         blocked_detail_response = self.client.get(f"/api/v1/bookings/manage/{token}/")
@@ -312,13 +318,14 @@ class BookingApiTests(APITestCase):
                 "clientPhone": "+254700000124",
                 "therapistId": "caroline-gichia",
                 "date": "2026-04-15",
-                "time": "10:30",
+                "time": "11:05",
                 "serviceType": "individual",
                 "sessionType": "virtual",
             },
             format="json",
         )
         self.assertEqual(first_response.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(first_response.data["time"], "11:05")
 
         conflict_response = self.client.post(
             "/api/v1/bookings/",
@@ -328,7 +335,7 @@ class BookingApiTests(APITestCase):
                 "clientPhone": "+254700000125",
                 "therapistId": "caroline-gichia",
                 "date": "2026-04-15",
-                "time": "11:00",
+                "time": "10:10",
                 "serviceType": "individual",
                 "sessionType": "virtual",
             },
@@ -338,7 +345,7 @@ class BookingApiTests(APITestCase):
         self.assertEqual(conflict_response.status_code, status.HTTP_409_CONFLICT)
         self.assertEqual(conflict_response.data["code"], "slot_unavailable")
         self.assertEqual(conflict_response.data["suggestedDate"], "2026-04-15")
-        self.assertEqual(conflict_response.data["suggestedTime"], "11:30")
+        self.assertEqual(conflict_response.data["suggestedTime"], "12:05")
         self.assertFalse(conflict_response.data["dayFullyBooked"])
 
     def test_reports_when_requested_day_is_fully_booked(self):

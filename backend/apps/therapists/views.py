@@ -162,7 +162,15 @@ class DashboardOverviewView(APIView):
         return Response(
             {
                 "blogPosts": BlogPostSerializer(blog_posts, many=True).data,
-                "bookings": BookingDetailSerializer(bookings, many=True).data,
+                "bookings": BookingDetailSerializer(
+                    bookings,
+                    many=True,
+                    context={
+                        "include_meet_link": True,
+                        "include_therapist_links": True,
+                        "include_email_records": True,
+                    },
+                ).data,
                 "notifications": NotificationSerializer(notifications, many=True).data,
                 "therapist": TherapistProfilePublicSerializer(therapist).data,
                 "therapistSession": TherapistSessionSerializer(build_therapist_session(request.user)).data,

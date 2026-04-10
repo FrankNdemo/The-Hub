@@ -2,10 +2,10 @@ import type { ServiceType } from "@/types/wellness";
 
 export const BOOKING_OPEN_TIME = "10:00";
 export const BOOKING_LAST_START_TIME = "18:00";
-export const BOOKING_TIME_STEP_SECONDS = 15 * 60;
+export const BOOKING_TIME_STEP_SECONDS = 5 * 60;
 export const BOOKING_AVAILABILITY_SUMMARY = "Tuesday to Saturday, 10:00 AM to 7:00 PM";
 export const BOOKING_AVAILABILITY_DETAIL =
-  "Sessions begin from 10:00 AM, finish by 7:00 PM, and the last available start time is 6:00 PM.";
+  "Sessions begin from 10:00 AM, finish by 7:00 PM, and the last available start time is 6:00 PM. Start times can be chosen in 5-minute increments.";
 
 const dateFormatter = new Intl.DateTimeFormat("en-US", {
   month: "long",

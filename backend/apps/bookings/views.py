@@ -169,7 +169,17 @@ class TherapistBookingListView(APIView):
             .select_related("therapist")
             .prefetch_related("emails", "history")
         )
-        return Response(BookingDetailSerializer(bookings, many=True).data)
+        return Response(
+            BookingDetailSerializer(
+                bookings,
+                many=True,
+                context={
+                    "include_meet_link": True,
+                    "include_therapist_links": True,
+                    "include_email_records": True,
+                },
+            ).data
+        )
 
 
 class TherapistBookingCompleteView(APIView):
