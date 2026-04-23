@@ -195,6 +195,39 @@ class TherapistProfileDetailView(APIView):
         return Response(TherapistProfilePublicSerializer(request.user.therapist_profile).data)
 
 
+class TherapistProfileImageUploadView(APIView):
+    permission_classes = [IsAuthenticated, IsTherapistAuthenticated]
+
+    def post(self, request):
+        image_file = request.FILES.get("image")
+        
+        if not image_file:
+            return Response(
+                {"detail": "No image file provided."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        # Validate file is an image
+        if not image_file.content_type.startswith("image/"):
+            return Response(
+                {"detail": "Uploaded file must be an image."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        # Convert image to data URL
+        import base64
+        image_data = image_file.read()
+        image_base64 = base64.b64encode(image_data).decode("utf-8")
+        image_url = f"data:{image_file.content_type};base64,{image_base64}"
+        
+        # Update therapist profile with new image
+        therapist = request.user.therapist_profile
+        therapist.image_url = image_url
+        therapist.save(update_fields=["image_url"])
+        
+        return Response({"image": image_url})
+
+
 class ChangePasswordView(APIView):
     permission_classes = [IsAuthenticated, IsTherapistAuthenticated]
 

@@ -47,7 +47,19 @@ const Navbar = () => {
     }
   };
 
-  useEffect(() => () => clearPendingPreview(), []);
+  useEffect(() => {
+    if (!open) return;
+    
+    const handleScroll = () => {
+      setOpen(false);
+    };
+    
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    return () => {
+      window.removeEventListener("scroll", handleScroll);
+      clearPendingPreview();
+    };
+  }, [open]);
 
   const handleDesktopHover = (href: string) => {
     clearPendingPreview();
@@ -83,7 +95,7 @@ const Navbar = () => {
   };
 
   return (
-    <nav className="fixed left-0 right-0 top-0 z-50 overflow-x-hidden" onMouseLeave={handleNavMouseLeave}>
+    <nav className="fixed left-0 right-0 top-0 z-50 overflow-x-hidden" onMouseLeave={handleNavMouseLeave} style={{ backgroundColor: showTherapistHeader ? undefined : "transparent" }}>
       <div
         className={`mx-auto pt-3 sm:pt-4 ${
           showTherapistHeader ? "max-w-6xl px-4 sm:px-6" : "container px-3 sm:px-4"
@@ -176,7 +188,7 @@ const Navbar = () => {
         </div>
 
         {open && !showTherapistHeader ? (
-          <div className="glass-nav mt-3 rounded-[2rem] px-5 py-5 md:hidden">
+          <div className="glass-nav mt-3 rounded-[2rem] px-5 py-5 md:hidden" style={{ animation: "slideDown 0.2s ease-out" }}>
             <div className="space-y-2">
               {navLinks.map((link) => (
                 <Link

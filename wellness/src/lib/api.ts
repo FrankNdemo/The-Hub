@@ -574,6 +574,31 @@ export const updateTherapistProfileRequest = (profile: TherapistProfile) =>
     },
   );
 
+export const uploadTherapistProfileImageRequest = (imageDataUrl: string) => {
+  const formData = new FormData();
+  
+  // Convert data URL to Blob
+  const byteString = atob(imageDataUrl.split(",")[1]);
+  const mimeType = imageDataUrl.split(",")[0].match(/:(.*?);/)?.[1] || "image/jpeg";
+  const ab = new ArrayBuffer(byteString.length);
+  const ia = new Uint8Array(ab);
+  
+  for (let i = 0; i < byteString.length; i++) {
+    ia[i] = byteString.charCodeAt(i);
+  }
+  
+  const blob = new Blob([ab], { type: mimeType });
+  formData.append("image", blob, "profile-image.jpg");
+  
+  return request<{ image: string }>(
+    "/dashboard/profile/upload-image/",
+    {
+      method: "POST",
+      body: formData,
+    },
+  );
+};
+
 export const updateTherapistPasswordRequest = (currentPassword: string, nextPassword: string) =>
   request<SuccessResponse>(
     "/dashboard/change-password/",

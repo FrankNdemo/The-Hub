@@ -10,6 +10,7 @@ from .views import (
     TherapistLogoutView,
     TherapistMeView,
     TherapistProfileDetailView,
+    TherapistProfileImageUploadView,
     TherapistTokenRefreshView,
     VerifyPassphraseView,
 )
@@ -25,6 +26,7 @@ urlpatterns = [
     path("auth/me/", TherapistMeView.as_view(), name="therapist-me"),
     path("dashboard/", DashboardOverviewView.as_view(), name="dashboard-overview"),
     path("dashboard/profile/", TherapistProfileDetailView.as_view(), name="therapist-profile-detail"),
+    path("dashboard/profile/upload-image/", TherapistProfileImageUploadView.as_view(), name="therapist-profile-image-upload"),
     path("dashboard/change-password/", ChangePasswordView.as_view(), name="change-password"),
     path(
         "dashboard/change-secret-passphrase/",

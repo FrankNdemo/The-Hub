@@ -35,7 +35,7 @@ import {
 } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useWellnessHub } from "@/context/WellnessHubContext";
-import { getApiErrorMessage } from "@/lib/api";
+import { getApiErrorMessage, uploadTherapistProfileImageRequest } from "@/lib/api";
 import { softPageBackgroundStyle } from "@/lib/pageBackground";
 import { formatDisplayDate, formatDisplayTime, formatServiceType, stripHtml } from "@/lib/wellness";
 import type { BlogPostDraft, BookingRecord, BookingStatus, TherapistProfile } from "@/types/wellness";
@@ -94,6 +94,14 @@ const parseLineSeparated = (value: string) =>
 
 const therapistDashboardHeroImage =
   "https://images.pexels.com/photos/36729384/pexels-photo-36729384.jpeg?auto=compress&cs=tinysrgb&w=1800&h=980&fit=crop";
+
+const uploadTherapistProfileImage = async (imageDataUrl: string): Promise<{ image: string }> => {
+  try {
+    return await uploadTherapistProfileImageRequest(imageDataUrl);
+  } catch (error) {
+    throw new Error("Failed to upload profile image: " + (error instanceof Error ? error.message : "Unknown error"));
+  }
+};
 
 const optimizeProfileImage = (file: File) =>
   new Promise<string>((resolve, reject) => {
@@ -343,8 +351,10 @@ const TherapistDashboardPage = () => {
 
     try {
       const optimizedImage = await optimizeProfileImage(file);
-      setProfileField("image", optimizedImage);
-      toast.success("Profile image ready to save.");
+      // Upload the image immediately instead of storing as data URL
+      const uploadResult = await uploadTherapistProfileImage(optimizedImage);
+      setProfileField("image", uploadResult.image);
+      toast.success("Profile image uploaded and ready to save.");
     } catch {
       toast.error("The selected image could not be processed.");
     } finally {
