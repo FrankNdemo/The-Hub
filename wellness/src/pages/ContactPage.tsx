@@ -3,6 +3,7 @@ import { Clock3, Mail, MapPin, Phone, Send } from "lucide-react";
 import { toast } from "sonner";
 
 import Footer from "@/components/Footer";
+import FAQSection from "@/components/FAQSection";
 import PageHeader from "@/components/PageHeader";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -41,7 +42,7 @@ const ContactPage = () => {
         title="Contact"
         contentClassName="pt-6 sm:pt-8 lg:pt-10"
         descriptionClassName="mt-6 sm:mt-8"
-        description="“We don’t just talk healing—we live it.”"
+        description="We don't just talk healing, we live it."
         detailLabel="Ways to connect"
         detailItems={[
           "Call, email, or send a message whenever you feel ready.",
@@ -96,11 +97,7 @@ const ContactPage = () => {
                 );
 
                 if (!item.href) {
-                  return (
-                    <div key={item.title}>
-                      {cardContent}
-                    </div>
-                  );
+                  return <div key={item.title}>{cardContent}</div>;
                 }
 
                 return (
@@ -118,7 +115,10 @@ const ContactPage = () => {
               })}
             </div>
 
-            <div className="rounded-[2rem] border border-border/60 bg-card p-6 shadow-card sm:p-8">
+            <div
+              id="contact-message-area"
+              className="scroll-mt-28 rounded-[2rem] border border-border/60 bg-card p-6 shadow-card sm:p-8"
+            >
               <div className="text-center">
                 <p className="text-sm font-semibold uppercase tracking-[0.24em] text-primary/75">Send us a message</p>
                 <h2 className="mt-4 font-heading text-4xl font-semibold text-foreground">We would love to hear from you</h2>
@@ -172,6 +172,7 @@ const ContactPage = () => {
         </div>
       </section>
 
+      <FAQSection />
       <Footer />
     </div>
   );

@@ -11,6 +11,7 @@ from .delivery import (
     build_join_url,
     build_therapist_session_url,
 )
+from .exploration import get_public_booking_notes, is_exploration_call
 from .models import Booking, BookingHistoryEvent, EmailRecord
 
 
@@ -61,6 +62,8 @@ class BookingDetailSerializer(serializers.ModelSerializer):
     emails = serializers.SerializerMethodField()
     history = BookingHistoryEventSerializer(many=True, read_only=True)
     time = serializers.TimeField(format="%H:%M")
+    notes = serializers.SerializerMethodField()
+    isExplorationCall = serializers.SerializerMethodField()
 
     class Meta:
         model = Booking
@@ -89,6 +92,7 @@ class BookingDetailSerializer(serializers.ModelSerializer):
             "createdAt",
             "updatedAt",
             "notes",
+            "isExplorationCall",
             "emails",
             "history",
         ]
@@ -97,13 +101,17 @@ class BookingDetailSerializer(serializers.ModelSerializer):
         return f"{settings.FRONTEND_BASE_URL}/manage/{obj.manage_token}"
 
     def get_joinUrl(self, obj: Booking) -> str:
-        if obj.session_type != Booking.SessionType.VIRTUAL:
+        if obj.session_type != Booking.SessionType.VIRTUAL or is_exploration_call(obj):
             return ""
 
         return build_join_url(obj.manage_token)
 
     def get_therapistSessionUrl(self, obj: Booking) -> str:
-        if not self.context.get("include_therapist_links") or obj.session_type != Booking.SessionType.VIRTUAL:
+        if (
+            not self.context.get("include_therapist_links")
+            or obj.session_type != Booking.SessionType.VIRTUAL
+            or is_exploration_call(obj)
+        ):
             return ""
 
         return build_therapist_session_url(obj)
@@ -115,14 +123,23 @@ class BookingDetailSerializer(serializers.ModelSerializer):
         return obj.meet_link
 
     def get_addToCalendarUrl(self, obj: Booking) -> str:
+        if is_exploration_call(obj):
+            return ""
+
         audience = self.context.get("audience", CLIENT_AUDIENCE)
         return build_google_calendar_add_url(obj, audience)
 
     def get_therapistAddToCalendarUrl(self, obj: Booking) -> str:
-        if not self.context.get("include_therapist_links"):
+        if not self.context.get("include_therapist_links") or is_exploration_call(obj):
             return ""
 
         return build_google_calendar_add_url(obj, THERAPIST_AUDIENCE)
+
+    def get_notes(self, obj: Booking) -> str:
+        return get_public_booking_notes(obj.notes)
+
+    def get_isExplorationCall(self, obj: Booking) -> bool:
+        return is_exploration_call(obj)
 
     def get_emails(self, obj: Booking) -> list[dict]:
         if not self.context.get("include_email_records"):
@@ -143,6 +160,7 @@ class BookingJoinSerializer(serializers.ModelSerializer):
     addToCalendarUrl = serializers.SerializerMethodField()
     canJoinSession = serializers.SerializerMethodField()
     time = serializers.TimeField(format="%H:%M")
+    isExplorationCall = serializers.SerializerMethodField()
 
     class Meta:
         model = Booking
@@ -160,9 +178,13 @@ class BookingJoinSerializer(serializers.ModelSerializer):
             "manageUrl",
             "addToCalendarUrl",
             "canJoinSession",
+            "isExplorationCall",
         ]
 
     def get_meetLink(self, obj: Booking) -> str:
+        if is_exploration_call(obj):
+            return ""
+
         if self.context.get("therapist_access_verified"):
             return obj.meet_link
 
@@ -172,7 +194,7 @@ class BookingJoinSerializer(serializers.ModelSerializer):
         return obj.meet_link
 
     def get_joinUrl(self, obj: Booking) -> str:
-        if obj.session_type != Booking.SessionType.VIRTUAL:
+        if obj.session_type != Booking.SessionType.VIRTUAL or is_exploration_call(obj):
             return ""
 
         return build_join_url(obj.manage_token)
@@ -181,14 +203,23 @@ class BookingJoinSerializer(serializers.ModelSerializer):
         return f"{settings.FRONTEND_BASE_URL}/manage/{obj.manage_token}"
 
     def get_addToCalendarUrl(self, obj: Booking) -> str:
+        if is_exploration_call(obj):
+            return ""
+
         audience = self.context.get("audience", CLIENT_AUDIENCE)
         return build_google_calendar_add_url(obj, audience)
 
     def get_canJoinSession(self, obj: Booking) -> bool:
+        if is_exploration_call(obj):
+            return False
+
         if self.context.get("therapist_access_verified"):
             return bool(obj.meet_link)
 
         return bool(self.context.get("access_verified")) and is_virtual_session_open(obj) and bool(obj.meet_link)
+
+    def get_isExplorationCall(self, obj: Booking) -> bool:
+        return is_exploration_call(obj)
 
 
 class BookingAccessSerializer(serializers.Serializer):

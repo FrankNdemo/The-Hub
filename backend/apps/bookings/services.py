@@ -17,6 +17,12 @@ from .delivery import (
     build_virtual_session_link,
     send_booking_email,
 )
+from .exploration import (
+    EXPLORATION_CALL_CLIENT_LOCATION_SUMMARY,
+    EXPLORATION_CALL_LABEL,
+    is_exploration_call,
+    is_exploration_call_notes,
+)
 from .models import Booking, BookingHistoryEvent, EmailRecord
 from .scheduling import ensure_client_can_book, ensure_slot_is_available
 
@@ -48,6 +54,7 @@ def create_booking(*, therapist, data: dict) -> Booking:
         slot_time=data["time"],
     )
     service_type = data["service_type"]
+    exploration_call_request = is_exploration_call_notes(data.get("notes", ""))
     booking = Booking.objects.create(
         manage_token=make_token(),
         client_name=data["client_name"],
@@ -64,26 +71,39 @@ def create_booking(*, therapist, data: dict) -> Booking:
         location_summary=(
             therapist.location_summary
             if data["session_type"] == Booking.SessionType.PHYSICAL
-            else "Online session access will be shared in your calendar-ready confirmation."
+            else (
+                EXPLORATION_CALL_CLIENT_LOCATION_SUMMARY
+                if exploration_call_request
+                else "Online session access will be shared in your calendar-ready confirmation."
+            )
         ),
         calendar_event_id=make_id("booking"),
         meet_link="",
         notes=data.get("notes", ""),
     )
-    if booking.session_type == Booking.SessionType.VIRTUAL:
+    if booking.session_type == Booking.SessionType.VIRTUAL and not is_exploration_call(booking):
         booking.meet_link = build_virtual_session_link(booking)
         booking.save(update_fields=["meet_link", "updated_at"])
 
-    descriptor = f"{SERVICE_TYPE_LABELS[booking.service_type].lower()} {booking.session_type} session"
+    exploration_call = is_exploration_call(booking)
+    descriptor = (
+        EXPLORATION_CALL_LABEL.lower()
+        if exploration_call
+        else f"{SERVICE_TYPE_LABELS[booking.service_type].lower()} {booking.session_type} session"
+    )
     description = (
-        f"{booking.client_name} booked a {descriptor} with {therapist.name} for {booking.participant_count} participants."
-        if booking.service_type == Booking.ServiceType.CORPORATE and booking.participant_count
-        else f"{booking.client_name} booked a {descriptor} with {therapist.name}."
+        f"{booking.client_name} requested an {descriptor} with {therapist.name}."
+        if exploration_call
+        else (
+            f"{booking.client_name} booked a {descriptor} with {therapist.name} for {booking.participant_count} participants."
+            if booking.service_type == Booking.ServiceType.CORPORATE and booking.participant_count
+            else f"{booking.client_name} booked a {descriptor} with {therapist.name}."
+        )
     )
     BookingHistoryEvent.objects.create(
         booking=booking,
         type=BookingHistoryEvent.EventType.CREATED,
-        title="Booking confirmed",
+        title="Exploration call requested" if exploration_call else "Booking confirmed",
         description=description,
     )
 
@@ -95,11 +115,15 @@ def create_booking(*, therapist, data: dict) -> Booking:
     create_notification(
         booking=booking,
         notification_type=Notification.NotificationType.BOOKING,
-        title="New booking confirmed",
+        title="New exploration call request" if exploration_call else "New booking confirmed",
         description=(
-            f"{booking.client_name} booked a {descriptor} for {booking.participant_count} participants on {booking.date} at {booking.time.strftime('%H:%M')}."
-            if booking.service_type == Booking.ServiceType.CORPORATE and booking.participant_count
-            else f"{booking.client_name} booked a {descriptor} for {booking.date} at {booking.time.strftime('%H:%M')}."
+            f"{booking.client_name} requested an {descriptor} for {booking.date} at {booking.time.strftime('%H:%M')}."
+            if exploration_call
+            else (
+                f"{booking.client_name} booked a {descriptor} for {booking.participant_count} participants on {booking.date} at {booking.time.strftime('%H:%M')}."
+                if booking.service_type == Booking.ServiceType.CORPORATE and booking.participant_count
+                else f"{booking.client_name} booked a {descriptor} for {booking.date} at {booking.time.strftime('%H:%M')}."
+            )
         ),
     )
 
@@ -121,15 +145,21 @@ def reschedule_booking(*, booking: Booking, date, time) -> Booking:
     booking.date = date
     booking.time = time
     booking.status = Booking.Status.RESCHEDULED
-    if booking.session_type == Booking.SessionType.VIRTUAL:
+    if booking.session_type == Booking.SessionType.VIRTUAL and not is_exploration_call(booking):
         booking.meet_link = build_virtual_session_link(booking)
+    elif is_exploration_call(booking):
+        booking.meet_link = ""
     booking.save()
 
     BookingHistoryEvent.objects.create(
         booking=booking,
         type=BookingHistoryEvent.EventType.RESCHEDULED,
-        title="Session rescheduled",
-        description=f"{booking.client_name} moved the session to {booking.date} at {booking.time.strftime('%H:%M')}.",
+        title="Exploration call request updated" if is_exploration_call(booking) else "Session rescheduled",
+        description=(
+            f"{booking.client_name} moved the exploration call request to {booking.date} at {booking.time.strftime('%H:%M')}."
+            if is_exploration_call(booking)
+            else f"{booking.client_name} moved the session to {booking.date} at {booking.time.strftime('%H:%M')}."
+        ),
     )
 
     send_booking_email(
@@ -139,8 +169,12 @@ def reschedule_booking(*, booking: Booking, date, time) -> Booking:
     create_notification(
         booking=booking,
         notification_type=Notification.NotificationType.RESCHEDULE,
-        title="Session rescheduled",
-        description=f"{booking.client_name} selected {booking.date} at {booking.time.strftime('%H:%M')}.",
+        title="Exploration call request updated" if is_exploration_call(booking) else "Session rescheduled",
+        description=(
+            f"{booking.client_name} updated the exploration call request to {booking.date} at {booking.time.strftime('%H:%M')}."
+            if is_exploration_call(booking)
+            else f"{booking.client_name} selected {booking.date} at {booking.time.strftime('%H:%M')}."
+        ),
     )
 
     return booking
@@ -157,8 +191,12 @@ def cancel_booking(*, booking: Booking) -> Booking:
     BookingHistoryEvent.objects.create(
         booking=booking,
         type=BookingHistoryEvent.EventType.CANCELLED,
-        title="Session cancelled",
-        description=f"{booking.client_name} cancelled the session scheduled for {booking.date}.",
+        title="Exploration call request cancelled" if is_exploration_call(booking) else "Session cancelled",
+        description=(
+            f"{booking.client_name} cancelled the exploration call request scheduled for {booking.date}."
+            if is_exploration_call(booking)
+            else f"{booking.client_name} cancelled the session scheduled for {booking.date}."
+        ),
     )
 
     send_booking_email(
@@ -168,8 +206,12 @@ def cancel_booking(*, booking: Booking) -> Booking:
     create_notification(
         booking=booking,
         notification_type=Notification.NotificationType.CANCEL,
-        title="Session cancelled",
-        description=f"{booking.client_name} cancelled a {booking.session_type} session.",
+        title="Exploration call request cancelled" if is_exploration_call(booking) else "Session cancelled",
+        description=(
+            f"{booking.client_name} cancelled an exploration call request."
+            if is_exploration_call(booking)
+            else f"{booking.client_name} cancelled a {booking.session_type} session."
+        ),
     )
     return booking
 
@@ -194,6 +236,9 @@ def send_upcoming_session_reminders(now=None) -> dict[str, int]:
     )
 
     for booking in bookings:
+        if is_exploration_call(booking):
+            continue
+
         start_at, _ = get_booking_time_window(booking)
 
         if start_at < current_time or start_at > lead_window_end:

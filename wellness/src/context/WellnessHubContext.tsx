@@ -225,6 +225,7 @@ const normalizeBooking = (booking?: Partial<BookingRecord> | null): BookingRecor
     createdAt: booking.createdAt,
     updatedAt: booking.updatedAt,
     notes: typeof booking.notes === "string" && booking.notes ? booking.notes : undefined,
+    isExplorationCall: Boolean(booking.isExplorationCall),
     emails: Array.isArray(booking.emails) ? booking.emails : [],
     history: Array.isArray(booking.history) ? booking.history : [],
   };

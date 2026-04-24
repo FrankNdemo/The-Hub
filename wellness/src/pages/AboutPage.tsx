@@ -195,11 +195,21 @@ const AboutPage = () => {
           <p className="mx-auto mt-4 max-w-2xl text-muted-foreground leading-8">
             Start with a first session or reach out if you want help deciding what type of support would fit best.
           </p>
-          <div className="mt-8 flex flex-col justify-center gap-3 sm:flex-row">
-            <Button variant="hero" size="lg" className="w-full rounded-full sm:w-auto" asChild>
+          <div className="mt-8 grid grid-cols-2 gap-2.5 sm:flex sm:flex-row sm:justify-center">
+            <Button
+              variant="hero"
+              size="lg"
+              className="h-10 min-w-0 rounded-full px-3 text-[0.78rem] tracking-normal sm:h-11 sm:w-auto sm:px-8 sm:text-sm"
+              asChild
+            >
               <Link to="/booking">Book a Session</Link>
             </Button>
-            <Button variant="heroBorder" size="lg" className="w-full rounded-full sm:w-auto" asChild>
+            <Button
+              variant="heroBorder"
+              size="lg"
+              className="h-10 min-w-0 rounded-full px-3 text-[0.78rem] tracking-normal sm:h-11 sm:w-auto sm:px-8 sm:text-sm"
+              asChild
+            >
               <Link to="/contact">Contact Us</Link>
             </Button>
           </div>

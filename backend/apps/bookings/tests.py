@@ -259,6 +259,69 @@ class BookingApiTests(APITestCase):
         self.assertNotIn("/join/", calendar_invite)
         self.assertIn("Nairobi", response.data["addToCalendarUrl"])
 
+    def test_exploration_call_request_sends_distinct_non_calendar_messages(self):
+        create_response = self.client.post(
+            "/api/v1/bookings/",
+            {
+                "clientName": "Exploration Client",
+                "clientEmail": "explore@example.com",
+                "clientPhone": "+254711222333",
+                "therapistId": "caroline-gichia",
+                "date": "2026-05-16",
+                "time": "15:00",
+                "serviceType": "individual",
+                "sessionType": "virtual",
+                "notes": "[exploration-call] Client wants clarity before committing to a full therapy session. I am not sure whether I should begin with individual therapy or something lighter.",
+            },
+            format="json",
+        )
+        self.assertEqual(create_response.status_code, status.HTTP_201_CREATED)
+        self.assertTrue(create_response.data["isExplorationCall"])
+        self.assertEqual(create_response.data["joinUrl"], "")
+        self.assertEqual(create_response.data["addToCalendarUrl"], "")
+        self.assertEqual(create_response.data["therapistSessionUrl"], "")
+        self.assertEqual(create_response.data["notes"], "Client wants clarity before committing to a full therapy session. I am not sure whether I should begin with individual therapy or something lighter.")
+
+        booking = Booking.objects.select_related("therapist__user").get(pk=create_response.data["id"])
+        self.assertEqual(booking.meet_link, "")
+        self.assertEqual(booking.location_summary, "The therapist will review your request and reach out directly using your phone number or email.")
+
+        self.assertEqual(len(mail.outbox), 2)
+        client_message = mail.outbox[0]
+        therapist_message = mail.outbox[1]
+        client_html = client_message.alternatives[0][0]
+        therapist_html = therapist_message.alternatives[0][0]
+
+        self.assertEqual(client_message.subject, "Your Exploration Call Request Was Received | The Wellness Hub")
+        self.assertEqual(client_message.to, ["explore@example.com"])
+        self.assertEqual(client_message.attachments, [])
+        self.assertIn("Open Secure Link", client_html)
+        self.assertIn("Thanks for booking an exploration call", client_html)
+        self.assertNotIn("Manage Request", client_html)
+        self.assertNotIn("Add to Google Calendar", client_html)
+        self.assertNotIn("Join Virtual Session", client_html)
+        self.assertNotIn("/join/", client_html)
+        self.assertIn("Expect a call from the therapist after they review your request.", client_message.body)
+
+        self.assertEqual(therapist_message.subject, "New Exploration Call Request | The Wellness Hub")
+        self.assertEqual(therapist_message.to, ["likentnerg@gmail.com"])
+        self.assertEqual(therapist_message.attachments, [])
+        self.assertIn("Client Phone: +254711222333", therapist_message.body)
+        self.assertIn("Open Calls Page", therapist_html)
+        self.assertIn("?tab=calls", therapist_html)
+        self.assertNotIn("/therapist/session/", therapist_html)
+        self.assertNotIn("Add to Google Calendar", therapist_html)
+
+        self.client.force_authenticate(user=booking.therapist.user)
+        dashboard_response = self.client.get("/api/v1/dashboard/")
+        self.assertEqual(dashboard_response.status_code, status.HTTP_200_OK)
+        dashboard_booking = dashboard_response.data["bookings"][0]
+        self.assertTrue(dashboard_booking["isExplorationCall"])
+        self.assertEqual(dashboard_booking["meetLink"], "")
+        self.assertEqual(dashboard_booking["therapistSessionUrl"], "")
+        self.assertEqual(dashboard_booking["therapistAddToCalendarUrl"], "")
+        self.client.force_authenticate(user=None)
+
     def test_reminder_cron_requires_secret_and_sends_once(self):
         create_response = self.client.post(
             "/api/v1/bookings/",

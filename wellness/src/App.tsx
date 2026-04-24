@@ -13,6 +13,7 @@ import BlogPage from "./pages/BlogPage";
 import BlogPostPage from "./pages/BlogPostPage";
 import BookingPage from "./pages/BookingPage";
 import ContactPage from "./pages/ContactPage";
+import ExplorationCallPage from "./pages/ExplorationCallPage";
 import Index from "./pages/Index";
 import JoinSessionPage from "./pages/JoinSessionPage";
 import ManageBookingPage from "./pages/ManageBookingPage";
@@ -92,6 +93,7 @@ const PreviewRoutes = () => {
       <Route path="/blog" element={<BlogPage />} />
       <Route path="/blog/:slug" element={<BlogPostPage />} />
       <Route path="/contact" element={<ContactPage />} />
+      <Route path="/exploration-call" element={<ExplorationCallPage />} />
       <Route path="/booking" element={<BookingPage />} />
       <Route path="/join/:token" element={<JoinSessionPage />} />
       <Route path="/manage/:token" element={<ManageBookingPage />} />

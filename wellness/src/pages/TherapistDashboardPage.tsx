@@ -1,5 +1,5 @@
 import { Fragment, type MouseEvent, useEffect, useMemo, useState } from "react";
-import { Link, Navigate } from "react-router-dom";
+import { Link, Navigate, useSearchParams } from "react-router-dom";
 import {
   BellRing,
   CalendarCheck2,
@@ -54,6 +54,22 @@ interface TherapistProfileFormState {
   location: string;
   image: string;
 }
+
+const DASHBOARD_TABS = [
+  "overview",
+  "sessions",
+  "calls",
+  "blog",
+  "notifications",
+  "completed",
+  "profile",
+  "security",
+] as const;
+
+type DashboardTab = (typeof DASHBOARD_TABS)[number];
+
+const normalizeDashboardTab = (value: string | null): DashboardTab =>
+  DASHBOARD_TABS.includes(value as DashboardTab) ? (value as DashboardTab) : "overview";
 
 const makeEmptyDraft = (author: string): BlogPostDraft => ({
   title: "",
@@ -183,7 +199,21 @@ const isCompletedOrExpiredBooking = (booking: BookingRecord, now = Date.now()) =
 const getBookingStatusLabel = (booking: BookingRecord, now = Date.now()): BookingStatus | "expired" =>
   isExpiredBooking(booking, now) ? "expired" : booking.status;
 
+const getCallRequestStatusLabel = (booking: BookingRecord) => {
+  switch (booking.status) {
+    case "upcoming":
+      return "requested";
+    case "rescheduled":
+      return "updated";
+    case "completed":
+      return "closed";
+    default:
+      return booking.status;
+  }
+};
+
 const hasBookingDashboardLinks = (booking: BookingRecord) =>
+  !booking.isExplorationCall &&
   Boolean(
     booking.therapistAddToCalendarUrl ||
       booking.manageUrl ||
@@ -197,6 +227,10 @@ interface BookingDashboardLinksProps {
 }
 
 const BookingDashboardLinks = ({ booking, compact = false, stopPropagation = false }: BookingDashboardLinksProps) => {
+  if (booking.isExplorationCall) {
+    return null;
+  }
+
   const therapistSessionLink = getTherapistSessionLink(booking);
   const handleClick = (event: MouseEvent<HTMLAnchorElement>) => {
     if (stopPropagation) {
@@ -255,6 +289,7 @@ const BookingDashboardLinks = ({ booking, compact = false, stopPropagation = fal
 };
 
 const TherapistDashboardPage = () => {
+  const [searchParams, setSearchParams] = useSearchParams();
   const {
     blogPosts,
     bookings,
@@ -272,7 +307,7 @@ const TherapistDashboardPage = () => {
     updateTherapistProfile,
   } = useWellnessHub();
 
-  const [activeTab, setActiveTab] = useState("overview");
+  const [activeTab, setActiveTab] = useState<DashboardTab>(() => normalizeDashboardTab(searchParams.get("tab")));
   const [draft, setDraft] = useState<BlogPostDraft>(() => makeEmptyDraft(therapist.name));
   const [tagInput, setTagInput] = useState("");
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -290,6 +325,12 @@ const TherapistDashboardPage = () => {
     }
   }, [editingId, therapist]);
 
+  const requestedTab = normalizeDashboardTab(searchParams.get("tab"));
+
+  useEffect(() => {
+    setActiveTab((current) => (current === requestedTab ? current : requestedTab));
+  }, [requestedTab]);
+
   const unreadNotificationCount = useMemo(
     () => notifications.filter((notification) => !notification.read).length,
     [notifications],
@@ -300,16 +341,30 @@ const TherapistDashboardPage = () => {
     () => [...bookings].sort((left, right) => right.updatedAt.localeCompare(left.updatedAt)),
     [bookings],
   );
-  const activeBookings = sortedBookings.filter((booking) => !isCompletedOrExpiredBooking(booking, currentTime));
-  const completedBookings = sortedBookings.filter((booking) => isCompletedOrExpiredBooking(booking, currentTime));
+  const sessionBookings = useMemo(
+    () => sortedBookings.filter((booking) => !booking.isExplorationCall),
+    [sortedBookings],
+  );
+  const callRequests = useMemo(
+    () => sortedBookings.filter((booking) => booking.isExplorationCall),
+    [sortedBookings],
+  );
+  const activeBookings = useMemo(
+    () => sessionBookings.filter((booking) => !isCompletedOrExpiredBooking(booking, currentTime)),
+    [sessionBookings, currentTime],
+  );
+  const completedBookings = useMemo(
+    () => sessionBookings.filter((booking) => isCompletedOrExpiredBooking(booking, currentTime)),
+    [sessionBookings, currentTime],
+  );
   const metrics = useMemo(
     () => ({
-      total: bookings.length,
-      upcoming: bookings.filter((booking) => !isCompletedOrExpiredBooking(booking, currentTime) && booking.status !== "cancelled").length,
-      cancelled: bookings.filter((booking) => booking.status === "cancelled").length,
-      rescheduled: bookings.filter((booking) => booking.history.some((event) => event.type === "rescheduled")).length,
+      total: sessionBookings.length,
+      upcoming: sessionBookings.filter((booking) => !isCompletedOrExpiredBooking(booking, currentTime) && booking.status !== "cancelled").length,
+      cancelled: sessionBookings.filter((booking) => booking.status === "cancelled").length,
+      rescheduled: sessionBookings.filter((booking) => booking.history.some((event) => event.type === "rescheduled")).length,
     }),
-    [bookings, currentTime],
+    [sessionBookings, currentTime],
   );
 
   const setDraftField = (field: keyof BlogPostDraft, value: string | string[]) => {
@@ -581,7 +636,7 @@ const TherapistDashboardPage = () => {
                       label: "Total Sessions Booked",
                       value: metrics.total,
                       icon: LayoutDashboard,
-                      note: "All appointments currently in the system.",
+                      note: "All full therapy sessions currently in the system.",
                     },
                     {
                       label: "Upcoming Sessions",
@@ -629,11 +684,13 @@ const TherapistDashboardPage = () => {
                   ))}
                 </div>
 
-                <Tabs
+                  <Tabs
                   value={activeTab}
                   onValueChange={(value) => {
-                    setActiveTab(value);
-                    if (value === "notifications") {
+                    const nextTab = normalizeDashboardTab(value);
+                    setActiveTab(nextTab);
+                    setSearchParams(nextTab === "overview" ? {} : { tab: nextTab }, { replace: true });
+                    if (nextTab === "notifications") {
                       void markNotificationsRead().catch(() => undefined);
                     }
                   }}
@@ -645,6 +702,9 @@ const TherapistDashboardPage = () => {
                     </TabsTrigger>
                     <TabsTrigger value="sessions" className="h-auto shrink-0 rounded-full px-3 py-2 text-[11px] sm:px-4 sm:text-sm lg:px-5">
                       Sessions
+                    </TabsTrigger>
+                    <TabsTrigger value="calls" className="h-auto shrink-0 rounded-full px-3 py-2 text-[11px] sm:px-4 sm:text-sm lg:px-5">
+                      Calls
                     </TabsTrigger>
                     <TabsTrigger value="blog" className="h-auto shrink-0 rounded-full px-3 py-2 text-[11px] sm:px-4 sm:text-sm lg:px-5">
                       <span className="sm:hidden">Blog</span>
@@ -972,6 +1032,167 @@ const TherapistDashboardPage = () => {
                     </div>
                   </TabsContent>
 
+                  <TabsContent value="calls" className="mt-8">
+                    <div className="rounded-[1.75rem] border border-border/60 bg-card/80 p-5 shadow-card sm:p-6">
+                      <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+                        <div>
+                          <h2 className="font-heading text-xl font-semibold text-foreground sm:text-2xl">Exploration Calls</h2>
+                          <p className="mt-2 text-sm leading-7 text-muted-foreground">
+                            All exploration call requests are recorded here and kept separate from full therapy
+                            sessions.
+                          </p>
+                        </div>
+                        <Badge variant="secondary" className="w-fit rounded-full bg-primary/10 px-3 py-1 text-primary">
+                          {callRequests.length} {callRequests.length === 1 ? "call request" : "call requests"}
+                        </Badge>
+                      </div>
+
+                      <div className="mt-6 space-y-4 md:hidden">
+                        {callRequests.map((booking) => (
+                          <div key={booking.id} className="rounded-[1.5rem] border border-border/60 bg-secondary/25 p-4 shadow-card">
+                            <div className="flex items-start justify-between gap-3">
+                              <div className="min-w-0">
+                                <p className="font-medium text-foreground">{booking.clientName}</p>
+                                <p className="mt-1 text-xs uppercase tracking-[0.18em] text-primary/65">
+                                  Exploration Call
+                                </p>
+                              </div>
+                              <Badge
+                                variant="secondary"
+                                className={`rounded-full px-3 py-1 capitalize ${getStatusBadgeClassName(booking.status)}`}
+                              >
+                                {getCallRequestStatusLabel(booking)}
+                              </Badge>
+                            </div>
+
+                            <div className="mt-4 space-y-2 text-sm leading-6 text-muted-foreground">
+                              <p>
+                                <span className="font-medium text-foreground">Preferred date:</span> {formatDisplayDate(booking.date)}
+                              </p>
+                              <p>
+                                <span className="font-medium text-foreground">Preferred time:</span> {formatDisplayTime(booking.time)}
+                              </p>
+                              <p className="break-all">
+                                <span className="font-medium text-foreground">Email:</span> {booking.clientEmail}
+                              </p>
+                              <p>
+                                <span className="font-medium text-foreground">Phone:</span> {booking.clientPhone}
+                              </p>
+                              {booking.notes ? (
+                                <p>
+                                  <span className="font-medium text-foreground">Notes:</span> {booking.notes}
+                                </p>
+                              ) : null}
+                              <p>
+                                <span className="font-medium text-foreground">Last updated:</span>{" "}
+                                {new Date(booking.updatedAt).toLocaleString()}
+                              </p>
+                            </div>
+
+                            <div className="mt-4 flex flex-col gap-2 sm:flex-row">
+                              <Button variant="heroBorder" className="w-full rounded-full sm:w-auto" asChild>
+                                <a href={`tel:${booking.clientPhone}`}>
+                                  <Phone className="h-4 w-4" />
+                                  Call Client
+                                </a>
+                              </Button>
+                              <Button variant="heroBorder" className="w-full rounded-full sm:w-auto" asChild>
+                                <a href={`mailto:${booking.clientEmail}`}>
+                                  <Mail className="h-4 w-4" />
+                                  Email Client
+                                </a>
+                              </Button>
+                            </div>
+                          </div>
+                        ))}
+                        {callRequests.length === 0 ? (
+                          <div className="rounded-[1.5rem] bg-secondary/45 p-4 text-sm text-muted-foreground">
+                            Exploration call requests will appear here as soon as clients submit them.
+                          </div>
+                        ) : null}
+                      </div>
+
+                      <div className="mt-6 hidden overflow-x-auto md:block">
+                        <Table>
+                          <TableHeader>
+                            <TableRow>
+                              <TableHead>Client</TableHead>
+                              <TableHead>Contact</TableHead>
+                              <TableHead>Preferred Date</TableHead>
+                              <TableHead>Preferred Time</TableHead>
+                              <TableHead>Status</TableHead>
+                              <TableHead className="text-right">Follow Up</TableHead>
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                            {callRequests.map((booking) => (
+                              <Fragment key={booking.id}>
+                                <TableRow>
+                                  <TableCell>
+                                    <div className="space-y-1">
+                                      <p className="font-medium text-foreground">{booking.clientName}</p>
+                                      <p className="text-xs uppercase tracking-[0.18em] text-primary/65">
+                                        Exploration Call
+                                      </p>
+                                    </div>
+                                  </TableCell>
+                                  <TableCell>
+                                    <div className="space-y-1">
+                                      <p className="text-sm text-foreground">{booking.clientEmail}</p>
+                                      <p className="text-xs text-muted-foreground">{booking.clientPhone}</p>
+                                    </div>
+                                  </TableCell>
+                                  <TableCell>{formatDisplayDate(booking.date)}</TableCell>
+                                  <TableCell>{formatDisplayTime(booking.time)}</TableCell>
+                                  <TableCell>
+                                    <Badge
+                                      variant="secondary"
+                                      className={`rounded-full px-3 py-1 capitalize ${getStatusBadgeClassName(booking.status)}`}
+                                    >
+                                      {getCallRequestStatusLabel(booking)}
+                                    </Badge>
+                                  </TableCell>
+                                  <TableCell className="text-right">
+                                    <div className="flex justify-end gap-2">
+                                      <Button variant="heroBorder" size="sm" className="rounded-full" asChild>
+                                        <a href={`tel:${booking.clientPhone}`}>
+                                          <Phone className="h-4 w-4" />
+                                          Call
+                                        </a>
+                                      </Button>
+                                      <Button variant="heroBorder" size="sm" className="rounded-full" asChild>
+                                        <a href={`mailto:${booking.clientEmail}`}>
+                                          <Mail className="h-4 w-4" />
+                                          Email
+                                        </a>
+                                      </Button>
+                                    </div>
+                                  </TableCell>
+                                </TableRow>
+                                {booking.notes ? (
+                                  <TableRow>
+                                    <TableCell colSpan={6} className="pt-0">
+                                      <div className="border-t border-border/40 pt-3 text-sm leading-7 text-muted-foreground">
+                                        <span className="font-medium text-foreground">Notes:</span> {booking.notes}
+                                      </div>
+                                    </TableCell>
+                                  </TableRow>
+                                ) : null}
+                              </Fragment>
+                            ))}
+                            {callRequests.length === 0 ? (
+                              <TableRow>
+                                <TableCell colSpan={6} className="text-center text-muted-foreground">
+                                  Exploration call requests will appear here as soon as clients submit them.
+                                </TableCell>
+                              </TableRow>
+                            ) : null}
+                          </TableBody>
+                        </Table>
+                      </div>
+                    </div>
+                  </TabsContent>
+
                   <TabsContent value="blog" className="mt-8 space-y-8">
                     <form onSubmit={handleSavePost} className="space-y-5 rounded-[1.75rem] bg-secondary/25 p-4 sm:p-5">
                       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -1088,14 +1309,28 @@ const TherapistDashboardPage = () => {
                                 </p>
                               </div>
                             </div>
-                            <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap">
-                              <Button variant="heroBorder" className="w-full rounded-full sm:w-auto" type="button" onClick={() => handleEditPost(post.id)}>
+                            <div className="grid w-full grid-cols-3 gap-2 lg:w-auto">
+                              <Button
+                                variant="heroBorder"
+                                className="h-9 min-w-0 rounded-full px-2 text-[0.7rem] font-medium tracking-[0.01em] sm:h-10 sm:px-3 sm:text-xs md:px-4 md:text-sm"
+                                type="button"
+                                onClick={() => handleEditPost(post.id)}
+                              >
                                 Edit
                               </Button>
-                              <Button variant="heroBorder" className="w-full rounded-full sm:w-auto" type="button" onClick={() => handleDeletePost(post.id)}>
+                              <Button
+                                variant="heroBorder"
+                                className="h-9 min-w-0 rounded-full px-2 text-[0.7rem] font-medium tracking-[0.01em] sm:h-10 sm:px-3 sm:text-xs md:px-4 md:text-sm"
+                                type="button"
+                                onClick={() => handleDeletePost(post.id)}
+                              >
                                 Delete
                               </Button>
-                              <Button variant="hero" className="w-full rounded-full sm:w-auto" asChild>
+                              <Button
+                                variant="hero"
+                                className="h-9 min-w-0 rounded-full px-2 text-[0.7rem] font-medium tracking-[0.01em] sm:h-10 sm:px-3 sm:text-xs md:px-4 md:text-sm"
+                                asChild
+                              >
                                 <Link to={`/blog/${post.slug}`}>View Live</Link>
                               </Button>
                             </div>

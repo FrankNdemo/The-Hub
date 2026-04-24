@@ -88,6 +88,7 @@ export interface BookingRecord {
   createdAt: string;
   updatedAt: string;
   notes?: string;
+  isExplorationCall: boolean;
   emails: EmailRecord[];
   history: BookingHistoryEvent[];
 }
@@ -106,6 +107,7 @@ export interface BookingJoinRecord {
   manageUrl: string;
   addToCalendarUrl: string;
   canJoinSession: boolean;
+  isExplorationCall: boolean;
 }
 
 export interface NotificationItem {

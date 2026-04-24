@@ -92,12 +92,26 @@ const TeamPage = () => {
               </div>
             </div>
 
-            <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:justify-center lg:justify-start">
-              <Button variant="hero" className="w-full rounded-full sm:w-auto" asChild>
-                <Link to="/booking">Book a Session with {therapist.name.split(" ")[0]}</Link>
+            <div className="mt-8 grid grid-cols-2 gap-2.5 sm:flex sm:flex-row sm:justify-center lg:justify-start">
+              <Button
+                variant="hero"
+                className="h-10 min-w-0 rounded-full px-3 text-[0.78rem] tracking-normal sm:h-10 sm:w-auto sm:px-6 sm:text-sm"
+                asChild
+              >
+                <Link to="/booking">
+                  <span className="sm:hidden">Book Session</span>
+                  <span className="hidden sm:inline">Book a Session with {therapist.name.split(" ")[0]}</span>
+                </Link>
               </Button>
-              <Button variant="heroBorder" className="w-full rounded-full sm:w-auto" asChild>
-                <Link to="/contact">Contact the Practice</Link>
+              <Button
+                variant="heroBorder"
+                className="h-10 min-w-0 rounded-full px-3 text-[0.78rem] tracking-normal sm:h-10 sm:w-auto sm:px-6 sm:text-sm"
+                asChild
+              >
+                <Link to="/contact">
+                  <span className="sm:hidden">Contact Us</span>
+                  <span className="hidden sm:inline">Contact the Practice</span>
+                </Link>
               </Button>
             </div>
           </div>

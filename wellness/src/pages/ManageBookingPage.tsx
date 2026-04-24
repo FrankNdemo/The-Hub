@@ -216,9 +216,11 @@ const ManageBookingPage = () => {
     try {
       const cancelled = await cancelBooking(booking.token, accessEmail);
       setBooking(cancelled);
-      toast.success("Your session has been cancelled.");
+      toast.success(booking.isExplorationCall ? "Your request has been cancelled." : "Your session has been cancelled.");
     } catch (error) {
-      toast.error(getApiErrorMessage(error, "This session could not be cancelled."));
+      toast.error(
+        getApiErrorMessage(error, booking.isExplorationCall ? "This request could not be cancelled." : "This session could not be cancelled."),
+      );
     } finally {
       setIsUpdating(false);
     }
@@ -234,7 +236,7 @@ const ManageBookingPage = () => {
               <div className="mt-4 flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
                 <div>
                   <h1 className="font-heading text-4xl font-semibold text-foreground md:text-5xl">
-                    Reschedule or cancel your session
+                    {booking.isExplorationCall ? "Reschedule or cancel your request" : "Reschedule or cancel your session"}
                   </h1>
                   <p className="mt-4 max-w-2xl text-muted-foreground leading-8">
                     “You showed up for yourself—that matters.”
@@ -249,7 +251,9 @@ const ManageBookingPage = () => {
             <div className="mt-10 grid gap-8 lg:grid-cols-[1fr_0.9fr]">
               <ScrollReveal direction="left">
               <div className="rounded-[2rem] border border-border/60 bg-card p-7 shadow-card">
-                <h2 className="font-heading text-3xl font-semibold text-foreground">Booking details</h2>
+                <h2 className="font-heading text-3xl font-semibold text-foreground">
+                  {booking.isExplorationCall ? "Request details" : "Booking details"}
+                </h2>
                 <div className="mt-7 grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
                   <div className="wellness-panel rounded-[1.5rem] border border-border/60 p-5">
                     <p className="text-xs uppercase tracking-[0.24em] text-primary/70">Client</p>
@@ -276,16 +280,32 @@ const ManageBookingPage = () => {
                   <div className="wellness-panel rounded-[1.5rem] border border-border/60 p-5">
                     <div className="flex items-center gap-2 text-primary">
                       <Users className="h-4 w-4" />
-                      <p className="text-xs uppercase tracking-[0.24em] text-primary/70">Service Type</p>
+                      <p className="text-xs uppercase tracking-[0.24em] text-primary/70">
+                        {booking.isExplorationCall ? "Request Type" : "Service Type"}
+                      </p>
                     </div>
-                    <p className="mt-2 text-lg font-semibold text-foreground">{formatServiceType(booking.serviceType)}</p>
+                    <p className="mt-2 text-lg font-semibold text-foreground">
+                      {booking.isExplorationCall ? "Exploration Call" : formatServiceType(booking.serviceType)}
+                    </p>
                   </div>
                   <div className="wellness-panel rounded-[1.5rem] border border-border/60 p-5">
-                    <div className="flex items-center gap-2 text-primary">
-                      {booking.sessionType === "virtual" ? <Video className="h-4 w-4" /> : <MapPin className="h-4 w-4" />}
-                      <p className="text-xs uppercase tracking-[0.24em] text-primary/70">Session Type</p>
-                    </div>
-                    <p className="mt-2 text-lg font-semibold capitalize text-foreground">{booking.sessionType}</p>
+                    {booking.isExplorationCall ? (
+                      <>
+                        <div className="flex items-center gap-2 text-primary">
+                          <ShieldCheck className="h-4 w-4" />
+                          <p className="text-xs uppercase tracking-[0.24em] text-primary/70">Follow-up</p>
+                        </div>
+                        <p className="mt-2 text-lg font-semibold text-foreground">Therapist reaches out directly</p>
+                      </>
+                    ) : (
+                      <>
+                        <div className="flex items-center gap-2 text-primary">
+                          {booking.sessionType === "virtual" ? <Video className="h-4 w-4" /> : <MapPin className="h-4 w-4" />}
+                          <p className="text-xs uppercase tracking-[0.24em] text-primary/70">Session Type</p>
+                        </div>
+                        <p className="mt-2 text-lg font-semibold capitalize text-foreground">{booking.sessionType}</p>
+                      </>
+                    )}
                   </div>
                   {booking.serviceType === "corporate" && booking.participantCount ? (
                     <div className="wellness-panel rounded-[1.5rem] border border-border/60 p-5">
@@ -295,9 +315,13 @@ const ManageBookingPage = () => {
                   ) : null}
                   <div className="wellness-panel rounded-[1.5rem] border border-border/60 p-5">
                     <p className="text-xs uppercase tracking-[0.24em] text-primary/70">
-                      {booking.sessionType === "virtual" ? "Virtual Session Link" : "Session Details"}
+                      {booking.isExplorationCall
+                        ? "Next Step"
+                        : booking.sessionType === "virtual"
+                          ? "Virtual Session Link"
+                          : "Session Details"}
                     </p>
-                    {booking.sessionType === "virtual" && booking.joinUrl ? (
+                    {!booking.isExplorationCall && booking.sessionType === "virtual" && booking.joinUrl ? (
                       <div className="mt-3 flex flex-wrap gap-2">
                         {booking.addToCalendarUrl ? (
                           <a
@@ -325,7 +349,9 @@ const ManageBookingPage = () => {
                       </div>
                     ) : (
                       <p className="mt-2 text-sm leading-7 text-muted-foreground">
-                        {booking.sessionType === "virtual"
+                        {booking.isExplorationCall
+                          ? booking.locationSummary
+                          : booking.sessionType === "virtual"
                           ? "Virtual session access will be included in your updated confirmation."
                           : booking.locationSummary}
                       </p>
@@ -337,7 +363,9 @@ const ManageBookingPage = () => {
                   <div className="flex items-center gap-3">
                     <ShieldCheck className="h-5 w-5 text-primary" />
                     <p className="text-sm text-muted-foreground">
-                      Changes made You will receive a confirmation email shortly with your updated schedule and session details.
+                      {booking.isExplorationCall
+                        ? "Changes made here will be sent by email, and the therapist will see the updated request details."
+                        : "Changes made here will be sent by email with your updated schedule and session details."}
                     </p>
                   </div>
                 </div>
@@ -361,9 +389,13 @@ const ManageBookingPage = () => {
 
               <ScrollReveal direction="right">
               <div className="rounded-[2rem] border border-border/60 bg-card p-7 shadow-card">
-                <h2 className="font-heading text-3xl font-semibold text-foreground">Manage this booking</h2>
+                <h2 className="font-heading text-3xl font-semibold text-foreground">
+                  {booking.isExplorationCall ? "Manage this request" : "Manage this booking"}
+                </h2>
                 <p className="mt-3 text-muted-foreground leading-8">
-                  Need to make a change? Choose a new slot below or cancel the session entirely.
+                  {booking.isExplorationCall
+                    ? "Need to make a change? Update your preferred date and time below or cancel the request entirely."
+                    : "Need to make a change? Choose a new slot below or cancel the session entirely."}
                 </p>
 
                 {booking.status === "cancelled" ? (
@@ -413,9 +445,9 @@ const ManageBookingPage = () => {
 
                     <div className="rounded-[1.5rem] bg-primary/8 p-5">
                       <p className="text-sm leading-7 text-muted-foreground">
-                        {BOOKING_AVAILABILITY_DETAIL} Virtual sessions receive a refreshed calendar-ready access link
-                        when rescheduled, while physical sessions keep the same centre location and updated calendar
-                        reference.
+                        {booking.isExplorationCall
+                          ? "This preferred date and time helps the therapist plan the follow-up. Once updated, the therapist will use the refreshed request details when reaching out."
+                          : `${BOOKING_AVAILABILITY_DETAIL} Virtual sessions receive a refreshed calendar-ready access link when rescheduled, while physical sessions keep the same centre location and updated calendar reference.`}
                       </p>
                     </div>
 
@@ -428,11 +460,11 @@ const ManageBookingPage = () => {
                     <div className="flex flex-wrap gap-3">
                       <Button variant="hero" className="rounded-full" type="button" onClick={handleReschedule} disabled={isUpdating}>
                         <RefreshCw className="h-4 w-4" />
-                        {isUpdating ? "Updating..." : "Reschedule Session"}
+                        {isUpdating ? "Updating..." : booking.isExplorationCall ? "Update Request Time" : "Reschedule Session"}
                       </Button>
                       <Button variant="heroBorder" className="rounded-full" type="button" onClick={handleCancel} disabled={isUpdating}>
                         <Trash2 className="h-4 w-4" />
-                        Cancel Session
+                        {booking.isExplorationCall ? "Cancel Request" : "Cancel Session"}
                       </Button>
                     </div>
                   </div>

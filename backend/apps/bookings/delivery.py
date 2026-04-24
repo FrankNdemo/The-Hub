@@ -17,6 +17,12 @@ from django.core import signing
 from django.core.mail import EmailMultiAlternatives, get_connection
 from django.utils import timezone
 
+from .exploration import (
+    EXPLORATION_CALL_CLIENT_LOCATION_SUMMARY,
+    EXPLORATION_CALL_LABEL,
+    get_public_booking_notes,
+    is_exploration_call,
+)
 from .models import Booking, BookingHistoryEvent, EmailRecord
 
 
@@ -80,11 +86,18 @@ def build_therapist_session_url(booking: Booking) -> str:
     return f"{settings.FRONTEND_BASE_URL}/therapist/session/{booking.manage_token}?access={access_token}"
 
 
-def build_therapist_dashboard_url() -> str:
-    return f"{settings.FRONTEND_BASE_URL}/therapist/portal"
+def build_therapist_dashboard_url(tab: str | None = None) -> str:
+    url = f"{settings.FRONTEND_BASE_URL}/therapist/portal"
+    if not tab:
+        return url
+
+    return f"{url}?tab={quote(tab, safe='')}"
 
 
 def get_booking_session_title(booking: Booking) -> str:
+    if is_exploration_call(booking):
+        return EXPLORATION_CALL_LABEL
+
     session_mode = "Virtual Session" if booking.session_type == Booking.SessionType.VIRTUAL else "In-Person Session"
     return f"{SERVICE_TYPE_LABELS[booking.service_type]} {session_mode}"
 
@@ -151,7 +164,7 @@ def build_email_detail_card(label: str, value: str, href: str = "", link_label: 
 
 
 def get_virtual_access_url(booking: Booking, audience: str = CLIENT_AUDIENCE) -> str:
-    if booking.session_type != Booking.SessionType.VIRTUAL:
+    if booking.session_type != Booking.SessionType.VIRTUAL or is_exploration_call(booking):
         return ""
 
     if audience == THERAPIST_AUDIENCE:
@@ -161,6 +174,9 @@ def get_virtual_access_url(booking: Booking, audience: str = CLIENT_AUDIENCE) ->
 
 
 def get_session_location(booking: Booking, audience: str = CLIENT_AUDIENCE) -> str:
+    if is_exploration_call(booking):
+        return booking.location_summary or EXPLORATION_CALL_CLIENT_LOCATION_SUMMARY
+
     if booking.session_type == Booking.SessionType.VIRTUAL:
         return get_virtual_access_url(booking, audience)
 
@@ -174,6 +190,9 @@ def build_virtual_session_link(booking: Booking) -> str:
 
 
 def build_google_calendar_add_url(booking: Booking, audience: str = CLIENT_AUDIENCE) -> str:
+    if is_exploration_call(booking):
+        return ""
+
     start_at, end_at = get_booking_time_window(booking)
     title = (
         f"{booking.client_name} | {get_booking_session_title(booking)}"
@@ -211,7 +230,28 @@ def build_google_calendar_add_url(booking: Booking, audience: str = CLIENT_AUDIE
     return f"https://calendar.google.com/calendar/render?{query}"
 
 
-def get_email_subject(kind: str, audience: str) -> str:
+def get_email_subject(booking: Booking, kind: str, audience: str) -> str:
+    if is_exploration_call(booking):
+        subject_map = {
+            EmailRecord.EmailKind.CONFIRMATION: {
+                CLIENT_AUDIENCE: "Your Exploration Call Request Was Received | The Wellness Hub",
+                THERAPIST_AUDIENCE: "New Exploration Call Request | The Wellness Hub",
+            },
+            EmailRecord.EmailKind.RESCHEDULE: {
+                CLIENT_AUDIENCE: "Your Exploration Call Request Was Updated | The Wellness Hub",
+                THERAPIST_AUDIENCE: "Exploration Call Request Updated | The Wellness Hub",
+            },
+            EmailRecord.EmailKind.CANCELLATION: {
+                CLIENT_AUDIENCE: "Your Exploration Call Request Was Cancelled | The Wellness Hub",
+                THERAPIST_AUDIENCE: "Exploration Call Request Cancelled | The Wellness Hub",
+            },
+            REMINDER_EMAIL_KIND: {
+                CLIENT_AUDIENCE: "Your Exploration Call Request Is Still Pending | The Wellness Hub",
+                THERAPIST_AUDIENCE: "Exploration Call Request Follow-up | The Wellness Hub",
+            },
+        }
+        return subject_map[kind][audience]
+
     subject_map = {
         EmailRecord.EmailKind.CONFIRMATION: {
             CLIENT_AUDIENCE: "Your Session Is Confirmed | The Wellness Hub",
@@ -233,7 +273,28 @@ def get_email_subject(kind: str, audience: str) -> str:
     return subject_map[kind][audience]
 
 
-def get_email_heading(kind: str, audience: str) -> str:
+def get_email_heading(booking: Booking, kind: str, audience: str) -> str:
+    if is_exploration_call(booking):
+        heading_map = {
+            EmailRecord.EmailKind.CONFIRMATION: {
+                CLIENT_AUDIENCE: "Thanks for booking an exploration call",
+                THERAPIST_AUDIENCE: "You have a new exploration call request",
+            },
+            EmailRecord.EmailKind.RESCHEDULE: {
+                CLIENT_AUDIENCE: "Your exploration call request has been updated",
+                THERAPIST_AUDIENCE: "An exploration call request has been updated",
+            },
+            EmailRecord.EmailKind.CANCELLATION: {
+                CLIENT_AUDIENCE: "Your exploration call request has been cancelled",
+                THERAPIST_AUDIENCE: "An exploration call request has been cancelled",
+            },
+            REMINDER_EMAIL_KIND: {
+                CLIENT_AUDIENCE: "Your exploration call request is still pending",
+                THERAPIST_AUDIENCE: "An exploration call request still needs follow-up",
+            },
+        }
+        return heading_map[kind][audience]
+
     heading_map = {
         EmailRecord.EmailKind.CONFIRMATION: {
             CLIENT_AUDIENCE: "Your session is confirmed",
@@ -256,6 +317,40 @@ def get_email_heading(kind: str, audience: str) -> str:
 
 
 def get_email_intro(booking: Booking, kind: str, audience: str) -> str:
+    if is_exploration_call(booking):
+        if audience == CLIENT_AUDIENCE:
+            intro_map = {
+                EmailRecord.EmailKind.CONFIRMATION: (
+                    f"Thank you for reaching out to The Wellness Hub. Expect a call from {booking.therapist_name_snapshot} after the therapist reviews your request."
+                ),
+                EmailRecord.EmailKind.RESCHEDULE: (
+                    f"Your exploration call request with {booking.therapist_name_snapshot} has been updated. Expect a call after the therapist reviews the new details."
+                ),
+                EmailRecord.EmailKind.CANCELLATION: (
+                    "This message confirms that your exploration call request has been cancelled."
+                ),
+                REMINDER_EMAIL_KIND: (
+                    f"Your exploration call request with {booking.therapist_name_snapshot} is still active. Expect a call once the therapist reviews it."
+                ),
+            }
+            return intro_map[kind]
+
+        intro_map = {
+            EmailRecord.EmailKind.CONFIRMATION: (
+                f"Hello {booking.therapist_name_snapshot}, a client has requested an exploration call. Please review the details below and follow up in the way that fits best."
+            ),
+            EmailRecord.EmailKind.RESCHEDULE: (
+                f"Hello {booking.therapist_name_snapshot}, an exploration call request has been updated. Please use the refreshed date, time, and client details below when following up."
+            ),
+            EmailRecord.EmailKind.CANCELLATION: (
+                f"Hello {booking.therapist_name_snapshot}, this exploration call request has been cancelled by the client."
+            ),
+            REMINDER_EMAIL_KIND: (
+                f"Hello {booking.therapist_name_snapshot}, an exploration call request is still pending. Please review the details below and follow up when appropriate."
+            ),
+        }
+        return intro_map[kind]
+
     if audience == CLIENT_AUDIENCE:
         intro_map = {
             EmailRecord.EmailKind.CONFIRMATION: (
@@ -292,6 +387,37 @@ def get_email_intro(booking: Booking, kind: str, audience: str) -> str:
 
 def get_summary_card_values(booking: Booking, audience: str) -> list[tuple[str, str, str, str]]:
     cards: list[tuple[str, str, str, str]]
+
+    if is_exploration_call(booking):
+        if audience == CLIENT_AUDIENCE:
+            cards = [
+                ("Therapist", booking.therapist_name_snapshot, "", ""),
+                ("Preferred Date", format_display_date(booking.date), "", ""),
+                ("Preferred Time", format_display_time(booking.time), "", ""),
+                ("Request Type", EXPLORATION_CALL_LABEL, "", ""),
+                ("Next Step", booking.location_summary or EXPLORATION_CALL_CLIENT_LOCATION_SUMMARY, "", ""),
+            ]
+        else:
+            cards = [
+                ("Client", booking.client_name, "", ""),
+                ("Client Email", booking.client_email, "", ""),
+                ("Client Phone", booking.client_phone, "", ""),
+                ("Preferred Date", format_display_date(booking.date), "", ""),
+                ("Preferred Time", format_display_time(booking.time), "", ""),
+                ("Request Type", EXPLORATION_CALL_LABEL, "", ""),
+                (
+                    "Follow Up",
+                    "Reach out using the client details above. You can call, email, or choose another suitable contact method.",
+                    "",
+                    "",
+                ),
+            ]
+
+        public_notes = get_public_booking_notes(booking.notes)
+        if public_notes:
+            cards.append(("Client Notes", public_notes, "", ""))
+
+        return cards
 
     if audience == CLIENT_AUDIENCE:
         cards = [
@@ -340,8 +466,9 @@ def get_summary_card_values(booking: Booking, audience: str) -> list[tuple[str, 
     else:
         cards.append(("Location", booking.location_summary, "", ""))
 
-    if booking.notes:
-        cards.append(("Notes", booking.notes, "", ""))
+    public_notes = get_public_booking_notes(booking.notes)
+    if public_notes:
+        cards.append(("Notes", public_notes, "", ""))
 
     cards.append(("Session Reflection", get_booking_quote(booking), "", ""))
 
@@ -349,6 +476,22 @@ def get_summary_card_values(booking: Booking, audience: str) -> list[tuple[str, 
 
 
 def get_email_cta(booking: Booking, audience: str) -> tuple[str, str, str, str]:
+    if is_exploration_call(booking):
+        if audience == CLIENT_AUDIENCE:
+            return (
+                "Private Request Link",
+                "If you need to change the preferred date and time or cancel before the therapist reaches out, use the secure link below.",
+                "Open Secure Link",
+                build_manage_url(booking.manage_token),
+            )
+
+        return (
+            "Calls Page",
+            "Open the Calls page in the therapist portal to review this request and follow up directly with the client.",
+            "Open Calls Page",
+            build_therapist_dashboard_url("calls"),
+        )
+
     if audience == CLIENT_AUDIENCE:
         return (
             "Manage Your Session",
@@ -366,13 +509,20 @@ def get_email_cta(booking: Booking, audience: str) -> tuple[str, str, str, str]:
 
 
 def build_email_html(booking: Booking, kind: str, audience: str) -> str:
-    heading = get_email_heading(kind, audience)
+    heading = get_email_heading(booking, kind, audience)
     intro = get_email_intro(booking, kind, audience)
     summary_cards = [
         build_email_detail_card(label, value, href, link_label)
         for label, value, href, link_label in get_summary_card_values(booking, audience)
     ]
     cta_title, cta_text, cta_label, cta_url = get_email_cta(booking, audience)
+    secondary_link_label = (
+        "Open secure request link"
+        if is_exploration_call(booking) and audience == CLIENT_AUDIENCE
+        else "Open therapist calls page"
+        if is_exploration_call(booking)
+        else "Open private booking link"
+    )
 
     return f"""<!DOCTYPE html>
   <html lang="en" xmlns="http://www.w3.org/1999/xhtml">
@@ -444,7 +594,7 @@ def build_email_html(booking: Booking, kind: str, audience: str) -> str:
                               </table>
                               <p style="margin:0;font-size:13px;line-height:22px;color:#6f8f82;">
                                 <a href="{escape_html(cta_url)}" style="color:#6f8f82;text-decoration:none;border-bottom:1px solid #adc3b8;">
-                                  Open private booking link
+                                  {escape_html(secondary_link_label)}
                                 </a>
                               </p>
                             </td>
@@ -464,7 +614,7 @@ def build_email_html(booking: Booking, kind: str, audience: str) -> str:
 
 
 def build_email_text(booking: Booking, kind: str, audience: str) -> str:
-    heading = get_email_heading(kind, audience)
+    heading = get_email_heading(booking, kind, audience)
     intro = get_email_intro(booking, kind, audience)
     cta_title, _, cta_label, _ = get_email_cta(booking, audience)
     summary_lines = [
@@ -480,12 +630,20 @@ def build_email_text(booking: Booking, kind: str, audience: str) -> str:
         summary_lines.append(f"{label}: {link_label if href and link_label else value}")
 
     summary_lines.extend(
-        [
-            "",
-            "Calendar Invite: Add the attached invite to your calendar to receive reminders and session access details.",
-            f"{cta_title}: {cta_label}",
-        ]
+        ["", f"{cta_title}: {cta_label}"]
     )
+
+    if is_exploration_call(booking):
+        summary_lines.append(
+            "Next Step: The therapist will review this request and decide the best way to reach out using the contact details above."
+            if audience == THERAPIST_AUDIENCE
+            else "Next Step: Expect a call from the therapist after they review your request."
+        )
+    else:
+        summary_lines.insert(
+            len(summary_lines) - 1,
+            "Calendar Invite: Add the attached invite to your calendar to receive reminders and session access details.",
+        )
 
     return "\n".join(summary_lines)
 
@@ -553,8 +711,9 @@ def build_calendar_description(booking: Booking, audience: str = CLIENT_AUDIENCE
     else:
         lines.append(f"Location: {booking.location_summary}")
 
-    if booking.notes:
-        lines.append(f"Notes: {booking.notes}")
+    public_notes = get_public_booking_notes(booking.notes)
+    if public_notes:
+        lines.append(f"Notes: {public_notes}")
 
     return "\n".join(lines)
 
@@ -654,10 +813,10 @@ def get_email_deliveries(booking: Booking, kind: str) -> list[dict[str, str]]:
             {
                 "audience": audience,
                 "recipient": recipient,
-                "subject": get_email_subject(kind, audience),
+                "subject": get_email_subject(booking, kind, audience),
                 "html": build_email_html(booking, kind, audience),
                 "text": build_email_text(booking, kind, audience),
-                "calendar_invite": build_calendar_invite(booking, kind, audience),
+                "calendar_invite": "" if is_exploration_call(booking) else build_calendar_invite(booking, kind, audience),
             }
         )
 
@@ -677,10 +836,8 @@ def send_booking_email_via_brevo(
 ) -> None:
     sender_name, sender_email = get_sender_identity(booking)
     reply_to_email = settings.WELLNESS_HUB_REPLY_TO or sender_email
-    calendar_filename = build_calendar_filename(kind)
 
     for delivery in deliveries:
-        calendar_content = base64.b64encode(delivery["calendar_invite"].encode("utf-8")).decode("ascii")
         payload = {
             "sender": {
                 "name": sender_name,
@@ -694,14 +851,16 @@ def send_booking_email_via_brevo(
                 "email": reply_to_email,
                 "name": sender_name,
             },
-            "attachment": [
-                {
-                    "name": calendar_filename,
-                    "content": calendar_content,
-                }
-            ],
             "tags": [f"booking-{kind}", f"audience-{delivery['audience']}"],
         }
+
+        if delivery["calendar_invite"]:
+            payload["attachment"] = [
+                {
+                    "name": build_calendar_filename(kind),
+                    "content": base64.b64encode(delivery["calendar_invite"].encode("utf-8")).decode("ascii"),
+                }
+            ]
 
         request = urllib_request.Request(
             settings.BREVO_API_URL,
@@ -762,11 +921,12 @@ def send_booking_email(*, booking: Booking, kind: str) -> list[EmailRecord]:
                 connection=connection,
             )
             message.attach_alternative(delivery["html"], "text/html")
-            message.attach(
-                build_calendar_filename(kind),
-                delivery["calendar_invite"],
-                f"text/calendar; method={calendar_method}; charset=UTF-8",
-            )
+            if delivery["calendar_invite"]:
+                message.attach(
+                    build_calendar_filename(kind),
+                    delivery["calendar_invite"],
+                    f"text/calendar; method={calendar_method}; charset=UTF-8",
+                )
             messages.append(message)
 
         sent_count = connection.send_messages(messages) or 0

@@ -459,19 +459,22 @@ const Index = () => {
                   Whether you need a first conversation, consistent therapy, or support for your family or workplace,
                   we can help you take the next step with care.
                 </p>
-                <div className="mt-8 flex flex-wrap justify-center gap-3">
+                <div className="mt-8 grid w-full max-w-[22rem] grid-cols-2 gap-2.5 sm:flex sm:max-w-none sm:flex-wrap sm:justify-center">
                   <Button
                     variant="hero"
                     size="lg"
-                    className="rounded-full bg-background text-foreground hover:bg-background/90"
+                    className="h-10 min-w-0 rounded-full bg-background px-3 text-[0.78rem] tracking-normal text-foreground hover:bg-background/90 sm:h-11 sm:px-8 sm:text-sm"
                     asChild
                   >
-                    <Link to="/booking">Book Your First Session</Link>
+                    <Link to="/booking">
+                      <span className="sm:hidden">Book Session</span>
+                      <span className="hidden sm:inline">Book Your First Session</span>
+                    </Link>
                   </Button>
                   <Button
                     variant="heroBorder"
                     size="lg"
-                    className="rounded-full border-primary-foreground/50 text-primary-foreground hover:bg-primary-foreground hover:text-foreground"
+                    className="h-10 min-w-0 rounded-full border-primary-foreground/50 px-3 text-[0.78rem] tracking-normal text-primary-foreground hover:bg-primary-foreground hover:text-foreground sm:h-11 sm:px-8 sm:text-sm"
                     asChild
                   >
                     <Link to="/contact">
@@ -545,12 +548,28 @@ const Index = () => {
             Book a first session, explore the blog, or send a message if you need help deciding what kind of support
             would fit best.
           </p>
-          <div className="mt-8 flex flex-wrap justify-center gap-3">
-            <Button variant="hero" size="lg" className="rounded-full" asChild>
-              <Link to="/booking">Book Your First Session</Link>
+          <div className="mt-8 grid w-full max-w-[22rem] grid-cols-2 gap-2.5 sm:flex sm:max-w-none sm:flex-wrap sm:justify-center">
+            <Button
+              variant="hero"
+              size="lg"
+              className="h-10 min-w-0 rounded-full px-3 text-[0.78rem] tracking-normal sm:h-11 sm:px-8 sm:text-sm"
+              asChild
+            >
+              <Link to="/booking">
+                <span className="sm:hidden">Book Session</span>
+                <span className="hidden sm:inline">Book Your First Session</span>
+              </Link>
             </Button>
-            <Button variant="heroBorder" size="lg" className="rounded-full" asChild>
-              <Link to="/blog">Explore the Blog</Link>
+            <Button
+              variant="heroBorder"
+              size="lg"
+              className="h-10 min-w-0 rounded-full px-3 text-[0.78rem] tracking-normal sm:h-11 sm:px-8 sm:text-sm"
+              asChild
+            >
+              <Link to="/blog">
+                <span className="sm:hidden">Explore Blog</span>
+                <span className="hidden sm:inline">Explore the Blog</span>
+              </Link>
             </Button>
           </div>
         </ScrollReveal>
