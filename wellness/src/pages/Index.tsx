@@ -10,6 +10,7 @@ import leafDecor from "@/assets/leaf-decoration.png";
 import Footer from "@/components/Footer";
 import FAQSection from "@/components/FAQSection";
 import HeroSection from "@/components/HeroSection";
+import JourneyQuoteSection from "@/components/JourneyQuoteSection";
 import ScrollReveal from "@/components/ScrollReveal";
 import { Button } from "@/components/ui/button";
 import { useWellnessHub } from "@/context/WellnessHubContext";
@@ -138,8 +139,9 @@ const Index = () => {
   }, [isDeletingCtaText, typedCtaText]);
 
   return (
-    <div id="homepage-top" className="min-h-screen">
+    <div id="homepage-top" className="min-h-screen overflow-x-hidden">
       <HeroSection />
+      <JourneyQuoteSection />
 
     <section className="bg-secondary/30 py-24">
       <div className="container mx-auto px-4">
