@@ -74,7 +74,10 @@ const AboutPage = () => {
 
     <section className="py-0 md:py-16">
       <div className="container mx-auto px-0 md:px-4">
-        <div className="relative overflow-hidden border-y border-border/60 bg-[linear-gradient(135deg,hsl(42_31%_99%),hsl(42_31%_97%))] px-6 py-10 shadow-card md:rounded-[2.5rem] md:border md:px-8 lg:px-10 lg:py-12">
+        <div
+          className="relative overflow-hidden border-y border-border/60 bg-[linear-gradient(135deg,hsl(42_31%_99%),hsl(42_31%_97%))] px-6 py-10 shadow-card md:rounded-[2.5rem] md:border md:px-8 lg:px-10 lg:py-12"
+          data-nav-theme="inverse"
+        >
           <img
             src={aboutValueBackgroundImage}
             alt=""

@@ -2,6 +2,7 @@ import { Link } from "react-router-dom";
 
 interface WellnessLogoProps {
   variant?: "navbar" | "hero" | "footer";
+  tone?: "default" | "inverse";
 }
 
 type LogoLayout = {
@@ -51,14 +52,15 @@ const layouts: Record<NonNullable<WellnessLogoProps["variant"]>, LogoLayout> = {
   },
 };
 
-const WellnessLogo = ({ variant = "navbar" }: WellnessLogoProps) => {
+const WellnessLogo = ({ variant = "navbar", tone = "default" }: WellnessLogoProps) => {
   const layout = layouts[variant];
+  const svgToneClass = tone === "inverse" ? "text-white" : "text-primary";
 
   const content = (
     <div className={`inline-block select-none ${layout.frame}`}>
       <svg
         viewBox={layout.viewBox}
-        className="block h-full w-full overflow-visible text-primary"
+        className={`block h-full w-full overflow-visible transition-colors duration-300 ease-out ${svgToneClass}`}
         xmlns="http://www.w3.org/2000/svg"
         aria-hidden="true"
       >
@@ -116,7 +118,7 @@ const WellnessLogo = ({ variant = "navbar" }: WellnessLogoProps) => {
   }
 
   return (
-    <Link to="/" className="flex items-center" aria-label="The Wellness Hub home">
+    <Link to="/" className="flex items-center transition-colors duration-300 ease-out" aria-label="The Wellness Hub home">
       {content}
     </Link>
   );

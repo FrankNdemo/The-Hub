@@ -27,7 +27,7 @@ const Footer = () => {
   }
 
   return (
-    <footer className="bg-foreground py-14">
+    <footer className="bg-foreground py-14" data-nav-theme="inverse">
       <div className="container mx-auto px-4">
         <div className="grid gap-10 text-center md:grid-cols-[1.2fr_0.8fr_0.8fr] md:text-left">
           <div>

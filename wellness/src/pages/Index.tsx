@@ -185,7 +185,7 @@ const Index = () => {
     <section className="py-10 sm:py-14">
       <div className="container mx-auto px-0 sm:px-4">
         <ScrollReveal direction="up">
-          <div className="relative overflow-hidden rounded-none border-y border-border/60 shadow-card sm:rounded-[2.4rem] sm:border">
+          <div className="relative overflow-hidden rounded-none border-y border-border/60 shadow-card sm:rounded-[2.4rem] sm:border" data-nav-theme="inverse">
             <img
               src={homepageAwarenessImage}
               alt="Calm therapy conversation in a bright modern room"
@@ -433,7 +433,7 @@ const Index = () => {
     <section className="py-0 md:py-20">
       <div className="container mx-auto px-0 md:px-4">
         <ScrollReveal direction="up">
-          <div className="relative min-h-[100svh] overflow-hidden shadow-hover md:min-h-0 md:rounded-[2.5rem]">
+          <div className="relative min-h-[100svh] overflow-hidden shadow-hover md:min-h-0 md:rounded-[2.5rem]" data-nav-theme="inverse">
             <img
               src={ctaImg}
               alt="Therapy session"

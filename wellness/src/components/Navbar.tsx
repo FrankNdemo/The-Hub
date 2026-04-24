@@ -5,6 +5,7 @@ import { toast } from "sonner";
 
 import { useNavigationPreview } from "@/context/NavigationPreviewContext";
 import { useWellnessHub } from "@/context/WellnessHubContext";
+import { cn } from "@/lib/utils";
 import leafDecor from "@/assets/leaf-decoration.png";
 import { Button } from "@/components/ui/button";
 import WellnessLogo from "./WellnessLogo";
@@ -30,6 +31,10 @@ const matchesPath = (currentPath: string, href: string) => {
 
 const Navbar = () => {
   const [open, setOpen] = useState(false);
+  const [hasScrolled, setHasScrolled] = useState(false);
+  const [navTone, setNavTone] = useState<"default" | "inverse">("default");
+  const navRef = useRef<HTMLElement | null>(null);
+  const navShellRef = useRef<HTMLDivElement | null>(null);
   const previewHoverTimeoutRef = useRef<number | null>(null);
   const location = useLocation();
   const navigate = useNavigate();
@@ -37,8 +42,11 @@ const Navbar = () => {
   const { isTherapistAuthenticated, logoutTherapist } = useWellnessHub();
 
   const activePath = previewPath ?? location.pathname;
+  const isHomePage = location.pathname === "/";
   const isTherapistPortal = location.pathname.startsWith("/therapist/portal");
   const showTherapistHeader = isTherapistAuthenticated;
+  const shouldFloatHomeMobileNav = !showTherapistHeader && isHomePage && hasScrolled;
+  const isInverseTone = navTone === "inverse";
 
   const clearPendingPreview = () => {
     if (previewHoverTimeoutRef.current !== null) {
@@ -60,6 +68,96 @@ const Navbar = () => {
       clearPendingPreview();
     };
   }, [open]);
+
+  useEffect(() => {
+    const handleScrollPosition = () => {
+      setHasScrolled(window.scrollY > 24);
+    };
+
+    handleScrollPosition();
+    window.addEventListener("scroll", handleScrollPosition, { passive: true });
+
+    return () => {
+      window.removeEventListener("scroll", handleScrollPosition);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (showTherapistHeader) {
+      setNavTone("default");
+      return;
+    }
+
+    let frameId = 0;
+    let immediateTimeoutId = 0;
+    let delayedTimeoutId = 0;
+
+    const resolveToneAtPoint = (x: number, y: number): "default" | "inverse" => {
+      const navElement = navRef.current;
+      const navShell = navShellRef.current;
+
+      if (!navElement || !navShell) {
+        return "default";
+      }
+
+      const stackedElements = document.elementsFromPoint(x, y);
+
+      for (const element of stackedElements) {
+        if (!(element instanceof HTMLElement) || navElement.contains(element)) {
+          continue;
+        }
+
+        const themedAncestor = element.closest<HTMLElement>("[data-nav-theme]");
+
+        if (!themedAncestor) {
+          return "default";
+        }
+
+        return themedAncestor.dataset.navTheme === "inverse" ? "inverse" : "default";
+      }
+
+      return "default";
+    };
+
+    const updateTone = () => {
+      const navShell = navShellRef.current;
+
+      if (!navShell) {
+        return;
+      }
+
+      const bounds = navShell.getBoundingClientRect();
+      const sampleY = Math.max(1, Math.min(window.innerHeight - 1, bounds.top + Math.min(bounds.height * 0.5, 42)));
+      const sampleXs = [0.24, 0.5, 0.76].map((ratio) =>
+        Math.max(1, Math.min(window.innerWidth - 1, bounds.left + bounds.width * ratio)),
+      );
+      const nextTone = sampleXs.some((sampleX) => resolveToneAtPoint(sampleX, sampleY) === "inverse")
+        ? "inverse"
+        : "default";
+
+      setNavTone((currentTone) => (currentTone === nextTone ? currentTone : nextTone));
+    };
+
+    const queueToneUpdate = () => {
+      window.cancelAnimationFrame(frameId);
+      frameId = window.requestAnimationFrame(updateTone);
+    };
+
+    queueToneUpdate();
+    immediateTimeoutId = window.setTimeout(queueToneUpdate, 0);
+    delayedTimeoutId = window.setTimeout(queueToneUpdate, 180);
+
+    window.addEventListener("scroll", queueToneUpdate, { passive: true });
+    window.addEventListener("resize", queueToneUpdate);
+
+    return () => {
+      window.cancelAnimationFrame(frameId);
+      window.clearTimeout(immediateTimeoutId);
+      window.clearTimeout(delayedTimeoutId);
+      window.removeEventListener("scroll", queueToneUpdate);
+      window.removeEventListener("resize", queueToneUpdate);
+    };
+  }, [location.pathname, open, previewPath, showTherapistHeader]);
 
   const handleDesktopHover = (href: string) => {
     clearPendingPreview();
@@ -95,18 +193,31 @@ const Navbar = () => {
   };
 
   return (
-    <nav className="fixed left-0 right-0 top-0 z-50 overflow-x-hidden" onMouseLeave={handleNavMouseLeave} style={{ backgroundColor: showTherapistHeader ? undefined : "transparent" }}>
+    <nav
+      ref={navRef}
+      className="fixed left-0 right-0 top-0 z-50 overflow-x-hidden"
+      onMouseLeave={handleNavMouseLeave}
+      style={{ backgroundColor: showTherapistHeader ? undefined : "transparent" }}
+    >
       <div
-        className={`mx-auto pt-3 sm:pt-4 ${
-          showTherapistHeader ? "max-w-6xl px-4 sm:px-6" : "container px-3 sm:px-4"
+        className={`mx-auto transition-[padding] duration-300 ease-out ${
+          showTherapistHeader
+            ? "max-w-6xl px-4 pt-3 sm:px-6 sm:pt-4"
+            : shouldFloatHomeMobileNav
+              ? "container px-3 pt-5 sm:px-4 sm:pt-4"
+              : "container px-3 pt-3 sm:px-4 sm:pt-4"
         }`}
       >
         <div
-          className={`flex min-h-[4.5rem] items-center justify-between gap-3 rounded-[2rem] px-3 py-3 sm:h-20 sm:rounded-full sm:px-5 ${
+          ref={navShellRef}
+          className={cn(
+            "flex min-h-[4.5rem] items-center justify-between gap-3 rounded-[2rem] px-3 py-3 transition-[background-color,border-color,box-shadow,color] duration-300 ease-out sm:h-20 sm:rounded-full sm:px-5",
             showTherapistHeader
               ? "bg-white/10 shadow-[0_20px_40px_-32px_rgba(35,72,61,0.16)]"
-              : "bg-transparent shadow-none backdrop-blur-none md:bg-background/80 md:shadow-[0_18px_40px_-32px_rgba(35,72,61,0.28)] md:backdrop-blur-xl"
-          }`}
+              : isInverseTone
+                ? "bg-transparent shadow-none backdrop-blur-none md:border md:border-white/20 md:bg-white/10 md:shadow-[0_18px_40px_-32px_rgba(7,13,11,0.46)] md:backdrop-blur-xl"
+                : "bg-transparent shadow-none backdrop-blur-none md:bg-background/80 md:shadow-[0_18px_40px_-32px_rgba(35,72,61,0.28)] md:backdrop-blur-xl",
+          )}
         >
           <div className="relative min-w-0 shrink origin-left ml-2 sm:ml-0">
             <img
@@ -115,7 +226,7 @@ const Navbar = () => {
               className="pointer-events-none absolute -left-4 -top-4 z-0 w-16 opacity-24 animate-float md:hidden"
             />
             <div className="relative z-10 scale-[0.96] sm:scale-[1.04]">
-              <WellnessLogo variant="navbar" />
+              <WellnessLogo variant="navbar" tone={isInverseTone ? "inverse" : "default"} />
             </div>
           </div>
 
@@ -151,19 +262,32 @@ const Navbar = () => {
                       to={link.href}
                       onMouseEnter={() => handleDesktopHover(link.href)}
                       onClick={handleLinkClick}
-                      style={{ transitionDuration: "100ms" }}
-                      className={`rounded-full px-4 py-2 text-sm font-medium transition-all ease-out ${
-                        isActive
-                          ? "bg-primary/10 text-primary hover:bg-primary/16 hover:text-primary"
-                          : "text-muted-foreground hover:bg-primary/5 hover:text-primary"
-                      }`}
+                      className={cn(
+                        "rounded-full px-4 py-2 text-sm font-medium transition-all duration-300 ease-out",
+                        isInverseTone
+                          ? isActive
+                            ? "bg-white/20 text-white hover:bg-white/20 hover:text-white"
+                            : "text-white/80 hover:bg-white/10 hover:text-white"
+                          : isActive
+                            ? "bg-primary/10 text-primary hover:bg-primary/16 hover:text-primary"
+                            : "text-muted-foreground hover:bg-primary/5 hover:text-primary",
+                      )}
                     >
                       {link.label}
                     </Link>
                   );
                 })}
 
-                <Button variant="hero" size="sm" className="ml-3 rounded-full px-5 ease-out" asChild>
+                <Button
+                  variant={isInverseTone ? "heroBorder" : "hero"}
+                  size="sm"
+                  className={cn(
+                    "ml-3 rounded-full px-5 ease-out transition-all duration-300",
+                    isInverseTone &&
+                      "border-white/35 bg-white/8 text-white shadow-[0_18px_36px_-24px_rgba(7,13,11,0.45)] hover:bg-white hover:text-foreground",
+                  )}
+                  asChild
+                >
                   <Link
                     to="/booking"
                     onMouseEnter={() => handleDesktopHover("/booking")}
@@ -177,7 +301,12 @@ const Navbar = () => {
 
               <button
                 type="button"
-                className="rounded-full border border-white/45 bg-background/65 p-3 text-foreground shadow-[0_12px_24px_-18px_rgba(35,72,61,0.28)] backdrop-blur-md transition-colors hover:bg-background/80 md:hidden"
+                className={cn(
+                  "rounded-full p-3 shadow-[0_12px_24px_-18px_rgba(35,72,61,0.28)] backdrop-blur-md transition-all duration-300 ease-out md:hidden",
+                  isInverseTone
+                    ? "border border-white/20 bg-white/10 text-white shadow-[0_16px_30px_-20px_rgba(7,13,11,0.48)] hover:bg-white/20"
+                    : "border border-white/45 bg-background/65 text-foreground hover:bg-background/80",
+                )}
                 onClick={() => setOpen((value) => !value)}
                 aria-label="Toggle menu"
               >
@@ -188,20 +317,42 @@ const Navbar = () => {
         </div>
 
         {open && !showTherapistHeader ? (
-          <div className="glass-nav mt-3 rounded-[2rem] px-5 py-5 md:hidden" style={{ animation: "slideDown 0.2s ease-out" }}>
+          <div
+            className={cn(
+              "mt-3 rounded-[2rem] px-5 py-5 transition-[background-color,border-color,box-shadow] duration-300 ease-out md:hidden",
+              isInverseTone
+                ? "border border-white/10 bg-foreground/34 shadow-[0_18px_40px_-28px_rgba(7,13,11,0.5)] backdrop-blur-xl"
+                : "glass-nav",
+            )}
+            style={{ animation: "slideDown 0.2s ease-out" }}
+          >
             <div className="space-y-2">
               {navLinks.map((link) => (
                 <Link
                   key={link.href}
                   to={link.href}
                   onClick={handleLinkClick}
-                  className="block rounded-2xl px-4 py-3 text-center text-sm text-muted-foreground transition-colors hover:bg-primary/5 hover:text-primary"
+                  className={cn(
+                    "block rounded-2xl px-4 py-3 text-center text-sm transition-colors duration-300",
+                    isInverseTone
+                      ? "text-white/80 hover:bg-white/10 hover:text-white"
+                      : "text-muted-foreground hover:bg-primary/5 hover:text-primary",
+                  )}
                 >
                   {link.label}
                 </Link>
               ))}
             </div>
-            <Button variant="hero" size="sm" className="mt-4 w-full rounded-full" asChild>
+            <Button
+              variant={isInverseTone ? "heroBorder" : "hero"}
+              size="sm"
+              className={cn(
+                "mt-4 w-full rounded-full transition-all duration-300",
+                isInverseTone &&
+                  "border-white/35 bg-white/8 text-white shadow-[0_18px_36px_-24px_rgba(7,13,11,0.45)] hover:bg-white hover:text-foreground",
+              )}
+              asChild
+            >
               <Link to="/booking" onClick={handleLinkClick}>
                 Book a Session
               </Link>

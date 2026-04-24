@@ -28,7 +28,7 @@ const PageHeader = ({
   const hasBackgroundImage = Boolean(backgroundImage);
 
   return (
-    <section className="overflow-x-clip pb-10 pt-0 sm:pb-16">
+    <section className="overflow-x-clip pb-10 pt-0 sm:pb-16" data-nav-theme={hasBackgroundImage ? "inverse" : undefined}>
       <div className="w-full px-0">
         <div
           className={cn(
