@@ -1,173 +1,111 @@
-import { CalendarClock, Compass, MessageCircle } from "lucide-react";
+import { CalendarClock, MessageCircle, PhoneCall } from "lucide-react";
 import { Link } from "react-router-dom";
+
+import heroImg from "@/assets/hero-wellness-custom.png";
 import leafDecor from "@/assets/leaf-decoration.png";
 import { Button } from "@/components/ui/button";
 import WellnessLogo from "./WellnessLogo";
 
-const heroImg =
-  "https://images.unsplash.com/photo-1765438863298-56a145f86d05?auto=format&fit=crop&w=2200&q=80";
-
 const HeroSection = () => (
-  <section className="relative overflow-hidden pb-14 pt-24 md:pt-28">
+  <section id="home-hero" className="relative overflow-hidden pb-14 pt-0">
     <div className="w-full">
-      <div className="relative min-h-[calc(100svh-5.75rem)] overflow-hidden border-y border-border/60 bg-[linear-gradient(135deg,hsl(42_31%_99%),hsl(42_31%_97%))] shadow-hover md:min-h-[32rem] lg:min-h-[33rem]">
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,hsl(136_22%_91%_/_0.28),transparent_26%),radial-gradient(circle_at_bottom_right,hsl(42_31%_95%_/_0.4),transparent_24%)]" />
-
-        <div className="absolute inset-0 md:hidden">
-          <img
-            src={heroImg}
-            alt="A client seated in a calm, bright therapy space"
-            className="h-full w-full object-cover object-[72%_22%] brightness-[1.05] saturate-[0.82] contrast-[0.96]"
-          />
-          <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(250,247,242,0.9),rgba(250,247,242,0.7),rgba(250,247,242,0.88))]" />
-          <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,hsl(42_31%_99%_/_0.22),transparent_36%)]" />
-        </div>
-
+      <div className="relative min-h-[34rem] overflow-hidden border-b border-border/60 bg-[linear-gradient(135deg,hsl(42_31%_99%),hsl(42_31%_97%))] shadow-hover sm:min-h-[36rem] md:min-h-[38rem] lg:min-h-[40rem]">
+        <img
+          src={heroImg}
+          alt="A smiling client seated in a bright, calm wellness-inspired living room"
+          loading="eager"
+          fetchPriority="high"
+          className="absolute inset-y-0 right-0 h-full w-[106%] max-w-none object-cover object-[78%_0%] brightness-[1.08] saturate-[1.08] contrast-[1.12] sm:-right-[4%] sm:w-[112%] sm:object-[82%_11%] sm:brightness-[1.06] sm:saturate-[1.02] sm:contrast-[1.08] md:-right-[5%] md:w-[110%] md:object-[79%_14%] md:brightness-[1.01] md:saturate-[0.9] md:contrast-[1.01] lg:-right-[2%] lg:w-[104%] lg:object-[77%_12%]"
+        />
+        <div className="absolute inset-0 bg-[linear-gradient(108deg,rgba(250,247,242,0.92)_0%,rgba(250,247,242,0.72)_30%,rgba(250,247,242,0.26)_58%,rgba(250,247,242,0.04)_86%)] sm:bg-[linear-gradient(118deg,rgba(250,247,242,0.9)_0%,rgba(250,247,242,0.68)_28%,rgba(250,247,242,0.24)_56%,rgba(250,247,242,0.04)_84%)] md:bg-[linear-gradient(90deg,rgba(250,247,242,0.96)_0%,rgba(250,247,242,0.89)_22%,rgba(250,247,242,0.68)_36%,rgba(250,247,242,0.3)_52%,rgba(250,247,242,0.1)_68%,rgba(250,247,242,0.03)_100%)]" />
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,hsl(136_22%_92%_/_0.14),transparent_22%),radial-gradient(circle_at_bottom_left,hsl(42_31%_95%_/_0.08),transparent_26%)] sm:bg-[radial-gradient(circle_at_top_left,hsl(136_22%_92%_/_0.16),transparent_24%),radial-gradient(circle_at_bottom_left,hsl(42_31%_95%_/_0.1),transparent_28%)] md:bg-[radial-gradient(circle_at_top_left,hsl(136_22%_92%_/_0.38),transparent_24%),radial-gradient(circle_at_bottom_left,hsl(42_31%_95%_/_0.24),transparent_28%)]" />
         <img
           src={leafDecor}
           alt=""
-          className="pointer-events-none absolute -left-8 top-8 z-[1] w-24 opacity-16 md:left-0 md:top-0 md:w-32 md:opacity-24"
+          aria-hidden="true"
+          className="pointer-events-none absolute left-1 top-4 z-10 w-24 opacity-[0.58] mix-blend-multiply saturate-175 contrast-135 drop-shadow-[0_16px_30px_rgba(76,106,92,0.22)] animate-float sm:left-2 sm:top-6 sm:w-28 md:left-4 md:top-8 md:w-32 lg:left-6 lg:top-10 lg:w-36"
         />
         <img
           src={leafDecor}
           alt=""
-          className="pointer-events-none absolute bottom-0 right-0 z-[1] w-24 rotate-180 opacity-18 md:w-36"
+          aria-hidden="true"
+          className="pointer-events-none absolute -left-1 bottom-0 z-10 w-28 rotate-[178deg] opacity-[0.52] mix-blend-multiply saturate-170 contrast-135 drop-shadow-[0_16px_30px_rgba(76,106,92,0.18)] animate-float animation-delay-200 sm:left-0 sm:w-32 md:left-1 md:bottom-2 md:w-36 lg:left-3 lg:w-40"
+        />
+        <img
+          src={leafDecor}
+          alt=""
+          aria-hidden="true"
+          className="pointer-events-none absolute -right-1 bottom-0 z-10 w-28 rotate-[220deg] opacity-[0.52] mix-blend-multiply saturate-170 contrast-135 drop-shadow-[0_16px_30px_rgba(76,106,92,0.18)] animate-float animation-delay-400 sm:right-0 sm:w-32 md:right-1 md:bottom-2 md:w-36 lg:right-3 lg:w-40"
         />
 
-        <div className="absolute inset-y-0 right-0 left-[39%] hidden md:block lg:left-[41%]">
-          <img
-            src={heroImg}
-            alt="A client seated in a calm, bright therapy space"
-            className="h-full w-full object-cover object-[66%_24%] brightness-[1.06] saturate-[0.8] contrast-[0.95]"
-          />
-          <div className="absolute inset-0 bg-[linear-gradient(90deg,hsl(42_31%_99%)_0%,hsl(42_31%_99%_/_0.96)_22%,hsl(42_31%_99%_/_0.84)_42%,transparent_76%)]" />
-          <div className="absolute inset-0 bg-[radial-gradient(circle_at_16%_36%,hsl(42_31%_99%_/_0.54),transparent_28%),linear-gradient(180deg,hsl(42_31%_99%_/_0.26),transparent_24%,transparent_78%,hsl(42_31%_99%_/_0.16))]" />
-        </div>
-
-        <div className="relative z-20 min-h-[calc(100svh-5.75rem)] px-5 py-8 sm:px-8 md:hidden">
-          <div className="mx-auto flex min-h-full max-w-[20rem] flex-col items-start justify-start pt-4 text-left">
-            <WellnessLogo variant="hero" />
-
-            <h1 className="mt-8 font-heading text-[3.35rem] font-semibold leading-[0.88] text-foreground [text-shadow:0_6px_18px_rgba(255,255,255,0.22)]">
-              Discover your
-              <br />
-              <em className="font-normal italic">best self!</em>
-            </h1>
-
-            <p className="mt-5 max-w-[18rem] text-[1.02rem] leading-8 text-foreground/84 [text-shadow:0_4px_14px_rgba(255,255,255,0.16)]">
-              Compassionate therapy and consultancy for Corporates, Adults, and Adolescents.
-            </p>
-
-            <div className="mt-8 grid w-full grid-cols-3 gap-1.5">
-              <Button
-                variant="hero"
-                size="lg"
-                className="h-9 min-w-0 rounded-full px-1.5 text-[0.54rem] font-medium uppercase tracking-[0.08em] text-center leading-none sm:text-[0.62rem]"
-                asChild
-              >
-                <Link to="/contact#contact-message-area">
-                  <span className="sm:hidden">Make Enquiry</span>
-                  <span className="hidden sm:inline-flex sm:items-center sm:gap-1.5">
-                    <MessageCircle className="h-3.5 w-3.5" />
-                    Make an Enquiry
-                  </span>
-                </Link>
-              </Button>
-              <Button
-                variant="heroBorder"
-                size="lg"
-                className="h-9 min-w-0 rounded-full px-1.5 text-[0.52rem] font-medium uppercase tracking-[0.08em] text-center leading-none sm:text-[0.62rem]"
-                asChild
-              >
-                <Link to="/exploration-call">
-                  <span className="sm:hidden">Explore Call</span>
-                  <span className="hidden sm:inline-flex sm:items-center sm:gap-1.5">
-                    <Compass className="h-3.5 w-3.5" />
-                    Exploration Call
-                  </span>
-                </Link>
-              </Button>
-              <Button
-                variant="heroBorder"
-                size="lg"
-                className="h-9 min-w-0 rounded-full px-1.5 text-[0.52rem] font-medium uppercase tracking-[0.08em] text-center leading-none sm:text-[0.62rem]"
-                asChild
-              >
-                <Link to="/booking">
-                  <span className="sm:hidden">Session</span>
-                  <span className="hidden sm:inline-flex sm:items-center sm:gap-1.5">
-                    <CalendarClock className="h-3.5 w-3.5" />
-                    Book a Session
-                  </span>
-                </Link>
-              </Button>
-            </div>
-          </div>
-        </div>
-
-        <div className="relative z-20 hidden min-h-[32rem] gap-6 px-5 py-8 sm:px-8 md:grid lg:min-h-[33rem] lg:grid-cols-[minmax(0,0.92fr)_minmax(0,1.08fr)] lg:px-10 lg:py-10">
-          <div className="flex items-center justify-start md:pl-2 lg:pl-5 xl:pl-6">
-            <div className="animate-fade-up max-w-[31.5rem] text-left lg:max-w-[32rem]">
-              <div className="relative -mt-5 inline-block">
-                <img
-                  src={leafDecor}
-                  alt=""
-                  className="pointer-events-none absolute -left-6 -top-5 z-[1] w-24 opacity-18"
-                />
-                <div className="relative z-10">
+        <div className="absolute inset-x-0 top-0 z-30">
+          <div className="mx-auto max-w-7xl px-4 pt-12 sm:px-6 sm:pt-14 md:px-8 md:pt-14 lg:px-10 lg:pt-14">
+            <div className="pl-2 text-left sm:pl-4 md:pl-6 lg:pl-8">
+              <div className="inline-block">
+                <div className="relative z-10 origin-left -translate-x-[2.4rem] translate-y-3 rotate-[1.75deg] scale-[1.02] scale-x-[1.1] scale-y-[1.18] sm:-translate-x-[3rem] sm:translate-y-4 sm:scale-[1.04] sm:scale-x-[1.12] sm:scale-y-[1.22] md:-translate-x-[5rem] md:translate-y-5 md:rotate-[1.5deg] md:scale-x-[1.18] md:scale-y-[1.24] lg:-translate-x-[6.25rem] lg:translate-y-6 lg:rotate-[1.5deg] lg:scale-x-[1.26] lg:scale-y-[1.3]">
                   <WellnessLogo variant="hero" />
                 </div>
               </div>
-
-              <p className="relative z-10 mt-5 max-w-xl text-[1.01rem] leading-relaxed text-muted-foreground">
-                Compassionate therapy and consultancy for Corporates, Adults, and Adolescents.
-              </p>
-
-              <h1 className="relative z-10 mt-7 font-heading text-[3.7rem] font-semibold leading-[0.94] text-foreground lg:text-[4.1rem]">
-                Discover your
-                <br />
-                <em className="font-normal italic">best self!</em>
-              </h1>
-
-              <div className="relative z-10 mt-9 flex max-w-[42rem] flex-nowrap items-center gap-2">
-                <Button
-                  variant="hero"
-                  size="lg"
-                  className="h-8.5 rounded-full px-2.5 text-[0.5rem] font-medium uppercase tracking-[0.05em] lg:h-9 lg:px-3 lg:text-[0.54rem]"
-                  asChild
-                >
-                  <Link to="/contact#contact-message-area" className="inline-flex items-center justify-center gap-1.25 whitespace-nowrap">
-                    <MessageCircle className="h-3.25 w-3.25 lg:h-3.5 lg:w-3.5" />
-                    Make an Enquiry
-                  </Link>
-                </Button>
-                <Button
-                  variant="heroBorder"
-                  size="lg"
-                  className="h-8.5 rounded-full px-2.5 text-[0.48rem] font-medium uppercase tracking-[0.05em] lg:h-9 lg:px-3 lg:text-[0.52rem]"
-                  asChild
-                >
-                  <Link to="/exploration-call" className="inline-flex items-center justify-center gap-1.25 whitespace-nowrap">
-                    <Compass className="h-3.25 w-3.25 lg:h-3.5 lg:w-3.5" />
-                    Exploration Call
-                  </Link>
-                </Button>
-                <Button
-                  variant="heroBorder"
-                  size="lg"
-                  className="h-8.5 rounded-full px-2.5 text-[0.5rem] font-medium uppercase tracking-[0.05em] lg:h-9 lg:px-3 lg:text-[0.54rem]"
-                  asChild
-                >
-                  <Link to="/booking" className="inline-flex items-center justify-center gap-1.25 whitespace-nowrap">
-                    <CalendarClock className="h-3.25 w-3.25 lg:h-3.5 lg:w-3.5" />
-                    Book a Session
-                  </Link>
-                </Button>
-              </div>
             </div>
           </div>
+        </div>
 
-          <div className="hidden md:block" />
+        <div className="relative z-20 mx-auto flex min-h-[34rem] max-w-7xl items-start px-4 pb-10 pt-44 sm:min-h-[36rem] sm:px-6 sm:pb-12 sm:pt-48 md:min-h-[38rem] md:px-8 md:pt-48 lg:min-h-[40rem] lg:px-10 lg:pb-14 lg:pt-52">
+          <div className="animate-fade-up mt-9 max-w-[24rem] pl-2 text-left sm:mt-10 sm:max-w-[26rem] sm:pl-4 md:mt-14 md:max-w-[30rem] md:pl-6 lg:mt-16 lg:max-w-[33rem] lg:pl-8">
+            <h1 className="max-w-[19rem] font-heading text-[2.4rem] font-medium leading-[0.92] text-foreground [text-shadow:0_10px_24px_rgba(255,255,255,0.18)] sm:max-w-[21rem] sm:text-[2.8rem] md:max-w-[23rem] md:text-[3.1rem] lg:max-w-[26rem] lg:text-[3.45rem]">
+              <span className="block whitespace-nowrap">Discover your</span>
+              <em className="mt-1 block font-normal italic">best self!</em>
+            </h1>
+
+            <p className="mt-6 max-w-[18rem] text-[0.84rem] font-semibold leading-6 text-foreground/92 [text-shadow:0_4px_14px_rgba(255,255,255,0.16)] sm:mt-7 sm:max-w-[19rem] sm:text-[0.92rem] sm:leading-7 md:max-w-[20rem]">
+              Compassionate therapy and consultancy for Corporates, Adults, and Adolescents.
+            </p>
+
+            <div className="mt-8 grid w-full max-w-[19.25rem] grid-cols-3 gap-1.5 sm:mt-9 sm:max-w-[24rem] sm:gap-2 md:mt-10 md:max-w-[33rem] md:gap-2.5 lg:max-w-[37rem]">
+              <Button
+                variant="hero"
+                size="lg"
+                className="h-9 min-w-0 rounded-full px-2 text-[0.56rem] font-medium tracking-normal sm:h-10 sm:px-3 sm:text-[0.68rem] md:h-11 md:px-5 md:text-[0.82rem]"
+                asChild
+              >
+                <Link to="/contact#contact-message-area">
+                  <span className="inline-flex items-center justify-center gap-1 whitespace-nowrap">
+                    <MessageCircle className="h-3.25 w-3.25 sm:h-3.5 sm:w-3.5 md:h-4 md:w-4" />
+                    <span className="sm:hidden">Make Enquiry</span>
+                    <span className="hidden sm:inline">Make an Enquiry</span>
+                  </span>
+                </Link>
+              </Button>
+              <Button
+                variant="heroBorder"
+                size="lg"
+                className="h-9 min-w-0 rounded-full border-primary/24 bg-white/42 px-2 text-[0.54rem] font-semibold tracking-normal backdrop-blur-sm hover:bg-primary hover:text-primary-foreground sm:h-10 sm:px-3 sm:text-[0.68rem] sm:font-medium md:h-11 md:px-5 md:text-[0.82rem]"
+                asChild
+              >
+                <Link to="/exploration-call#book-exploration-call">
+                  <span className="inline-flex items-center justify-center gap-1 whitespace-nowrap">
+                    <PhoneCall className="h-3.25 w-3.25 sm:h-3.5 sm:w-3.5 md:h-4 md:w-4" />
+                    <span className="sm:hidden">Exploration Call</span>
+                    <span className="hidden sm:inline">Exploration Call</span>
+                  </span>
+                </Link>
+              </Button>
+              <Button
+                variant="heroBorder"
+                size="lg"
+                className="h-9 min-w-0 rounded-full border-primary/24 bg-white/42 px-2 text-[0.54rem] font-semibold tracking-normal backdrop-blur-sm hover:bg-primary hover:text-primary-foreground sm:h-10 sm:px-3 sm:text-[0.68rem] sm:font-medium md:h-11 md:px-5 md:text-[0.82rem]"
+                asChild
+              >
+                <Link to="/booking">
+                  <span className="inline-flex items-center justify-center gap-1 whitespace-nowrap">
+                    <CalendarClock className="h-3.25 w-3.25 sm:h-3.5 sm:w-3.5 md:h-4 md:w-4" />
+                    <span className="sm:hidden">Session</span>
+                    <span className="hidden sm:inline">Book a Session</span>
+                  </span>
+                </Link>
+              </Button>
+            </div>
+          </div>
         </div>
       </div>
     </div>

@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Kaushan+Script&family=Playfair+Display:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Knewave&family=Playfair+Display:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -47,7 +47,7 @@
 
     --font-heading: 'Playfair Display', Georgia, serif;
     --font-body: 'Inter', system-ui, sans-serif;
-    --font-logo: 'Kaushan Script', cursive;
+    --font-logo: 'Knewave', cursive;
 
     --gradient-hero: linear-gradient(135deg, hsl(42 31% 98% / 0.94), hsl(136 18% 89% / 0.88));
     --gradient-section: linear-gradient(180deg, hsl(136 20% 93%), hsl(42 31% 97%));
