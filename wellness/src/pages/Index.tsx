@@ -329,14 +329,14 @@ const Index = () => {
     </section>
 
     <section className="py-16">
-      <div className="container mx-auto px-4">
+      <div className="container mx-auto px-0 sm:px-4">
         <ScrollReveal direction="right">
-          <div className="relative overflow-hidden rounded-[2.5rem] border border-border/60 px-4 py-6 shadow-card sm:px-6 sm:py-8 lg:px-8 lg:py-10">
+          <div className="relative overflow-hidden rounded-none border-y border-border/60 px-4 py-6 shadow-card sm:rounded-[2.5rem] sm:border sm:px-6 sm:py-8 lg:px-8 lg:py-10">
             <img
               src={approachImg}
               alt=""
               aria-hidden="true"
-              className="absolute inset-0 h-full w-full object-cover object-[center_32%] opacity-70 contrast-[1.04] saturate-[1.03]"
+              className="absolute inset-y-0 left-1/2 h-full w-[108%] max-w-none -translate-x-1/2 object-cover object-[center_32%] opacity-70 contrast-[1.04] saturate-[1.03] sm:inset-0 sm:w-full sm:translate-x-0"
             />
             <div className="absolute inset-0 bg-[linear-gradient(180deg,hsl(42_31%_98%_/_0.74),hsl(42_31%_98%_/_0.34),hsl(42_31%_97%_/_0.62))]" />
             <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,hsl(42_31%_99%_/_0.32),transparent_40%)]" />

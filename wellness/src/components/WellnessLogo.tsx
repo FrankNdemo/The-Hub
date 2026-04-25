@@ -23,7 +23,7 @@ const layouts: Record<NonNullable<WellnessLogoProps["variant"]>, LogoLayout> = {
 
 const WellnessLogo = ({ variant = "navbar", tone = "default" }: WellnessLogoProps) => {
   const layout = layouts[variant];
-  const svgToneClass = tone === "inverse" ? "text-white" : "text-[#5f6f65]";
+  const svgToneClass = tone === "inverse" ? "text-white" : "text-primary";
 
   const content = (
     <div className={`inline-block select-none ${layout.frame}`}>
