@@ -23,7 +23,7 @@ const layouts: Record<NonNullable<WellnessLogoProps["variant"]>, LogoLayout> = {
 
 const WellnessLogo = ({ variant = "navbar", tone = "default" }: WellnessLogoProps) => {
   const layout = layouts[variant];
-  const svgToneClass = tone === "inverse" ? "text-white" : "text-primary/92";
+  const svgToneClass = tone === "inverse" ? "text-white" : "text-primary";
 
   const content = (
     <div className={`inline-block select-none ${layout.frame}`}>
@@ -51,7 +51,7 @@ const WellnessLogo = ({ variant = "navbar", tone = "default" }: WellnessLogoProp
              C79 216 78 157 89 83
              Z"
           fill="currentColor"
-          opacity="0.92"
+          opacity="0.94"
         />
 
         <g
@@ -59,7 +59,7 @@ const WellnessLogo = ({ variant = "navbar", tone = "default" }: WellnessLogoProp
           stroke="currentColor"
           strokeLinecap="round"
           strokeLinejoin="round"
-          opacity="0.92"
+          opacity="0.94"
         >
           <path d="M166 246 C197 174 227 106 262 35" strokeWidth="8.4" />
           <path d="M183 246 C217 176 246 108 282 42 C291 26 300 17 313 18" strokeWidth="4.4" opacity="0.95" />
@@ -70,18 +70,18 @@ const WellnessLogo = ({ variant = "navbar", tone = "default" }: WellnessLogoProp
           x="334"
           y="72"
           fill="currentColor"
-          opacity="0.9"
+          opacity="0.94"
           style={{
             fontFamily: "var(--font-heading)",
             fontSize: "44px",
-            fontWeight: 460,
+            fontWeight: 450,
             letterSpacing: "0.18em",
           }}
         >
           THE
         </text>
 
-        <g transform="translate(228 0) skewX(-8)" opacity="0.93">
+        <g transform="translate(228 0) skewX(-8)" opacity="0.95">
           <text
             x="26"
             y="210"
