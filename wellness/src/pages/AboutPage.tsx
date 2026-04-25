@@ -151,25 +151,25 @@ const AboutPage = () => {
     </section>
 
     <section className="py-16">
-      <div className="container mx-auto px-0 sm:px-4">
-        <div className="relative overflow-hidden rounded-none border-y border-border/60 px-6 py-8 shadow-card sm:rounded-[2.5rem] sm:border lg:px-8 lg:py-10">
+      <div className="w-full px-0">
+        <div className="relative overflow-hidden border-y border-border/60 px-6 py-8 shadow-card lg:px-8 lg:py-10">
           <img
             src={approachBg}
             alt=""
             aria-hidden="true"
-            className="absolute inset-y-0 left-1/2 h-full w-[108%] max-w-none -translate-x-1/2 object-cover object-[center_32%] opacity-95 contrast-[1.02] saturate-[1.02] sm:inset-0 sm:w-full sm:translate-x-0"
+            className="absolute inset-0 h-full w-full object-cover object-[center_32%] opacity-95 contrast-[1.02] saturate-[1.02]"
           />
           <div className="absolute inset-0 bg-[linear-gradient(180deg,hsl(42_31%_98%_/_0.34),hsl(42_31%_98%_/_0.08),hsl(42_31%_97%_/_0.28))]" />
           <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,hsl(42_31%_99%_/_0.1),transparent_42%)]" />
 
-          <div className="relative z-10 text-center">
+          <div className="relative z-10 mx-auto max-w-7xl text-center">
             <p className="text-sm font-semibold uppercase tracking-[0.24em] text-primary/75">Our approach</p>
             <h2 className="mt-4 font-heading text-4xl font-semibold text-foreground md:text-5xl">
               Healing that feels human, thoughtful, and grounded.
             </h2>
           </div>
 
-          <div className="relative z-10 mt-10 grid gap-6 md:grid-cols-3">
+          <div className="relative z-10 mx-auto mt-10 grid max-w-7xl gap-6 md:grid-cols-3">
             {pillars.map((pillar) => (
               <div
                 key={pillar.title}

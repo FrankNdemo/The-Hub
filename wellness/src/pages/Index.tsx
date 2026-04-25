@@ -329,14 +329,14 @@ const Index = () => {
     </section>
 
     <section className="py-16">
-      <div className="container mx-auto px-0 sm:px-4">
+      <div className="w-full px-0">
         <ScrollReveal direction="right">
-          <div className="relative overflow-hidden rounded-none border-y border-border/60 px-4 py-6 shadow-card sm:rounded-[2.5rem] sm:border sm:px-6 sm:py-8 lg:px-8 lg:py-10">
+          <div className="relative overflow-hidden border-y border-border/60 px-4 py-6 shadow-card sm:px-6 sm:py-8 lg:px-8 lg:py-10">
             <img
               src={approachImg}
               alt=""
               aria-hidden="true"
-              className="absolute inset-y-0 left-1/2 h-full w-[108%] max-w-none -translate-x-1/2 object-cover object-[center_32%] opacity-70 contrast-[1.04] saturate-[1.03] sm:inset-0 sm:w-full sm:translate-x-0"
+              className="absolute inset-0 h-full w-full object-cover object-[center_32%] opacity-70 contrast-[1.04] saturate-[1.03]"
             />
             <div className="absolute inset-0 bg-[linear-gradient(180deg,hsl(42_31%_98%_/_0.74),hsl(42_31%_98%_/_0.34),hsl(42_31%_97%_/_0.62))]" />
             <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,hsl(42_31%_99%_/_0.32),transparent_40%)]" />
@@ -354,14 +354,14 @@ const Index = () => {
               className="pointer-events-none absolute right-2 top-2 hidden w-24 rotate-180 opacity-18 sm:block lg:w-28"
             />
 
-            <div className="relative z-10 text-center">
+            <div className="relative z-10 mx-auto max-w-7xl text-center">
               <p className="text-sm font-semibold uppercase tracking-[0.3em] text-primary/75">Our approach</p>
               <h2 className="mx-auto mt-4 max-w-5xl font-heading text-4xl font-semibold leading-tight text-foreground sm:text-5xl lg:text-[4rem]">
                 Healing that feels human, thoughtful, and grounded.
               </h2>
             </div>
 
-            <div className="relative z-10 mt-8 grid gap-4 md:grid-cols-3 lg:mt-10 lg:gap-6">
+            <div className="relative z-10 mx-auto mt-8 grid max-w-7xl gap-4 md:grid-cols-3 lg:mt-10 lg:gap-6">
               {approachPillars.map((pillar) => (
                 <div
                   key={pillar.title}
