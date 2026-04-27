@@ -16,9 +16,11 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 
+import leafDecor from "@/assets/leaf-decoration.png";
 import Footer from "@/components/Footer";
 import RichTextEditor from "@/components/RichTextEditor";
 import TherapistSecurityPanel from "@/components/TherapistSecurityPanel";
+import WellnessLogo from "@/components/WellnessLogo";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -317,6 +319,7 @@ const TherapistDashboardPage = () => {
   const [isCompletingBooking, setIsCompletingBooking] = useState(false);
   const [bookingToDelete, setBookingToDelete] = useState<BookingRecord | null>(null);
   const [isDeletingBooking, setIsDeletingBooking] = useState(false);
+  const [loaderProgress, setLoaderProgress] = useState(12);
 
   useEffect(() => {
     setProfileDraft(makeProfileDraft(therapist));
@@ -331,12 +334,50 @@ const TherapistDashboardPage = () => {
     setActiveTab((current) => (current === requestedTab ? current : requestedTab));
   }, [requestedTab]);
 
+  useEffect(() => {
+    if (!isInitializing) {
+      setLoaderProgress(100);
+      return;
+    }
+
+    setLoaderProgress(12);
+
+    const intervalId = window.setInterval(() => {
+      setLoaderProgress((current) => {
+        if (current >= 95) {
+          return current;
+        }
+
+        if (current < 48) {
+          return Math.min(95, current + 6);
+        }
+
+        if (current < 72) {
+          return Math.min(95, current + 4);
+        }
+
+        if (current < 88) {
+          return Math.min(95, current + 2);
+        }
+
+        return Math.min(95, current + 1);
+      });
+    }, 90);
+
+    return () => {
+      window.clearInterval(intervalId);
+    };
+  }, [isInitializing]);
+
   const unreadNotificationCount = useMemo(
     () => notifications.filter((notification) => !notification.read).length,
     [notifications],
   );
   const unreadNotificationCountLabel = unreadNotificationCount > 99 ? "99+" : String(unreadNotificationCount);
   const currentTime = Date.now();
+  const loaderRingRadius = 126;
+  const loaderRingCircumference = 2 * Math.PI * loaderRingRadius;
+  const loaderRingOffset = loaderRingCircumference - (loaderProgress / 100) * loaderRingCircumference;
   const sortedBookings = useMemo(
     () => [...bookings].sort((left, right) => right.updatedAt.localeCompare(left.updatedAt)),
     [bookings],
@@ -583,19 +624,92 @@ const TherapistDashboardPage = () => {
 
   if (isInitializing) {
     return (
-      <div className="min-h-screen" style={softPageBackgroundStyle}>
-        <section className="pt-32 pb-24">
-          <div className="container mx-auto px-4">
-            <div className="mx-auto max-w-2xl rounded-[2rem] border border-border/60 bg-card p-10 text-center shadow-card">
-              <p className="text-sm font-semibold uppercase tracking-[0.24em] text-primary/75">Secure Portal</p>
-              <h1 className="mt-4 font-heading text-4xl font-semibold text-foreground">Loading therapist portal</h1>
-              <p className="mt-4 text-muted-foreground leading-8">
-                We&apos;re checking your session and syncing the latest dashboard data now.
+      <div className="fixed inset-0 z-[90] overflow-hidden bg-[radial-gradient(circle_at_top_left,rgba(92,130,110,0.12),transparent_24%),radial-gradient(circle_at_bottom_right,rgba(114,154,132,0.14),transparent_28%),linear-gradient(160deg,rgba(7,24,18,0.995)_0%,rgba(8,30,22,0.985)_48%,rgba(11,41,29,0.99)_100%)] text-white">
+        <img
+          src={leafDecor}
+          alt=""
+          aria-hidden="true"
+          className="pointer-events-none absolute -right-12 -top-10 h-[44vh] w-auto rotate-[10deg] opacity-[0.1] blur-[1px] saturate-[0.92] brightness-[0.8]"
+        />
+        <img
+          src={leafDecor}
+          alt=""
+          aria-hidden="true"
+          className="pointer-events-none absolute -left-16 bottom-[-4rem] h-[34vh] w-auto rotate-[188deg] opacity-[0.08] saturate-[0.88] brightness-[0.76]"
+        />
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(236,244,233,0.05),transparent_30%),linear-gradient(180deg,rgba(255,255,255,0.02),rgba(255,255,255,0))]" />
+
+        <div className="relative z-10 flex min-h-screen flex-col items-center justify-center px-6 py-10 text-center">
+          <div className="scale-[0.9] sm:scale-[0.98]">
+            <WellnessLogo variant="hero" tone="inverse" />
+          </div>
+
+          <div className="relative mt-8 flex h-[18.5rem] w-[18.5rem] items-center justify-center sm:mt-10 sm:h-[21rem] sm:w-[21rem]">
+            <svg
+              viewBox="0 0 300 300"
+              className="absolute inset-0 h-full w-full -rotate-90"
+              aria-hidden="true"
+            >
+              <defs>
+                <linearGradient id="portal-loader-ring" x1="0%" x2="100%" y1="0%" y2="100%">
+                  <stop offset="0%" stopColor="rgba(247,251,241,0.92)" />
+                  <stop offset="100%" stopColor="rgba(219,242,211,0.98)" />
+                </linearGradient>
+                <filter id="portal-loader-glow">
+                  <feGaussianBlur stdDeviation="2.6" result="coloredBlur" />
+                  <feMerge>
+                    <feMergeNode in="coloredBlur" />
+                    <feMergeNode in="SourceGraphic" />
+                  </feMerge>
+                </filter>
+              </defs>
+
+              <circle
+                cx="150"
+                cy="150"
+                r={loaderRingRadius}
+                fill="none"
+                stroke="rgba(236,244,233,0.2)"
+                strokeWidth="5"
+              />
+              <circle
+                cx="150"
+                cy="150"
+                r={loaderRingRadius}
+                fill="none"
+                stroke="url(#portal-loader-ring)"
+                strokeWidth="5.5"
+                strokeLinecap="round"
+                strokeDasharray={loaderRingCircumference}
+                strokeDashoffset={loaderRingOffset}
+                filter="url(#portal-loader-glow)"
+              />
+            </svg>
+
+            <img
+              src={leafDecor}
+              alt=""
+              aria-hidden="true"
+              className="pointer-events-none absolute bottom-[3rem] right-[1.2rem] h-20 w-auto opacity-[0.9] saturate-[0.96] brightness-[1.02] drop-shadow-[0_0_18px_rgba(236,244,233,0.22)] sm:bottom-[3.3rem] sm:right-[1.6rem] sm:h-24"
+            />
+
+            <div className="relative z-10 flex flex-col items-center">
+              <p className="font-heading text-[3.15rem] font-medium leading-none text-white sm:text-[3.7rem]">
+                {loaderProgress}%
+              </p>
+              <p className="mt-4 text-[0.78rem] font-semibold uppercase tracking-[0.32em] text-white/78 sm:text-[0.82rem]">
+                Secure Portal
               </p>
             </div>
           </div>
-        </section>
-        <Footer />
+
+          <h1 className="mt-6 max-w-xl font-heading text-3xl font-semibold leading-tight text-white sm:text-4xl">
+            Preparing therapist portal
+          </h1>
+          <p className="mx-auto mt-4 max-w-lg text-sm leading-7 text-white/80 sm:text-base sm:leading-8">
+            We&apos;re checking your session and syncing the latest dashboard data now.
+          </p>
+        </div>
       </div>
     );
   }
