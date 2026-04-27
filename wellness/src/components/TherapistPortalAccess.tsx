@@ -224,8 +224,8 @@ const TherapistPortalAccess = () => {
       )}
 
       <Dialog open={loginOpen} onOpenChange={handleDialogChange}>
-        <DialogContent className="w-[calc(100vw-1rem)] max-w-[44rem] max-h-[calc(100dvh-1rem)] overflow-hidden rounded-[1.5rem] border-border/60 p-0 sm:rounded-[1.75rem]">
-          <div className="max-h-[calc(100dvh-1rem)] overflow-y-auto rounded-[inherit] bg-gradient-to-br from-secondary/70 via-background to-background p-5 sm:p-7">
+        <DialogContent className="w-[calc(100vw-1rem)] max-w-[40rem] overflow-hidden rounded-[1.5rem] border-border/60 p-0 sm:w-[min(92vw,40rem)] sm:rounded-[1.75rem] lg:max-w-[36rem]">
+          <div className="rounded-[inherit] bg-gradient-to-br from-secondary/70 via-background to-background p-5 sm:p-7">
             <DialogHeader>
               <div className="mb-4 inline-flex h-14 w-14 items-center justify-center rounded-2xl bg-primary/10 text-primary">
                 <ShieldCheck className="h-6 w-6" />
@@ -241,7 +241,7 @@ const TherapistPortalAccess = () => {
             </DialogHeader>
 
             {mode === "login" ? (
-              <form onSubmit={handleLogin} className="mt-5 space-y-4 sm:mt-6 sm:space-y-5">
+              <form onSubmit={handleLogin} className="mt-5 space-y-4 sm:mt-6 sm:space-y-4.5">
                 <div>
                   <Label htmlFor="therapist-email">Email</Label>
                   <Input
@@ -281,8 +281,8 @@ const TherapistPortalAccess = () => {
                 </button>
               </form>
             ) : (
-              <form onSubmit={handlePasswordReset} className="mt-5 space-y-4 sm:mt-6 sm:space-y-5">
-                <div className="grid gap-4 md:grid-cols-2">
+              <form onSubmit={handlePasswordReset} className="mt-5 space-y-4 sm:mt-6 sm:space-y-4">
+                <div className="grid gap-4">
                   <div>
                     <Label htmlFor="forgot-email">Therapist email</Label>
                     <Input

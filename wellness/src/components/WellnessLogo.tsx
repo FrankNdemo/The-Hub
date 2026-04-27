@@ -34,8 +34,6 @@ const WellnessLogo = ({ variant = "navbar", tone = "default" }: WellnessLogoProp
         ? "brightness-[1.18] saturate-[1.02] drop-shadow-[0_0_22px_rgba(248,244,236,0.24)]"
         : "drop-shadow-[0_14px_28px_rgba(35,72,61,0.16)]";
   const isNavbar = variant === "navbar";
-  const showHeroMobileTheAccent = variant === "hero";
-
   const content = (
     <div className={`relative inline-flex select-none items-center ${layout.frame}`}>
       <img
@@ -44,11 +42,6 @@ const WellnessLogo = ({ variant = "navbar", tone = "default" }: WellnessLogoProp
         aria-hidden={isNavbar ? "true" : undefined}
         className={`block h-full w-full object-contain object-left transition-[filter] duration-300 ease-out ${imageToneClass}`}
       />
-      {showHeroMobileTheAccent ? (
-        <span className="pointer-events-none absolute left-[4.55rem] top-[0.28rem] font-heading text-[1.02rem] tracking-[0.18em] text-primary/85 [text-shadow:0_4px_10px_rgba(255,255,255,0.55)] sm:hidden">
-          THE
-        </span>
-      ) : null}
     </div>
   );
 
