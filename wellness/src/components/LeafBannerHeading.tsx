@@ -40,9 +40,15 @@ const LeafBannerHeading = ({
         src={leafDecor}
         alt=""
         aria-hidden="true"
-        className="pointer-events-none absolute -right-10 -top-10 h-[150%] w-auto rotate-[8deg] opacity-[0.1] mix-blend-screen"
+        className="pointer-events-none absolute -right-8 -top-12 h-[158%] w-auto rotate-[8deg] opacity-[0.18] saturate-[0.95] contrast-[1.02] brightness-[0.92]"
       />
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(146,192,161,0.18),transparent_32%),linear-gradient(180deg,rgba(255,255,255,0.04),rgba(255,255,255,0))]" />
+      <img
+        src={leafDecor}
+        alt=""
+        aria-hidden="true"
+        className="pointer-events-none absolute -bottom-12 -left-10 h-[132%] w-auto rotate-[184deg] opacity-[0.12] saturate-[0.9] contrast-[1.02] brightness-[0.88]"
+      />
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(146,192,161,0.14),transparent_28%),radial-gradient(circle_at_bottom_right,rgba(118,160,133,0.12),transparent_30%),linear-gradient(180deg,rgba(255,255,255,0.03),rgba(255,255,255,0))]" />
 
       <div
         className={cn(

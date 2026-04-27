@@ -3,6 +3,7 @@ import { Eye, Heart, Leaf, Shield, Sun, Target } from "lucide-react";
 
 import aboutImg from "@/assets/about-therapy.jpg";
 import Footer from "@/components/Footer";
+import LeafBannerHeading from "@/components/LeafBannerHeading";
 import PageHeader from "@/components/PageHeader";
 import { Button } from "@/components/ui/button";
 import { useWellnessHub } from "@/context/WellnessHubContext";
@@ -121,13 +122,16 @@ const AboutPage = () => {
               </p>
             </div>
 
-            <div className="wellness-panel rounded-[2rem] border border-border/60 p-7 text-center shadow-card lg:text-left">
-              <p className="text-sm font-semibold uppercase tracking-[0.24em] text-primary/75">Vision</p>
-              <h2 className="mt-4 font-heading text-4xl font-semibold text-foreground">A world where every person can discover their best self.</h2>
-              <p className="mt-4 text-muted-foreground leading-8">
-                We imagine a future where mental wellness is accessible, prioritized, and free from stigma, and where
-                people feel supported enough to live purposeful inner lives.
-              </p>
+            <div className="wellness-panel overflow-hidden rounded-[2rem] border border-border/60 p-7 text-center shadow-card lg:text-left">
+              <LeafBannerHeading
+                eyebrow="Vision"
+                title="A world where every person can discover their best self."
+                className="-mx-7 -mt-7"
+                innerClassName="px-7 py-6"
+                titleClassName="text-4xl"
+                description="We imagine a future where mental wellness is accessible, prioritized, and free from stigma, and where people feel supported enough to live purposeful inner lives."
+                descriptionClassName="max-w-none"
+              />
             </div>
           </div>
         </div>
