@@ -25,6 +25,7 @@ const TeamPage = () => {
       ]}
       backgroundImage={pageHeaderBackgrounds.team.src}
       backgroundPosition={pageHeaderBackgrounds.team.position}
+      backgroundImageClassName={pageHeaderBackgrounds.team.className}
     />
 
     <section className="pb-24">
@@ -33,7 +34,7 @@ const TeamPage = () => {
           <div className="lg:sticky lg:top-28 lg:self-start">
             <div className="overflow-hidden rounded-[2.25rem] border border-border/60 bg-card shadow-card">
               <div className="h-[420px] overflow-hidden">
-                <img src={therapist.image} alt={therapist.name} className="h-full w-full object-cover object-top" />
+                <img src={therapist.image} alt={therapist.name} className="h-full w-full object-cover object-[center_18%]" />
               </div>
               <div className="wellness-panel p-6 text-center lg:text-left">
                 <p className="text-sm font-semibold uppercase tracking-[0.24em] text-primary/75">Specialties</p>

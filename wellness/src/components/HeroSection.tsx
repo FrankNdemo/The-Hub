@@ -15,10 +15,10 @@ const HeroSection = () => (
           alt="A smiling client seated in a bright, calm wellness-inspired living room"
           loading="eager"
           fetchPriority="high"
-          className="absolute inset-y-0 right-0 h-full w-[106%] max-w-none object-cover object-[78%_6%] brightness-[1.08] saturate-[1.08] contrast-[1.12] sm:-right-[4%] sm:w-[112%] sm:object-[82%_16%] sm:brightness-[1.06] sm:saturate-[1.02] sm:contrast-[1.08] md:-right-[5%] md:w-[110%] md:object-[79%_18%] md:brightness-[1.01] md:saturate-[0.9] md:contrast-[1.01] lg:-right-[2%] lg:w-[104%] lg:object-[77%_16%]"
+          className="absolute inset-y-0 right-0 h-full w-[106%] max-w-none object-cover object-[80%_8%] brightness-[1.06] saturate-[1.02] contrast-[1.06] sm:-right-[4%] sm:w-[112%] sm:object-[82%_16%] sm:brightness-[1.06] sm:saturate-[1.02] sm:contrast-[1.08] md:-right-[5%] md:w-[110%] md:object-[79%_18%] md:brightness-[1.02] md:saturate-[0.92] md:contrast-[1.02] lg:-right-[2%] lg:w-[104%] lg:object-[77%_16%]"
         />
-        <div className="absolute inset-0 bg-[linear-gradient(108deg,rgba(250,247,242,0.92)_0%,rgba(250,247,242,0.72)_30%,rgba(250,247,242,0.26)_58%,rgba(250,247,242,0.04)_86%)] sm:bg-[linear-gradient(118deg,rgba(250,247,242,0.9)_0%,rgba(250,247,242,0.68)_28%,rgba(250,247,242,0.24)_56%,rgba(250,247,242,0.04)_84%)] md:bg-[linear-gradient(90deg,rgba(250,247,242,0.96)_0%,rgba(250,247,242,0.89)_22%,rgba(250,247,242,0.68)_36%,rgba(250,247,242,0.3)_52%,rgba(250,247,242,0.1)_68%,rgba(250,247,242,0.03)_100%)]" />
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,hsl(136_22%_92%_/_0.14),transparent_22%),radial-gradient(circle_at_bottom_left,hsl(42_31%_95%_/_0.08),transparent_26%)] sm:bg-[radial-gradient(circle_at_top_left,hsl(136_22%_92%_/_0.16),transparent_24%),radial-gradient(circle_at_bottom_left,hsl(42_31%_95%_/_0.1),transparent_28%)] md:bg-[radial-gradient(circle_at_top_left,hsl(136_22%_92%_/_0.38),transparent_24%),radial-gradient(circle_at_bottom_left,hsl(42_31%_95%_/_0.24),transparent_28%)]" />
+        <div className="absolute inset-0 bg-[linear-gradient(108deg,rgba(250,247,242,0.76)_0%,rgba(250,247,242,0.48)_30%,rgba(250,247,242,0.14)_58%,rgba(250,247,242,0.02)_86%)] sm:bg-[linear-gradient(118deg,rgba(250,247,242,0.88)_0%,rgba(250,247,242,0.66)_28%,rgba(250,247,242,0.22)_56%,rgba(250,247,242,0.04)_84%)] md:bg-[linear-gradient(90deg,rgba(250,247,242,0.96)_0%,rgba(250,247,242,0.89)_22%,rgba(250,247,242,0.68)_36%,rgba(250,247,242,0.3)_52%,rgba(250,247,242,0.1)_68%,rgba(250,247,242,0.03)_100%)]" />
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,hsl(136_22%_92%_/_0.08),transparent_22%),radial-gradient(circle_at_bottom_left,hsl(42_31%_95%_/_0.05),transparent_26%)] sm:bg-[radial-gradient(circle_at_top_left,hsl(136_22%_92%_/_0.14),transparent_24%),radial-gradient(circle_at_bottom_left,hsl(42_31%_95%_/_0.1),transparent_28%)] md:bg-[radial-gradient(circle_at_top_left,hsl(136_22%_92%_/_0.38),transparent_24%),radial-gradient(circle_at_bottom_left,hsl(42_31%_95%_/_0.24),transparent_28%)]" />
         <img
           src={leafDecor}
           alt=""
@@ -42,7 +42,7 @@ const HeroSection = () => (
           <div className="mx-auto max-w-7xl px-4 pt-12 sm:px-6 sm:pt-14 md:px-8 md:pt-14 lg:px-10 lg:pt-14">
             <div className="pl-2 text-left sm:pl-4 md:pl-6 lg:pl-8">
               <div className="inline-block">
-                <div className="relative z-10 origin-left -translate-x-[2.4rem] translate-y-3 rotate-[1.75deg] scale-[1.02] scale-x-[1.1] scale-y-[1.18] sm:-translate-x-[3rem] sm:translate-y-4 sm:scale-[1.04] sm:scale-x-[1.12] sm:scale-y-[1.22] md:-translate-x-[5rem] md:translate-y-5 md:rotate-[1.5deg] md:scale-x-[1.18] md:scale-y-[1.24] lg:-translate-x-[6.25rem] lg:translate-y-6 lg:rotate-[1.5deg] lg:scale-x-[1.26] lg:scale-y-[1.3]">
+                <div className="relative z-10 origin-left translate-x-[0.35rem] translate-y-2 rotate-[1.15deg] scale-[1.01] scale-x-[1.02] scale-y-[1.06] sm:translate-x-[0.15rem] sm:translate-y-3 sm:scale-[1.02] sm:scale-x-[1.04] sm:scale-y-[1.1] md:-translate-x-[0.95rem] md:translate-y-5 md:rotate-[1.2deg] md:scale-x-[1.1] md:scale-y-[1.16] lg:-translate-x-[1.35rem] lg:translate-y-6 lg:rotate-[1.15deg] lg:scale-x-[1.14] lg:scale-y-[1.2]">
                   <WellnessLogo variant="hero" />
                 </div>
               </div>

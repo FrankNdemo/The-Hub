@@ -11,6 +11,7 @@ interface PageHeaderProps {
   children?: ReactNode;
   backgroundImage?: string;
   backgroundPosition?: CSSProperties["objectPosition"];
+  backgroundImageClassName?: string;
   descriptionClassName?: string;
   contentClassName?: string;
 }
@@ -22,6 +23,7 @@ const PageHeader = ({
   children,
   backgroundImage,
   backgroundPosition = "center",
+  backgroundImageClassName,
   descriptionClassName,
   contentClassName,
 }: PageHeaderProps) => {
@@ -46,8 +48,8 @@ const PageHeader = ({
                 src={backgroundImage}
                 alt=""
                 aria-hidden="true"
-                className="absolute inset-0 h-full w-full object-cover"
-                style={{ objectPosition: backgroundPosition }}
+                className={cn("absolute inset-0 h-full w-full object-cover", backgroundImageClassName)}
+                style={backgroundImageClassName ? undefined : { objectPosition: backgroundPosition }}
               />
               <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(17,29,25,0.62),rgba(17,29,25,0.38),rgba(17,29,25,0.72))]" />
               <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,hsl(190_18%_78%_/_0.16),transparent_34%),radial-gradient(circle_at_bottom_left,hsl(145_23%_28%_/_0.32),transparent_32%)]" />

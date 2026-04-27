@@ -27,18 +27,24 @@ import {
 const featuredServices = [
   {
     image: servicePageIndividualImage,
+    imageAlt: "A Black male client speaking with a therapist during an individual counseling session",
     title: "Individual Therapy",
     description: "One-on-one support for anxiety, stress, depression, burnout, and emotional growth using a calm, collaborative pace.",
+    imageClassName: "object-[center_42%] sm:object-[center_48%] lg:object-[center_54%]",
   },
   {
     image: servicePageFamilyImage,
+    imageAlt: "An African couple sharing a calm and connected moment together on a couch at home",
     title: "Family and Relationship Support",
     description: "Guided sessions that improve communication, reduce tension, and help families reconnect with more empathy.",
+    imageClassName: "object-[center_40%] sm:object-[center_46%] lg:object-[center_52%]",
   },
   {
     image: servicePageSpecializedImage,
+    imageAlt: "A Black male client sitting on a couch and talking with a therapist in a bright office",
     title: "Specialized Therapeutic Care",
     description: "Focused support for trauma, neurodivergence, grief, oncopsychology, LGBTQ+ wellbeing, and existential concerns.",
+    imageClassName: "object-[center_48%] sm:object-[center_52%] lg:object-[center_56%]",
   },
 ];
 
@@ -63,7 +69,7 @@ const ServicesPage = () => (
       title="Our Services"
       contentClassName="pt-6 sm:pt-8 lg:pt-10"
       descriptionClassName="mt-6 sm:mt-8"
-      description="“It’s okay to not be okay—but you don’t have to stay there.”"
+      description="It's okay to not be okay, but you don't have to stay there."
       detailLabel="What to expect"
       detailItems={[
         "Virtual and in-person sessions tailored to real life.",
@@ -72,15 +78,31 @@ const ServicesPage = () => (
       ]}
       backgroundImage={pageHeaderBackgrounds.services.src}
       backgroundPosition={pageHeaderBackgrounds.services.position}
+      backgroundImageClassName={pageHeaderBackgrounds.services.className}
     />
 
     <section className="pb-16">
       <div className="container mx-auto px-4">
+        <div className="mx-auto mb-10 max-w-4xl text-center">
+          <p className="text-base leading-8 text-muted-foreground md:text-[1.02rem]">
+            Life gets heavy sometimes.but Our services are here to help you unpack, heal, and grow at your pace, in your
+            way with Real support. Real change. Explore services designed to help you heal, grow, and take back
+            control of your life.
+          </p>
+        </div>
+
         <div className="grid gap-6 lg:grid-cols-3">
           {featuredServices.map((service) => (
             <div key={service.title} className="overflow-hidden rounded-[2rem] border border-border/60 bg-card shadow-card">
               <div className="h-60 overflow-hidden">
-                <img src={service.image} alt={service.title} className="h-full w-full object-cover transition-transform duration-500 hover:scale-105" />
+                <img
+                  src={service.image}
+                  alt={service.imageAlt}
+                  loading="lazy"
+                  className={`h-full w-full object-cover transition-transform duration-500 hover:scale-105 ${
+                    service.imageClassName ?? ""
+                  }`}
+                />
               </div>
               <div className="wellness-panel p-6 text-center lg:text-left">
                 <h2 className="font-heading text-3xl font-semibold text-foreground">{service.title}</h2>

@@ -33,6 +33,7 @@ import type { BookingRecord, ServiceType, SessionType } from "@/types/wellness";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import LeafBannerHeading from "@/components/LeafBannerHeading";
 import ScrollReveal from "@/components/ScrollReveal";
 import { Textarea } from "@/components/ui/textarea";
 
@@ -219,11 +220,14 @@ const BookingSection = () => {
         <div className="mx-auto max-w-6xl">
           <div className="grid gap-12 lg:grid-cols-[0.9fr_1.1fr]">
             <ScrollReveal direction="left">
-            <div className="wellness-panel rounded-[2rem] border border-border/60 p-6 text-center shadow-card sm:p-8 lg:text-left">
-              <p className="text-sm font-semibold uppercase tracking-[0.24em] text-primary/75">Booking Flow</p>
-              <h2 className="mt-4 font-heading text-4xl font-semibold text-foreground md:text-5xl">
-                Book your first session with confidence.
-              </h2>
+            <div className="wellness-panel overflow-hidden rounded-[2rem] border border-border/60 p-6 text-center shadow-card sm:p-8 lg:text-left">
+              <LeafBannerHeading
+                eyebrow="Booking Flow"
+                title="Book your first session with confidence."
+                className="-mx-6 -mt-6 sm:-mx-8 sm:-mt-8"
+                innerClassName="px-6 py-6 sm:px-8 sm:py-7"
+                titleClassName="text-4xl md:text-5xl"
+              />
               <p className="mt-4 max-w-lg text-muted-foreground leading-8">
                 Choose your therapist, pick a session format, and receive a private link that lets you reschedule or
                 cancel later without needing an account.
@@ -392,18 +396,16 @@ const BookingSection = () => {
                   </div>
                 </div>
               ) : (
-                <form onSubmit={handleSubmit} className="rounded-[2rem] border border-border/60 bg-card p-6 shadow-card sm:p-8">
-                  <div className="flex flex-col items-center gap-3 text-center sm:flex-row sm:items-center sm:text-left">
-                    <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-primary/10 text-primary">
-                      <Clock3 className="h-5 w-5" />
-                    </div>
-                    <div>
-                      <h3 className="font-heading text-3xl font-semibold text-foreground">Schedule your appointment</h3>
-                      <p className="text-sm text-muted-foreground">
-                        Select your preferred details and we will prepare the confirmation package immediately.
-                      </p>
-                    </div>
-                  </div>
+                <form onSubmit={handleSubmit} className="overflow-hidden rounded-[2rem] border border-border/60 bg-card p-6 shadow-card sm:p-8">
+                  <LeafBannerHeading
+                    title="Schedule your appointment"
+                    titleTag="h3"
+                    description="Select your preferred details and we will prepare the confirmation package immediately."
+                    className="-mx-6 -mt-6 sm:-mx-8 sm:-mt-8"
+                    innerClassName="px-6 py-6 sm:px-8 sm:py-7"
+                    titleClassName="text-3xl"
+                    descriptionClassName="max-w-none"
+                  />
 
                   <div className="mt-8 grid gap-5 sm:grid-cols-2">
                     <div className="sm:col-span-2">

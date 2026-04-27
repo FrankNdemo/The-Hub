@@ -4,6 +4,7 @@ import { Link } from "react-router-dom";
 import { toast } from "sonner";
 
 import Footer from "@/components/Footer";
+import LeafBannerHeading from "@/components/LeafBannerHeading";
 import ScrollReveal from "@/components/ScrollReveal";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -105,9 +106,13 @@ const ExplorationCallPage = () => {
               <ScrollReveal direction="left">
                 <div className="wellness-section-surface px-6 py-8 sm:px-8 lg:px-10 lg:py-10">
                   <p className="text-sm font-semibold uppercase tracking-[0.24em] text-primary/75">Exploration Call</p>
-                  <h1 className="mt-4 font-heading text-4xl font-semibold text-foreground md:text-[3.2rem]">
-                    A short first call to help you choose the right support.
-                  </h1>
+                  <LeafBannerHeading
+                    title="A short first call to help you choose the right support."
+                    titleTag="h1"
+                    className="-mx-6 mt-4 sm:-mx-8 lg:-mx-10"
+                    innerClassName="px-6 py-4 sm:px-8 sm:py-5 lg:px-10"
+                    titleClassName="text-[1.95rem] sm:text-[2.15rem] md:text-[2.55rem]"
+                  />
                   <p className="mt-5 max-w-2xl text-base leading-8 text-muted-foreground">
                     An exploration call works like a gentle first request. You share what kind of support you may need,
                     suggest a suitable time, and the therapist follows up directly to decide the best next step with
@@ -263,18 +268,15 @@ const ExplorationCallPage = () => {
               </div>
             ) : (
               <ScrollReveal direction="up">
-                <form onSubmit={handleSubmit} className="rounded-[2rem] border border-border/60 bg-card p-6 shadow-card sm:p-8">
-                  <div className="flex flex-col items-center gap-3 text-center sm:flex-row sm:items-center sm:text-left">
-                    <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-primary/10 text-primary">
-                      <CalendarClock className="h-5 w-5" />
-                    </div>
-                    <div>
-                      <h2 className="font-heading text-3xl font-semibold text-foreground">Book your exploration call</h2>
-                      <p className="text-sm text-muted-foreground">
-                        Simple, private, and separate from the full therapy session booking flow.
-                      </p>
-                    </div>
-                  </div>
+                <form onSubmit={handleSubmit} className="overflow-hidden rounded-[2rem] border border-border/60 bg-card p-6 shadow-card sm:p-8">
+                  <LeafBannerHeading
+                    title="Book your exploration call"
+                    description="Simple, private, and separate from the full therapy session booking flow."
+                    className="-mx-6 -mt-6 sm:-mx-8 sm:-mt-8"
+                    innerClassName="px-6 py-6 sm:px-8 sm:py-7"
+                    titleClassName="text-3xl"
+                    descriptionClassName="max-w-none"
+                  />
 
                   <div className="mt-8 grid gap-5 lg:grid-cols-[1.05fr_0.95fr]">
                     <div className="space-y-5">

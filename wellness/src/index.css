@@ -152,6 +152,32 @@
     animation: glowPulse 4s ease-in-out infinite;
   }
 
+  .animate-menu-sheet-in {
+    animation: menuSheetIn 0.14s cubic-bezier(0.2, 0.9, 0.2, 1) forwards;
+  }
+
+  .animate-menu-sheet-out {
+    animation: menuSheetOut 0.12s cubic-bezier(0.4, 0, 1, 1) forwards;
+  }
+
+  .animate-menu-links-curtain-in {
+    transform-origin: top center;
+    animation: menuLinksCurtainIn 0.16s cubic-bezier(0.2, 0.9, 0.2, 1) forwards;
+  }
+
+  .animate-menu-links-curtain-out {
+    transform-origin: top center;
+    animation: menuLinksCurtainOut 0.12s cubic-bezier(0.4, 0, 1, 1) forwards;
+  }
+
+  .animate-menu-link-in {
+    animation: menuLinkDropIn 0.16s cubic-bezier(0.2, 0.9, 0.2, 1) both;
+  }
+
+  .animate-menu-link-out {
+    animation: menuLinkLiftOut 0.1s cubic-bezier(0.4, 0, 1, 1) both;
+  }
+
   .animation-delay-200 { animation-delay: 0.2s; }
   .animation-delay-400 { animation-delay: 0.4s; }
   .animation-delay-600 { animation-delay: 0.6s; }
@@ -224,4 +250,76 @@
 @keyframes glowPulse {
   0%, 100% { box-shadow: 0 0 0 0 hsl(var(--primary) / 0.08); }
   50% { box-shadow: 0 0 0 12px hsl(var(--primary) / 0); }
+}
+
+@keyframes menuSheetIn {
+  from {
+    opacity: 0.5;
+    clip-path: inset(0 0 100% 0);
+    transform: translateY(-0.9rem);
+  }
+
+  to {
+    opacity: 1;
+    clip-path: inset(0 0 0 0);
+    transform: translateY(0);
+  }
+}
+
+@keyframes menuSheetOut {
+  from {
+    opacity: 1;
+    clip-path: inset(0 0 0 0);
+    transform: translateY(0);
+  }
+
+  to {
+    opacity: 0.36;
+    clip-path: inset(0 0 100% 0);
+    transform: translateY(-0.75rem);
+  }
+}
+
+@keyframes menuLinksCurtainIn {
+  from {
+    clip-path: inset(0 0 100% 0 round 0.5rem);
+  }
+
+  to {
+    clip-path: inset(0 0 0 0 round 0.5rem);
+  }
+}
+
+@keyframes menuLinksCurtainOut {
+  from {
+    clip-path: inset(0 0 0 0 round 0.5rem);
+  }
+
+  to {
+    clip-path: inset(0 0 100% 0 round 0.5rem);
+  }
+}
+
+@keyframes menuLinkDropIn {
+  from {
+    opacity: 0;
+    transform: translateY(-0.55rem);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes menuLinkLiftOut {
+  from {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  to {
+    opacity: 0;
+    transform: translateY(-0.5rem);
+  }
 }

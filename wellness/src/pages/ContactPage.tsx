@@ -4,6 +4,7 @@ import { toast } from "sonner";
 
 import Footer from "@/components/Footer";
 import FAQSection from "@/components/FAQSection";
+import LeafBannerHeading from "@/components/LeafBannerHeading";
 import PageHeader from "@/components/PageHeader";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -15,10 +16,22 @@ import { pageHeaderBackgrounds, softPageBackgroundStyle } from "@/lib/pageBackgr
 const ContactPage = () => {
   const { therapist } = useWellnessHub();
   const [sent, setSent] = useState(false);
+  const mapArea = therapist.location[0] ?? "Nairobi, Westlands";
+  const locationLines = [...therapist.location.slice(1), mapArea];
+  const mapQuery = [...therapist.location.slice(1), mapArea].join(", ");
+  const mapHref = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(mapQuery)}`;
   const phoneHref = `tel:${therapist.phone.replace(/[^\d+]/g, "")}`;
   const emailHref = `mailto:${therapist.email}`;
   const contactItems = [
-    { icon: MapPin, title: "Location", lines: therapist.location },
+    {
+      icon: MapPin,
+      title: "Location",
+      lines: locationLines,
+      href: mapHref,
+      target: "_blank",
+      rel: "noreferrer",
+      actionLabel: "Open in Google Maps",
+    },
     { icon: Phone, title: "Phone", lines: [therapist.phone], href: phoneHref, actionLabel: "Tap to call" },
     {
       icon: Mail,
@@ -58,8 +71,13 @@ const ContactPage = () => {
           <div className="mx-auto grid max-w-6xl gap-8 lg:grid-cols-[0.9fr_1.1fr]">
             <div className="space-y-5">
               <div className="text-center lg:text-left">
-                <p className="text-sm font-semibold uppercase tracking-[0.24em] text-primary/75">Contact details</p>
-                <h2 className="mt-4 font-heading text-4xl font-semibold text-foreground">Everything you need in one place</h2>
+                <LeafBannerHeading
+                  eyebrow="Contact details"
+                  title="Everything you need in one place"
+                  className="w-full"
+                  innerClassName="px-6 py-6 sm:px-7 sm:py-7"
+                  titleClassName="text-4xl"
+                />
                 <p className="mt-4 text-muted-foreground leading-8">
                   Prefer a direct route? Call, email, or visit the centre. We keep the process calm and clear from the
                   first contact.
@@ -117,11 +135,17 @@ const ContactPage = () => {
 
             <div
               id="contact-message-area"
-              className="scroll-mt-28 rounded-[2rem] border border-border/60 bg-card p-6 shadow-card sm:p-8"
+              className="scroll-mt-28 overflow-hidden rounded-[2rem] border border-border/60 bg-card p-6 shadow-card sm:p-8"
             >
               <div className="text-center">
-                <p className="text-sm font-semibold uppercase tracking-[0.24em] text-primary/75">Send us a message</p>
-                <h2 className="mt-4 font-heading text-4xl font-semibold text-foreground">We would love to hear from you</h2>
+                <LeafBannerHeading
+                  eyebrow="Send us a message"
+                  title="We would love to hear from you"
+                  align="center"
+                  className="-mx-6 -mt-6 sm:-mx-8 sm:-mt-8"
+                  innerClassName="px-6 py-6 sm:px-8 sm:py-7"
+                  titleClassName="text-4xl"
+                />
                 <p className="mx-auto mt-4 max-w-2xl text-muted-foreground leading-8">
                   Share a question, tell us what support you are looking for, or ask for help choosing a first step.
                 </p>

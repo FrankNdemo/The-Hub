@@ -3,9 +3,6 @@ import { Link } from "react-router-dom";
 import { ArrowRight, CalendarClock, Eye, Leaf, Lock, Quote, ShieldCheck, Sun, Video } from "lucide-react";
 
 import aboutImg from "@/assets/about-therapy.jpg";
-import approachImg from "@/assets/about-approach-session.jpg";
-import descriptionImg from "@/assets/about-approach-therapy.jpg";
-import ctaImg from "@/assets/cta-therapy.jpg";
 import leafDecor from "@/assets/leaf-decoration.png";
 import Footer from "@/components/Footer";
 import FAQSection from "@/components/FAQSection";
@@ -16,6 +13,8 @@ import { Button } from "@/components/ui/button";
 import { useWellnessHub } from "@/context/WellnessHubContext";
 import {
   familyServiceImage,
+  homeSpecializedSupportImage,
+  homepageApproachImage,
   individualServiceImage,
 } from "@/lib/serviceImages";
 
@@ -43,25 +42,33 @@ const whyChooseUs = [
 ];
 
 const homepageAwarenessImage =
-  "https://images.pexels.com/photos/9064323/pexels-photo-9064323.jpeg?auto=compress&cs=tinysrgb&w=1800&h=980&fit=crop";
-const homepageSpecializedSupportImage =
-  "https://images.pexels.com/photos/23495763/pexels-photo-23495763.jpeg?auto=compress&cs=tinysrgb&w=1400&h=900&fit=crop";
+  "https://images.pexels.com/photos/7979455/pexels-photo-7979455.jpeg?auto=compress&cs=tinysrgb&w=1800&h=980&fit=crop";
+const homepageCtaImage =
+  "https://images.pexels.com/photos/7275311/pexels-photo-7275311.jpeg?auto=compress&cs=tinysrgb&w=1800&h=1200&fit=crop";
+const homepageCloserLookImage =
+  "https://images.pexels.com/photos/33837391/pexels-photo-33837391.jpeg?auto=compress&cs=tinysrgb&w=1400&h=1200&fit=crop";
 
 const featuredServices = [
   {
     image: individualServiceImage,
+    imageAlt: "A Black woman in a calm one-on-one therapy session with a counselor in a bright office",
     title: "Individual Therapy",
     description: "Gentle, evidence-based support for anxiety, stress, depression, and personal growth.",
+    imageClassName: "object-[center_46%] sm:object-[center_50%] lg:object-[center_54%]",
   },
   {
     image: familyServiceImage,
+    imageAlt: "A calm Black family sharing time together in a bright living room setting",
     title: "Family and Adolescent Care",
     description: "Guided support for communication, emotional regulation, transitions, and healthier family dynamics.",
+    imageClassName: "object-[center_36%] sm:object-[center_42%] lg:object-[center_48%]",
   },
   {
-    image: homepageSpecializedSupportImage,
+    image: homeSpecializedSupportImage,
+    imageAlt: "An African male client speaking during a therapy session with a clinician seated opposite him",
     title: "Specialized Wellness Support",
     description: "Thoughtful care for trauma, grief, neurodivergence, oncopsychology, LGBTQ+ wellbeing, and more.",
+    imageClassName: "object-[center_44%] sm:object-[center_50%] lg:object-[center_56%]",
   },
 ];
 
@@ -71,21 +78,21 @@ const testimonials = [
     name: "Sarah M.",
     role: "Individual Therapy Client",
     image:
-      "https://images.pexels.com/photos/30774977/pexels-photo-30774977.jpeg?cs=srgb&dl=pexels-kevinshrmasc-30774977.jpg&fm=jpg&w=240&h=240&fit=crop&crop=faces",
+      "https://images.pexels.com/photos/17746102/pexels-photo-17746102.jpeg?auto=compress&cs=tinysrgb&w=240&h=240&fit=crop&crop=faces",
   },
   {
     text: "Our family conversations feel softer now. We are listening more, reacting less, and reconnecting in healthier ways.",
     name: "James K.",
     role: "Family Therapy Client",
     image:
-      "https://images.pexels.com/photos/30767572/pexels-photo-30767572.jpeg?cs=srgb&dl=pexels-uiliamnornberg-30767572.jpg&fm=jpg&w=240&h=240&fit=crop&crop=faces",
+      "https://images.pexels.com/photos/19379640/pexels-photo-19379640.jpeg?auto=compress&cs=tinysrgb&w=240&h=240&fit=crop&crop=faces",
   },
   {
     text: "The sessions brought clarity to our workplace wellbeing strategy and gave our team practical emotional support.",
     name: "Aisha N.",
     role: "Corporate Wellness Client",
     image:
-      "https://images.pexels.com/photos/20603310/pexels-photo-20603310.jpeg?cs=srgb&dl=pexels-byb-byb-412101727-20603310.jpg&fm=jpg&w=240&h=240&fit=crop&crop=faces",
+      "https://images.pexels.com/photos/18500501/pexels-photo-18500501.jpeg?auto=compress&cs=tinysrgb&w=240&h=240&fit=crop&crop=faces",
   },
 ];
 
@@ -190,11 +197,11 @@ const Index = () => {
           <div className="relative overflow-hidden rounded-none border-y border-border/60 shadow-card sm:rounded-[2.4rem] sm:border" data-nav-theme="inverse">
             <img
               src={homepageAwarenessImage}
-              alt="Calm therapy conversation in a bright modern room"
+              alt="A woman speaking with an African man and woman in a bright, supportive office conversation"
               loading="lazy"
-              className="absolute inset-0 h-full w-full object-cover object-[center_28%]"
+              className="absolute inset-0 h-full w-full object-cover object-[center_50%] sm:object-[center_50%] lg:object-[center_54%]"
             />
-            <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(22,39,34,0.72),rgba(22,39,34,0.44),rgba(22,39,34,0.68))]" />
+            <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(22,39,34,0.64),rgba(22,39,34,0.32),rgba(22,39,34,0.58))]" />
             <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,hsl(136_22%_90%_/_0.16),transparent_34%)]" />
 
             <div className="relative z-10 mx-auto flex min-h-[26rem] max-w-3xl flex-col items-center justify-center px-6 py-12 text-center sm:min-h-[30rem] sm:px-10">
@@ -270,8 +277,11 @@ const Index = () => {
                 <div className="h-60 overflow-hidden">
                   <img
                     src={service.image}
-                    alt={service.title}
-                    className="h-full w-full object-cover transition-transform duration-500 hover:scale-105"
+                    alt={service.imageAlt}
+                    loading="lazy"
+                    className={`h-full w-full object-cover transition-transform duration-500 hover:scale-105 ${
+                      service.imageClassName ?? ""
+                    }`}
                   />
                 </div>
                 <div className="wellness-panel p-6 text-center lg:text-left">
@@ -306,7 +316,7 @@ const Index = () => {
                   src={therapist.image}
                   alt={therapist.name}
                   loading="lazy"
-                  className="h-44 w-full object-cover object-top"
+                  className="h-44 w-full object-cover object-[center_18%]"
                 />
               </div>
               <div className="p-5 text-center">
@@ -333,13 +343,13 @@ const Index = () => {
         <ScrollReveal direction="right">
           <div className="relative overflow-hidden border-y border-border/60 px-4 py-6 shadow-card sm:px-6 sm:py-8 lg:px-8 lg:py-10">
             <img
-              src={approachImg}
+              src={homepageApproachImage}
               alt=""
               aria-hidden="true"
-              className="absolute inset-0 h-full w-full object-cover object-[center_32%] opacity-70 contrast-[1.04] saturate-[1.03]"
+              className="absolute inset-0 h-full w-full object-cover object-[center_44%] opacity-[0.97] brightness-[0.99] contrast-[1.04] saturate-[1.02] sm:object-[center_50%] lg:object-[center_56%]"
             />
-            <div className="absolute inset-0 bg-[linear-gradient(180deg,hsl(42_31%_98%_/_0.74),hsl(42_31%_98%_/_0.34),hsl(42_31%_97%_/_0.62))]" />
-            <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,hsl(42_31%_99%_/_0.32),transparent_40%)]" />
+            <div className="absolute inset-0 bg-[linear-gradient(180deg,hsl(42_31%_98%_/_0.48),hsl(42_31%_98%_/_0.14),hsl(42_31%_97%_/_0.4))]" />
+            <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,hsl(42_31%_99%_/_0.22),transparent_40%)]" />
 
             <img
               src={leafDecor}
@@ -437,11 +447,11 @@ const Index = () => {
         <ScrollReveal direction="up">
           <div className="relative min-h-[100svh] overflow-hidden shadow-hover md:min-h-0 md:rounded-[2.5rem]" data-nav-theme="inverse">
             <img
-              src={ctaImg}
-              alt="Therapy session"
-              className="h-[100svh] w-full object-cover object-[72%_22%] sm:h-[540px] sm:object-[76%_center] md:h-[560px] md:object-center"
+              src={homepageCtaImage}
+              alt="A calm Black woman seated on a sofa near indoor plants in a bright wellness-inspired room"
+              className="h-[100svh] w-full object-cover object-[56%_50%] brightness-[1.04] contrast-[1.04] saturate-[1.03] sm:h-[540px] sm:object-[54%_44%] md:h-[560px] md:object-[52%_40%]"
             />
-            <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(26,37,31,0.5),rgba(26,37,31,0.56))] sm:bg-foreground/45" />
+            <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(26,37,31,0.24),rgba(26,37,31,0.34))] sm:bg-[linear-gradient(180deg,rgba(26,37,31,0.2),rgba(26,37,31,0.3))]" />
             <div className="absolute inset-0 flex items-center justify-center px-6 text-center md:px-8">
               <div className="mx-auto flex w-full max-w-3xl flex-col items-center">
                 <p className="text-sm font-semibold uppercase tracking-[0.28em] text-primary-foreground/70">
@@ -511,10 +521,10 @@ const Index = () => {
             <div className="mt-10 grid gap-6 lg:grid-cols-[1.08fr_0.92fr] lg:items-stretch">
               <div className="overflow-hidden rounded-[2.4rem] border border-border/60 bg-card shadow-card">
                 <img
-                  src={descriptionImg}
-                  alt="Therapist offering warm support during a calm session"
+                  src={homepageCloserLookImage}
+                  alt="Portrait of an African woman in a calm indoor setting"
                   loading="lazy"
-                  className="h-full min-h-[20rem] w-full object-cover object-center md:min-h-[24rem]"
+                  className="h-full min-h-[20rem] w-full object-cover object-[center_24%] md:min-h-[24rem]"
                 />
               </div>
 

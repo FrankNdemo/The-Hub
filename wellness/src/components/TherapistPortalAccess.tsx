@@ -224,8 +224,8 @@ const TherapistPortalAccess = () => {
       )}
 
       <Dialog open={loginOpen} onOpenChange={handleDialogChange}>
-        <DialogContent className="max-w-md rounded-[1.75rem] border-border/60 p-0">
-          <div className="rounded-[1.75rem] bg-gradient-to-br from-secondary/70 via-background to-background p-7">
+        <DialogContent className="w-[calc(100vw-1rem)] max-w-[44rem] max-h-[calc(100dvh-1rem)] overflow-hidden rounded-[1.5rem] border-border/60 p-0 sm:rounded-[1.75rem]">
+          <div className="max-h-[calc(100dvh-1rem)] overflow-y-auto rounded-[inherit] bg-gradient-to-br from-secondary/70 via-background to-background p-5 sm:p-7">
             <DialogHeader>
               <div className="mb-4 inline-flex h-14 w-14 items-center justify-center rounded-2xl bg-primary/10 text-primary">
                 <ShieldCheck className="h-6 w-6" />
@@ -241,7 +241,7 @@ const TherapistPortalAccess = () => {
             </DialogHeader>
 
             {mode === "login" ? (
-              <form onSubmit={handleLogin} className="mt-6 space-y-5">
+              <form onSubmit={handleLogin} className="mt-5 space-y-4 sm:mt-6 sm:space-y-5">
                 <div>
                   <Label htmlFor="therapist-email">Email</Label>
                   <Input
@@ -281,49 +281,51 @@ const TherapistPortalAccess = () => {
                 </button>
               </form>
             ) : (
-              <form onSubmit={handlePasswordReset} className="mt-6 space-y-5">
-                <div>
-                  <Label htmlFor="forgot-email">Therapist email</Label>
-                  <Input
-                    id="forgot-email"
-                    type="email"
-                    value={email}
-                    onChange={(event) => setEmail(event.target.value)}
-                    className="mt-2"
-                    required
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="forgot-secret">Secret passphrase</Label>
-                  <Input
-                    id="forgot-secret"
-                    value={forgotSecret}
-                    onChange={(event) => setForgotSecret(event.target.value)}
-                    className="mt-2"
-                    required
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="reset-password">New password</Label>
-                  <Input
-                    id="reset-password"
-                    type="password"
-                    value={resetPassword}
-                    onChange={(event) => setResetPassword(event.target.value)}
-                    className="mt-2"
-                    required
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="confirm-reset-password">Confirm new password</Label>
-                  <Input
-                    id="confirm-reset-password"
-                    type="password"
-                    value={confirmResetPassword}
-                    onChange={(event) => setConfirmResetPassword(event.target.value)}
-                    className="mt-2"
-                    required
-                  />
+              <form onSubmit={handlePasswordReset} className="mt-5 space-y-4 sm:mt-6 sm:space-y-5">
+                <div className="grid gap-4 md:grid-cols-2">
+                  <div>
+                    <Label htmlFor="forgot-email">Therapist email</Label>
+                    <Input
+                      id="forgot-email"
+                      type="email"
+                      value={email}
+                      onChange={(event) => setEmail(event.target.value)}
+                      className="mt-2"
+                      required
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="forgot-secret">Secret passphrase</Label>
+                    <Input
+                      id="forgot-secret"
+                      value={forgotSecret}
+                      onChange={(event) => setForgotSecret(event.target.value)}
+                      className="mt-2"
+                      required
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="reset-password">New password</Label>
+                    <Input
+                      id="reset-password"
+                      type="password"
+                      value={resetPassword}
+                      onChange={(event) => setResetPassword(event.target.value)}
+                      className="mt-2"
+                      required
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="confirm-reset-password">Confirm new password</Label>
+                    <Input
+                      id="confirm-reset-password"
+                      type="password"
+                      value={confirmResetPassword}
+                      onChange={(event) => setConfirmResetPassword(event.target.value)}
+                      className="mt-2"
+                      required
+                    />
+                  </div>
                 </div>
                 {resetError ? <p className="text-sm text-destructive">{resetError}</p> : null}
                 <p className="text-sm leading-6 text-muted-foreground">
