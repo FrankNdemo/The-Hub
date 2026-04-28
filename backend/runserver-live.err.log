@@ -1,0 +1,30 @@
+Watching for file changes with StatReloader
+[28/Apr/2026 23:51:39] "GET /api/v1/public/therapist/ HTTP/1.1" 200 206010
+[28/Apr/2026 23:51:40] "GET /api/v1/blog/posts/ HTTP/1.1" 200 9408
+[28/Apr/2026 23:53:30] "OPTIONS /api/v1/bookings/precheck/ HTTP/1.1" 200 0
+[29/Apr/2026 00:14:02] "OPTIONS /api/v1/bookings/checkout/ HTTP/1.1" 200 0
+[29/Apr/2026 00:14:02] "OPTIONS /api/v1/bookings/checkout/ HTTP/1.1" 200 0
+C:\Users\CCS\Desktop\The-Hub\backend\apps\bookings\scheduling.py changed, reloading.
+Watching for file changes with StatReloader
+[29/Apr/2026 00:17:50] "OPTIONS /api/v1/bookings/precheck/ HTTP/1.1" 200 0
+Conflict: /api/v1/bookings/precheck/
+[29/Apr/2026 00:17:52] "POST /api/v1/bookings/precheck/ HTTP/1.1" 409 285
+[29/Apr/2026 00:19:31] "GET /api/v1/blog/posts/ HTTP/1.1" 200 9408
+[29/Apr/2026 00:19:31] "GET /api/v1/public/therapist/ HTTP/1.1" 200 206010
+Conflict: /api/v1/bookings/precheck/
+[29/Apr/2026 00:21:15] "POST /api/v1/bookings/precheck/ HTTP/1.1" 409 285
+Conflict: /api/v1/bookings/precheck/
+[29/Apr/2026 00:21:30] "POST /api/v1/bookings/precheck/ HTTP/1.1" 409 285
+[29/Apr/2026 00:22:18] "OPTIONS /api/v1/auth/verify-passphrase/ HTTP/1.1" 200 0
+[29/Apr/2026 00:22:24] "POST /api/v1/auth/verify-passphrase/ HTTP/1.1" 200 47
+[29/Apr/2026 00:22:31] "OPTIONS /api/v1/auth/login/ HTTP/1.1" 200 0
+Bad Request: /api/v1/auth/login/
+[29/Apr/2026 00:22:34] "POST /api/v1/auth/login/ HTTP/1.1" 400 45
+Bad Request: /api/v1/auth/login/
+[29/Apr/2026 00:22:45] "POST /api/v1/auth/login/ HTTP/1.1" 400 45
+[29/Apr/2026 00:33:06] "GET /api/v1/health/ HTTP/1.1" 200 15
+[29/Apr/2026 00:33:06,552] - Broken pipe from ('127.0.0.1', 53394)
+[29/Apr/2026 00:35:01] "POST /api/v1/bookings/precheck/ HTTP/1.1" 200 86
+[29/Apr/2026 00:35:40] "OPTIONS /api/v1/bookings/checkout/ HTTP/1.1" 200 0
+Bad Request: /api/v1/bookings/checkout/
+[29/Apr/2026 00:35:46] "POST /api/v1/bookings/checkout/ HTTP/1.1" 400 114

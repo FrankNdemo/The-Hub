@@ -6,6 +6,7 @@ import type {
   BookingInput,
   BookingJoinRecord,
   BookingPaymentRecord,
+  BookingPrecheckResponse,
   BookingRecord,
   NotificationItem,
   TherapistProfile,
@@ -31,6 +32,8 @@ const isLoopbackHost = (hostname: string) =>
   hostname === "::1" ||
   hostname === "[::1]";
 
+const isLocalLikeHost = (hostname: string) => isLoopbackHost(hostname) || isPrivateIpv4Host(hostname);
+
 const normalizeHostname = (hostname: string) => (hostname === "::1" ? "[::1]" : hostname);
 
 const buildApiBaseUrl = (hostname: string, protocol = "http:") =>
@@ -52,6 +55,19 @@ const parseStoredApiBaseUrl = (): string | null => {
   }
 };
 
+const getHostnameFromUrl = (value: string) => {
+  try {
+    return new URL(value).hostname;
+  } catch {
+    return "";
+  }
+};
+
+const isLocalOnlyApiBase = (value: string) => {
+  const hostname = getHostnameFromUrl(value);
+  return Boolean(hostname) && isLocalLikeHost(hostname);
+};
+
 const addApiBaseCandidate = (candidates: string[], candidate?: string | null) => {
   if (!candidate) {
     return;
@@ -66,20 +82,27 @@ const addApiBaseCandidate = (candidates: string[], candidate?: string | null) =>
 
 const getApiBaseCandidates = () => {
   const candidates: string[] = [];
+  let allowLocalCandidates = false;
 
   addApiBaseCandidate(candidates, getConfiguredApiBaseUrl());
 
   if (typeof window !== "undefined") {
     const { hostname, protocol } = window.location;
+    allowLocalCandidates = Boolean(hostname) && isLocalLikeHost(hostname);
 
-    if (hostname && (isLoopbackHost(hostname) || isPrivateIpv4Host(hostname))) {
+    if (allowLocalCandidates) {
       addApiBaseCandidate(candidates, buildApiBaseUrl(hostname, protocol));
     }
   }
 
-  addApiBaseCandidate(candidates, preferredApiBaseUrl);
-  addApiBaseCandidate(candidates, FALLBACK_API_BASE_URL);
-  addApiBaseCandidate(candidates, LOCALHOST_API_BASE_URL);
+  if (preferredApiBaseUrl && (!isLocalOnlyApiBase(preferredApiBaseUrl) || allowLocalCandidates)) {
+    addApiBaseCandidate(candidates, preferredApiBaseUrl);
+  }
+
+  if (allowLocalCandidates) {
+    addApiBaseCandidate(candidates, FALLBACK_API_BASE_URL);
+    addApiBaseCandidate(candidates, LOCALHOST_API_BASE_URL);
+  }
 
   return candidates;
 };
@@ -402,6 +425,10 @@ export const getApiErrorMessage = (error: unknown, fallback: string) => {
   }
 
   if (error instanceof Error && isLikelyNetworkErrorMessage(error.message)) {
+    if (typeof window !== "undefined" && !isLocalLikeHost(window.location.hostname) && !getConfiguredApiBaseUrl()) {
+      return "This deployed frontend is missing VITE_API_BASE_URL. Point it to your backend /api/v1 URL, then confirm that origin is allowed in Django CORS.";
+    }
+
     return "Unable to reach the wellness API. Check that the Django server is running and that this frontend origin is allowed in CORS.";
   }
 
@@ -452,6 +479,16 @@ export const fetchPublicBlogPosts = () =>
 export const createBooking = (input: BookingInput) =>
   request<BookingRecord>(
     "/bookings/",
+    {
+      method: "POST",
+      body: JSON.stringify(input),
+    },
+    { auth: false },
+  );
+
+export const precheckBooking = (input: BookingInput) =>
+  request<BookingPrecheckResponse>(
+    "/bookings/precheck/",
     {
       method: "POST",
       body: JSON.stringify(input),

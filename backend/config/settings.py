@@ -34,17 +34,28 @@ def load_env_file(path: Path) -> None:
 load_env_file(BASE_DIR / ".env")
 
 
+def clean_env_value(value: str | None) -> str:
+    if value is None:
+        return ""
+
+    cleaned = value.strip()
+    if len(cleaned) >= 2 and cleaned[0] == cleaned[-1] and cleaned[0] in {'"', "'"}:
+        cleaned = cleaned[1:-1].strip()
+
+    return cleaned
+
+
 def env(key: str, default: str = "") -> str:
-    return os.getenv(key, default)
+    return clean_env_value(os.getenv(key, default))
 
 
 def env_any(*keys: str, default: str = "") -> str:
     for key in keys:
-        value = os.getenv(key)
+        value = clean_env_value(os.getenv(key))
         if value:
             return value
 
-    return default
+    return clean_env_value(default)
 
 
 def env_list(key: str, default: str = "") -> list[str]:
@@ -323,13 +334,17 @@ BREVO_API_KEY = env("BREVO_API_KEY", "")
 BREVO_API_URL = env("BREVO_API_URL", "https://api.brevo.com/v3/smtp/email")
 BREVO_API_TIMEOUT = int(env("BREVO_API_TIMEOUT", "30") or "30")
 
-MPESA_ENVIRONMENT = env("MPESA_ENVIRONMENT", "sandbox").strip().lower()
+MPESA_ENVIRONMENT = env_any("MPESA_ENVIRONMENT", "MPESA_ENV", default="sandbox").strip().lower()
+if MPESA_ENVIRONMENT == "live":
+    MPESA_ENVIRONMENT = "production"
+elif MPESA_ENVIRONMENT == "test":
+    MPESA_ENVIRONMENT = "sandbox"
 MPESA_BASE_URL = env("MPESA_BASE_URL", "").strip()
 MPESA_CONSUMER_KEY = env("MPESA_CONSUMER_KEY", "").strip()
 MPESA_CONSUMER_SECRET = env("MPESA_CONSUMER_SECRET", "").strip()
-MPESA_SHORTCODE = env("MPESA_SHORTCODE", "").strip()
+MPESA_SHORTCODE = env_any("MPESA_SHORTCODE", "MPESA_BUSINESS_SHORTCODE", default="").strip()
 MPESA_PASSKEY = env("MPESA_PASSKEY", "").strip()
-MPESA_PARTYB = env("MPESA_PARTYB", "").strip()
+MPESA_PARTYB = env_any("MPESA_PARTYB", "MPESA_BUSINESS_SHORTCODE", default="").strip()
 MPESA_CALLBACK_URL = env("MPESA_CALLBACK_URL", "").strip()
 MPESA_TRANSACTION_TYPE = env("MPESA_TRANSACTION_TYPE", "CustomerPayBillOnline").strip()
 MPESA_ACCOUNT_REFERENCE = env("MPESA_ACCOUNT_REFERENCE", "THE HUB").strip()

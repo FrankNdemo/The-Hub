@@ -109,6 +109,34 @@ def parse_json_response(response) -> dict[str, object]:
     return json.loads(body)
 
 
+def get_missing_mpesa_configuration_fields() -> list[str]:
+    missing_fields: list[str] = []
+    required_fields = [
+        ("MPESA_CONSUMER_KEY", settings.MPESA_CONSUMER_KEY),
+        ("MPESA_CONSUMER_SECRET", settings.MPESA_CONSUMER_SECRET),
+        ("MPESA_SHORTCODE (or MPESA_BUSINESS_SHORTCODE)", settings.MPESA_SHORTCODE),
+        ("MPESA_PASSKEY", settings.MPESA_PASSKEY),
+        ("MPESA_CALLBACK_URL", settings.MPESA_CALLBACK_URL),
+    ]
+
+    for label, value in required_fields:
+        if not str(value).strip():
+            missing_fields.append(label)
+
+    return missing_fields
+
+
+def raise_for_missing_mpesa_configuration() -> None:
+    missing_fields = get_missing_mpesa_configuration_fields()
+    if not missing_fields:
+        return
+
+    raise BookingPaymentError(
+        "M-Pesa is missing required Daraja configuration values: " + ", ".join(missing_fields) + ".",
+        code="mpesa_not_configured",
+    )
+
+
 def request_json(url: str, *, method: str = "GET", headers: dict[str, str] | None = None, payload=None) -> dict[str, object]:
     body = None if payload is None else json.dumps(payload).encode("utf-8")
     request = urllib_request.Request(url, data=body, headers=headers or {}, method=method)
@@ -129,14 +157,9 @@ def request_json(url: str, *, method: str = "GET", headers: dict[str, str] | Non
 
 
 def get_access_token() -> str:
+    raise_for_missing_mpesa_configuration()
     consumer_key = settings.MPESA_CONSUMER_KEY.strip()
     consumer_secret = settings.MPESA_CONSUMER_SECRET.strip()
-
-    if not consumer_key or not consumer_secret:
-        raise BookingPaymentError(
-            "M-Pesa is not configured yet. Add Daraja credentials before processing live payments.",
-            code="mpesa_not_configured",
-        )
 
     token_url = f"{get_mpesa_base_url()}/oauth/v1/generate?grant_type=client_credentials"
     credentials = base64.b64encode(f"{consumer_key}:{consumer_secret}".encode("utf-8")).decode("utf-8")
@@ -249,17 +272,7 @@ def initiate_stk_push(booking: Booking, phone_number: str) -> MpesaStkPushRespon
     if settings.MPESA_SIMULATE_PAYMENTS:
         return initiate_simulated_stk_push(booking, phone_number)
 
-    missing_fields = [
-        field
-        for field in ["MPESA_SHORTCODE", "MPESA_PASSKEY", "MPESA_CALLBACK_URL"]
-        if not getattr(settings, field, "").strip()
-    ]
-    if missing_fields:
-        raise BookingPaymentError(
-            "M-Pesa is missing required Daraja configuration values.",
-            code="mpesa_not_configured",
-        )
-
+    raise_for_missing_mpesa_configuration()
     access_token = get_access_token()
     timestamp = get_mpesa_timestamp()
     payload = {

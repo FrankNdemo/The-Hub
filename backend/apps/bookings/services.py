@@ -65,6 +65,16 @@ def get_payment_hold_expiry(now=None):
     return current_time + timedelta(minutes=settings.BOOKING_PAYMENT_HOLD_MINUTES)
 
 
+def validate_booking_request(*, therapist, data: dict, exclude_booking: Booking | None = None) -> None:
+    ensure_client_can_book(client_email=data["client_email"], exclude_booking=exclude_booking)
+    ensure_slot_is_available(
+        therapist=therapist,
+        day=data["date"],
+        slot_time=data["time"],
+        exclude_booking=exclude_booking,
+    )
+
+
 def build_location_summary(*, therapist, session_type: str, exploration_call_request: bool) -> str:
     if session_type == Booking.SessionType.PHYSICAL:
         return therapist.location_summary
@@ -334,12 +344,7 @@ def start_booking_payment(*, booking: Booking, mpesa_phone_number: str) -> tuple
 
 @transaction.atomic
 def create_booking(*, therapist, data: dict) -> Booking:
-    ensure_client_can_book(client_email=data["client_email"])
-    ensure_slot_is_available(
-        therapist=therapist,
-        day=data["date"],
-        slot_time=data["time"],
-    )
+    validate_booking_request(therapist=therapist, data=data)
     booking = create_booking_record(
         therapist=therapist,
         data=data,
@@ -352,12 +357,7 @@ def create_booking(*, therapist, data: dict) -> Booking:
 
 @transaction.atomic
 def create_paid_booking_checkout(*, therapist, data: dict, mpesa_phone_number: str) -> tuple[Booking, BookingPayment]:
-    ensure_client_can_book(client_email=data["client_email"])
-    ensure_slot_is_available(
-        therapist=therapist,
-        day=data["date"],
-        slot_time=data["time"],
-    )
+    validate_booking_request(therapist=therapist, data=data)
 
     booking = create_booking_record(
         therapist=therapist,
@@ -379,11 +379,13 @@ def retry_paid_booking_checkout(*, booking: Booking, mpesa_phone_number: str) ->
     if booking.confirmed_at:
         raise ValueError("This booking has already been confirmed.")
 
-    ensure_client_can_book(client_email=booking.client_email, exclude_booking=booking)
-    ensure_slot_is_available(
+    validate_booking_request(
         therapist=booking.therapist,
-        day=booking.date,
-        slot_time=booking.time,
+        data={
+            "client_email": booking.client_email,
+            "date": booking.date,
+            "time": booking.time,
+        },
         exclude_booking=booking,
     )
 

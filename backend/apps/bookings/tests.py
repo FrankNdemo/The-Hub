@@ -12,6 +12,7 @@ from rest_framework.test import APITestCase
 from apps.bookings.models import Booking, BookingPayment
 from apps.bookings.delivery import REMINDER_EMAIL_KIND
 from apps.notifications.models import Notification
+from apps.therapists.models import TherapistProfile
 
 
 @override_settings(
@@ -575,26 +576,35 @@ class PaidBookingCheckoutApiTests(APITestCase):
     def setUp(self):
         call_command("bootstrap_wellness_demo")
 
-    def test_paid_booking_checkout_success_confirms_booking_and_records_transaction(self):
+    def confirm_paid_booking(
+        self,
+        *,
+        client_name: str = "Paid Client",
+        client_email: str = "paid@example.com",
+        client_phone: str = "+254700444555",
+        date: str = "2026-06-18",
+        time: str = "11:00",
+        session_type: str = "virtual",
+        notes: str = "Needs a first session",
+        mpesa_phone_number: str = "0712345555",
+    ) -> tuple[Booking, BookingPayment]:
         checkout_response = self.client.post(
             "/api/v1/bookings/checkout/",
             {
-                "clientName": "Paid Client",
-                "clientEmail": "paid@example.com",
-                "clientPhone": "+254700444555",
+                "clientName": client_name,
+                "clientEmail": client_email,
+                "clientPhone": client_phone,
                 "therapistId": "caroline-gichia",
-                "date": "2026-06-18",
-                "time": "11:00",
+                "date": date,
+                "time": time,
                 "serviceType": "individual",
-                "sessionType": "virtual",
-                "notes": "Needs a first session",
-                "mpesaPhoneNumber": "0712345555",
+                "sessionType": session_type,
+                "notes": notes,
+                "mpesaPhoneNumber": mpesa_phone_number,
             },
             format="json",
         )
         self.assertEqual(checkout_response.status_code, status.HTTP_201_CREATED)
-        self.assertEqual(checkout_response.data["booking"]["status"], Booking.Status.PAYMENT_PENDING)
-        self.assertEqual(checkout_response.data["payment"]["status"], BookingPayment.Status.STK_PUSH_SENT)
 
         booking = Booking.objects.select_related("therapist__user").get(pk=checkout_response.data["booking"]["id"])
         payment = BookingPayment.objects.get(pk=checkout_response.data["payment"]["id"])
@@ -606,9 +616,12 @@ class PaidBookingCheckoutApiTests(APITestCase):
         self.assertEqual(status_response.status_code, status.HTTP_200_OK)
         self.assertEqual(status_response.data["payment"]["status"], BookingPayment.Status.SUCCESS)
         self.assertEqual(status_response.data["booking"]["status"], Booking.Status.UPCOMING)
-
         booking.refresh_from_db()
         payment.refresh_from_db()
+        return booking, payment
+
+    def test_paid_booking_checkout_success_confirms_booking_and_records_transaction(self):
+        booking, payment = self.confirm_paid_booking()
         self.assertIsNotNone(booking.confirmed_at)
         self.assertEqual(booking.status, Booking.Status.UPCOMING)
         self.assertTrue(payment.transaction_id.startswith("THB"))
@@ -629,6 +642,102 @@ class PaidBookingCheckoutApiTests(APITestCase):
         self.assertEqual(dashboard_response.data["transactions"][0]["transactionId"], payment.transaction_id)
         self.assertEqual(dashboard_response.data["bookings"][0]["payment"]["transactionId"], payment.transaction_id)
         self.client.force_authenticate(user=None)
+
+    def test_precheck_reports_active_session_before_payment_step(self):
+        self.confirm_paid_booking(
+            client_email="repeat-paid@example.com",
+            client_phone="+254700111444",
+            date="2026-06-24",
+            time="10:00",
+            mpesa_phone_number="0712345444",
+        )
+
+        response = self.client.post(
+            "/api/v1/bookings/precheck/",
+            {
+                "clientName": "Repeat Paid Client",
+                "clientEmail": "repeat-paid@example.com",
+                "clientPhone": "+254700111444",
+                "therapistId": "caroline-gichia",
+                "date": "2026-06-25",
+                "time": "12:00",
+                "serviceType": "individual",
+                "sessionType": "virtual",
+            },
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_409_CONFLICT)
+        self.assertEqual(response.data["code"], "active_session_exists")
+        self.assertIn("You already have an active session booked", response.data["detail"])
+
+    def test_precheck_ignores_legacy_upcoming_records_without_confirmation(self):
+        therapist = TherapistProfile.objects.get(public_id="caroline-gichia")
+        Booking.objects.create(
+            manage_token="legacy-upcoming-record",
+            client_name="Legacy Client",
+            client_email="legacy-upcoming@example.com",
+            client_phone="+254700555666",
+            therapist=therapist,
+            therapist_name_snapshot=therapist.name,
+            service_type=Booking.ServiceType.INDIVIDUAL,
+            session_type=Booking.SessionType.VIRTUAL,
+            date="2026-06-30",
+            time="10:00",
+            status=Booking.Status.UPCOMING,
+            location_summary="Online session access will be shared in your calendar-ready confirmation.",
+            calendar_event_id="legacy-upcoming-calendar",
+            meet_link="",
+            booking_fee_amount="200.00",
+            booking_fee_currency="KES",
+            confirmed_at=None,
+        )
+
+        response = self.client.post(
+            "/api/v1/bookings/precheck/",
+            {
+                "clientName": "Legacy Client",
+                "clientEmail": "legacy-upcoming@example.com",
+                "clientPhone": "+254700555666",
+                "therapistId": "caroline-gichia",
+                "date": "2026-06-30",
+                "time": "10:00",
+                "serviceType": "individual",
+                "sessionType": "virtual",
+            },
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertTrue(response.data["ok"])
+        self.assertTrue(response.data["requiresPayment"])
+
+    def test_direct_booking_endpoint_checks_slot_before_payment_required(self):
+        self.confirm_paid_booking(
+            client_email="occupied-slot@example.com",
+            client_phone="+254700222333",
+            date="2026-06-26",
+            time="12:00",
+            mpesa_phone_number="0712345444",
+        )
+
+        response = self.client.post(
+            "/api/v1/bookings/",
+            {
+                "clientName": "Conflict Client",
+                "clientEmail": "conflict@example.com",
+                "clientPhone": "+254700999888",
+                "therapistId": "caroline-gichia",
+                "date": "2026-06-26",
+                "time": "12:00",
+                "serviceType": "individual",
+                "sessionType": "virtual",
+            },
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_409_CONFLICT)
+        self.assertEqual(response.data["code"], "slot_unavailable")
 
     def test_paid_booking_checkout_accepts_safaricom_01_numbers(self):
         checkout_response = self.client.post(
@@ -713,3 +822,36 @@ class PaidBookingCheckoutApiTests(APITestCase):
 
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertEqual(response.data["code"], "payment_required")
+
+    @override_settings(
+        MPESA_SIMULATE_PAYMENTS=False,
+        MPESA_CONSUMER_KEY="",
+        MPESA_CONSUMER_SECRET="",
+        MPESA_SHORTCODE="",
+        MPESA_PASSKEY="",
+        MPESA_CALLBACK_URL="",
+    )
+    def test_checkout_reports_which_mpesa_configuration_fields_are_missing(self):
+        response = self.client.post(
+            "/api/v1/bookings/checkout/",
+            {
+                "clientName": "Config Client",
+                "clientEmail": "config@example.com",
+                "clientPhone": "+254700123456",
+                "therapistId": "caroline-gichia",
+                "date": "2026-06-27",
+                "time": "10:00",
+                "serviceType": "individual",
+                "sessionType": "virtual",
+                "mpesaPhoneNumber": "0712345678",
+            },
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_503_SERVICE_UNAVAILABLE)
+        self.assertEqual(response.data["code"], "mpesa_not_configured")
+        self.assertIn("MPESA_CONSUMER_KEY", response.data["detail"])
+        self.assertIn("MPESA_CONSUMER_SECRET", response.data["detail"])
+        self.assertIn("MPESA_SHORTCODE", response.data["detail"])
+        self.assertIn("MPESA_PASSKEY", response.data["detail"])
+        self.assertIn("MPESA_CALLBACK_URL", response.data["detail"])

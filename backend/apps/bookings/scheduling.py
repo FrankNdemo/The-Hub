@@ -165,7 +165,18 @@ def get_bookings_for_day(*, therapist, day: date_type, exclude_booking: Booking 
         queryset = queryset.exclude(pk=exclude_booking.pk)
 
     current_time = timezone.now()
-    return [booking for booking in queryset if booking.status != Booking.Status.PAYMENT_PENDING or booking.has_active_payment_hold(current_time)]
+    return [
+        booking
+        for booking in queryset
+        if (
+            booking.status == Booking.Status.PAYMENT_PENDING
+            and booking.has_active_payment_hold(current_time)
+        )
+        or (
+            booking.status != Booking.Status.PAYMENT_PENDING
+            and booking.confirmed_at is not None
+        )
+    ]
 
 
 def overlaps_existing_booking(
@@ -216,6 +227,9 @@ def find_live_booking_for_client(*, client_email: str, exclude_booking: Booking 
         if booking.status == Booking.Status.PAYMENT_PENDING:
             if booking.has_active_payment_hold():
                 return booking
+            continue
+
+        if booking.confirmed_at is None:
             continue
 
         booking_end = as_local_datetime(booking.date, booking.time) + get_booking_duration()

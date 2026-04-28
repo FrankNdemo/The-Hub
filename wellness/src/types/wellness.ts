@@ -211,6 +211,13 @@ export interface BookingCheckoutResponse {
   payment: BookingPaymentRecord;
 }
 
+export interface BookingPrecheckResponse {
+  ok: boolean;
+  requiresPayment: boolean;
+  bookingFeeAmount: number;
+  bookingFeeCurrency: string;
+}
+
 export interface RescheduleInput {
   token: string;
   date: string;

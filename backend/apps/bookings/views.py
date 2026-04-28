@@ -33,6 +33,7 @@ from .services import (
     reschedule_booking,
     send_upcoming_session_reminders,
     sync_booking_payment_status,
+    validate_booking_request,
 )
 from .scheduling import BookingAvailabilityError
 
@@ -93,19 +94,23 @@ class PublicBookingCreateView(APIView):
         serializer = BookingCreateSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
-        if (
-            settings.BOOKING_PAYMENT_REQUIRED_FOR_SESSIONS
-            and not is_exploration_call_notes(serializer.validated_data.get("notes", ""))
-        ):
-            return Response(
-                {
-                    "detail": f"A refundable booking fee of {settings.BOOKING_FEE_CURRENCY} {settings.BOOKING_FEE_AMOUNT} is required to confirm this session.",
-                    "code": "payment_required",
-                },
-                status=status.HTTP_400_BAD_REQUEST,
-            )
-
         try:
+            validate_booking_request(
+                therapist=serializer.validated_data["therapist"],
+                data=serializer.validated_data,
+            )
+            if (
+                settings.BOOKING_PAYMENT_REQUIRED_FOR_SESSIONS
+                and not is_exploration_call_notes(serializer.validated_data.get("notes", ""))
+            ):
+                return Response(
+                    {
+                        "detail": f"A refundable booking fee of {settings.BOOKING_FEE_CURRENCY} {settings.BOOKING_FEE_AMOUNT} is required to confirm this session.",
+                        "code": "payment_required",
+                    },
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+
             booking = create_booking(
                 therapist=serializer.validated_data["therapist"],
                 data=serializer.validated_data,
@@ -115,6 +120,35 @@ class PublicBookingCreateView(APIView):
         except BookingDeliveryError as exc:
             return Response({"detail": str(exc)}, status=status.HTTP_503_SERVICE_UNAVAILABLE)
         return Response(BookingDetailSerializer(booking).data, status=status.HTTP_201_CREATED)
+
+
+class PublicBookingPrecheckView(APIView):
+    permission_classes = [AllowAny]
+    authentication_classes = []
+
+    def post(self, request):
+        serializer = BookingCreateSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        try:
+            validate_booking_request(
+                therapist=serializer.validated_data["therapist"],
+                data=serializer.validated_data,
+            )
+        except BookingAvailabilityError as exc:
+            return Response(exc.as_response(), status=exc.status_code)
+
+        return Response(
+            {
+                "ok": True,
+                "requiresPayment": (
+                    settings.BOOKING_PAYMENT_REQUIRED_FOR_SESSIONS
+                    and not is_exploration_call_notes(serializer.validated_data.get("notes", ""))
+                ),
+                "bookingFeeAmount": settings.BOOKING_FEE_AMOUNT,
+                "bookingFeeCurrency": settings.BOOKING_FEE_CURRENCY,
+            }
+        )
 
 
 class PublicBookingCheckoutView(APIView):

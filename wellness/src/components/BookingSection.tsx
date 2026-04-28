@@ -1,4 +1,4 @@
-import { type ReactNode, useEffect, useMemo, useState } from "react";
+import { type ReactNode, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   ArrowLeft,
@@ -26,6 +26,7 @@ import {
   fetchBookingPaymentStatus,
   getApiErrorMessage,
   getSuggestedBookingSlot,
+  precheckBooking,
   retryBookingCheckout,
   startBookingCheckout,
 } from "@/lib/api";
@@ -115,6 +116,27 @@ const CHECKOUT_STAGE_COPY = [
   { label: "Review", description: "Session summary" },
   { label: "Pay", description: "M-Pesa checkout" },
   { label: "Confirm", description: "Booking confirmed" },
+];
+
+const PAYMENT_FLOW_STEPS = [
+  {
+    label: "Use a Safaricom line",
+    description: "Enter the number that should receive the STK prompt.",
+  },
+  {
+    label: "Approve on your phone",
+    description: "Enter your M-Pesa PIN when Safaricom prompts you.",
+  },
+  {
+    label: "Session confirms after payment",
+    description: "We only reserve the slot once M-Pesa confirms success.",
+  },
+];
+
+const STK_PROMPT_STEPS = [
+  "Open the Safaricom prompt on your phone.",
+  "Enter your M-Pesa PIN to approve the booking fee.",
+  "Return here while we confirm the payment automatically.",
 ];
 
 const getCheckoutStageIndex = (step: BookingStep) => {
@@ -307,23 +329,23 @@ const getFailureCopy = (payment?: BookingPaymentRecord | null) => {
     case "cancelled":
       return {
         title: "Payment not completed",
-        description: "The M-Pesa prompt was cancelled before the booking fee was confirmed.",
+        description: "The M-Pesa prompt was cancelled before the booking fee was confirmed. Your session is not booked yet.",
       };
     case "timed_out":
       return {
         title: "Payment timed out",
-        description: "The STK prompt took too long to finish. Please check your phone and try again.",
+        description: "The STK prompt took too long to finish. Your session is not booked yet, so please try again.",
       };
     case "insufficient_funds":
       return {
         title: "Insufficient funds",
-        description: "The wallet balance was not enough for the booking fee. Top up and try again.",
+        description: "The wallet balance was not enough for the booking fee. Your session is not booked yet.",
       };
     default:
       return {
         title: "Payment not completed",
         description:
-          payment?.resultDescription || "The booking fee could not be confirmed yet. Please check your phone and try again.",
+          payment?.resultDescription || "The booking fee could not be confirmed. No session has been booked yet.",
       };
   }
 };
@@ -331,11 +353,13 @@ const getFailureCopy = (payment?: BookingPaymentRecord | null) => {
 const BookingSection = () => {
   const { therapist } = useWellnessHub();
   const navigate = useNavigate();
+  const sectionRef = useRef<HTMLElement | null>(null);
   const [serviceType, setServiceType] = useState<ServiceType>("individual");
   const [sessionType, setSessionType] = useState<SessionType>("virtual");
   const [step, setStep] = useState<BookingStep>("details");
   const [checkout, setCheckout] = useState<BookingCheckoutResponse | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isCheckingAvailability, setIsCheckingAvailability] = useState(false);
   const [bookingGuidance, setBookingGuidance] = useState("");
   const [paymentFeedback, setPaymentFeedback] = useState("");
   const [serviceDescriptionText, setServiceDescriptionText] = useState("");
@@ -475,6 +499,18 @@ const BookingSection = () => {
     return () => window.clearTimeout(timeoutId);
   }, [checkout?.booking.token, navigate, step]);
 
+  useEffect(() => {
+    if (step === "details") {
+      return;
+    }
+
+    const frameId = window.requestAnimationFrame(() => {
+      sectionRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    });
+
+    return () => window.cancelAnimationFrame(frameId);
+  }, [step]);
+
   const handleServiceTypeSelect = (value: ServiceType) => {
     setServiceType(value);
     setForm((current) => ({
@@ -483,11 +519,52 @@ const BookingSection = () => {
     }));
   };
 
-  const handleDetailsSubmit = (event: React.FormEvent) => {
+  const handleDetailsSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
-    setPaymentPhone(form.clientPhone);
+    const participantCount =
+      serviceType === "corporate" && form.participantCount
+        ? Number.parseInt(form.participantCount, 10)
+        : undefined;
+
+    setIsCheckingAvailability(true);
+    setBookingGuidance("");
     setPaymentFeedback("");
-    setStep("summary");
+
+    try {
+      await precheckBooking({
+        clientName: form.clientName,
+        clientEmail: form.clientEmail,
+        clientPhone: form.clientPhone,
+        therapistId: form.therapistId,
+        date: form.date,
+        time: form.time,
+        serviceType,
+        participantCount,
+        sessionType,
+        notes: form.notes,
+      });
+      setCheckout(null);
+      setPaymentPhone(form.clientPhone);
+      setStep("summary");
+    } catch (error) {
+      const message = getApiErrorMessage(error, "We could not confirm availability right now.");
+      const suggestion = getSuggestedBookingSlot(error);
+
+      if (suggestion) {
+        setForm((current) => ({
+          ...current,
+          date: suggestion.date,
+          time: suggestion.time,
+        }));
+        setBookingGuidance(`${message} We prefilled the next available option so you can continue quickly.`);
+        toast.error(`${message} We prefilled ${formatDisplayDate(suggestion.date)} at ${formatDisplayTime(suggestion.time)}.`);
+      } else {
+        setBookingGuidance(message);
+        toast.error(message);
+      }
+    } finally {
+      setIsCheckingAvailability(false);
+    }
   };
 
   const handleStartPayment = async () => {
@@ -551,22 +628,32 @@ const BookingSection = () => {
   const renderStatusStep = () => {
     if (step === "stk_sent") {
       return (
-        <div className="mx-auto max-w-xl rounded-[2rem] border border-border/60 bg-[linear-gradient(180deg,hsl(150_18%_16%),hsl(150_19%_12%))] px-6 py-10 text-center text-white shadow-card sm:px-8">
+        <div className="mx-auto max-w-xl overflow-hidden rounded-[2rem] border border-border/60 bg-[linear-gradient(180deg,hsl(150_18%_16%),hsl(150_19%_12%))] px-6 py-10 text-center text-white shadow-card sm:px-8">
           <StatusHalo>
             <CheckCircle2 className="h-10 w-10" />
           </StatusHalo>
           <p className="mt-8 text-sm font-semibold uppercase tracking-[0.22em] text-white/65">STK Push Sent</p>
-          <h3 className="mt-3 font-heading text-3xl font-semibold">Check your phone now</h3>
+          <h3 className="mt-3 font-heading text-3xl font-semibold">STK Push Sent!</h3>
           <p className="mt-4 text-sm leading-8 text-white/78 sm:text-base">
             Enter your M-Pesa PIN on the prompt to finish the booking fee payment.
           </p>
+          <div className="mt-8 hidden gap-3 text-left sm:grid">
+            {STK_PROMPT_STEPS.map((instruction, index) => (
+              <div key={instruction} className="flex items-start gap-3 rounded-[1.25rem] border border-white/10 bg-white/5 px-4 py-4">
+                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-white/10 text-sm font-semibold text-[hsl(136_60%_72%)]">
+                  {index + 1}
+                </div>
+                <p className="text-sm leading-7 text-white/78">{instruction}</p>
+              </div>
+            ))}
+          </div>
           <div className="mt-8 rounded-[1.4rem] border border-white/10 bg-white/5 px-5 py-4 text-left">
             <p className="text-xs uppercase tracking-[0.18em] text-white/55">Payment details</p>
             <div className="mt-3 flex items-center justify-between gap-4">
               <span className="text-white/72">To</span>
               <span className="font-medium text-white">THE HUB</span>
             </div>
-            <div className="mt-2 flex items-center justify-between gap-4">
+            <div className="mt-2 hidden items-center justify-between gap-4 sm:flex">
               <span className="text-white/72">Phone</span>
               <span className="font-medium text-white">{paymentPhone || "Pending"}</span>
             </div>
@@ -590,8 +677,10 @@ const BookingSection = () => {
           <p className="mt-4 text-sm leading-8 text-white/78 sm:text-base">
             Please wait while we confirm your booking fee with M-Pesa.
           </p>
-          <div className="mt-8 rounded-[1.4rem] border border-white/10 bg-white/5 px-5 py-4 text-sm leading-7 text-white/75">
-            This usually takes a few seconds.
+          <div className="mt-8 rounded-[1.4rem] border border-white/10 bg-white/5 px-5 py-4 text-left text-sm leading-7 text-white/75">
+            <p className="font-medium text-white">What happens next</p>
+            <p className="mt-2">We are checking the Safaricom response, updating your booking, and preparing the confirmation details.</p>
+            <p className="mt-2 text-white/58">This usually takes a few seconds.</p>
           </div>
           {paymentFeedback ? (
             <div className="mt-4 rounded-[1.1rem] border border-white/10 bg-white/5 px-4 py-3 text-sm leading-7 text-white/72">
@@ -665,7 +754,7 @@ const BookingSection = () => {
   };
 
   return (
-    <section id="booking" className="py-24">
+    <section id="booking" ref={sectionRef} className="py-24">
       <div className="container mx-auto px-4">
         <div className="mx-auto max-w-6xl">
           <div className={step === "details" ? "grid gap-12 lg:grid-cols-[0.92fr_1.08fr]" : "grid gap-12"}>
@@ -965,129 +1054,307 @@ const BookingSection = () => {
                       <span>Your booking details remain private, and your follow-up session link is unique to you.</span>
                     </div>
 
-                    <Button variant="hero" size="lg" type="submit" className="mt-7 w-full rounded-full">
-                      Book Your First Session
+                    <Button variant="hero" size="lg" type="submit" className="mt-7 w-full rounded-full" disabled={isCheckingAvailability}>
+                      {isCheckingAvailability ? (
+                        <>
+                          <LoaderCircle className="h-4 w-4 animate-spin" />
+                          Checking Availability...
+                        </>
+                      ) : (
+                        "Book Your First Session"
+                      )}
                     </Button>
                   </form>
                 ) : step === "summary" ? (
-                  <div className="rounded-[2rem] border border-border/60 bg-card p-6 shadow-card sm:p-8">
-                    <div className="flex items-center justify-between gap-4">
-                      <div>
-                        <p className="text-sm font-semibold uppercase tracking-[0.22em] text-primary/75">Step 1 of 3</p>
-                        <h3 className="mt-2 font-heading text-3xl font-semibold text-foreground">Review your session</h3>
+                  <>
+                    <div className="mx-auto max-w-[23rem] rounded-[2rem] border border-border/60 bg-card p-4 shadow-card sm:hidden">
+                      <div className="flex items-center gap-3">
+                        <Button variant="ghost" size="icon" className="h-9 w-9 rounded-full border border-border/60" onClick={() => setStep("details")}>
+                          <ArrowLeft className="h-4 w-4" />
+                        </Button>
+                        <div>
+                          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-primary/70">Step 1 of 3</p>
+                          <h3 className="mt-1 font-heading text-2xl font-semibold text-foreground">Book a Session</h3>
+                        </div>
                       </div>
-                      <Button variant="heroBorder" className="rounded-full" onClick={() => setStep("details")}>
-                        <ArrowLeft className="h-4 w-4" />
-                        Edit Details
+
+                      <div className="mt-5 rounded-[1.6rem] border border-border/60 bg-background p-5 shadow-soft">
+                        <h4 className="text-lg font-semibold text-foreground">Session Summary</h4>
+                        <div className="mt-4 space-y-4 border-t border-border/60 pt-4">
+                          {[
+                            {
+                              icon: Users,
+                              label: "Session",
+                              value: `${formatServiceType(serviceType)} ${sessionType === "virtual" ? "1-on-1 Session" : "In-Person Session"}`,
+                            },
+                            {
+                              icon: CalendarDays,
+                              label: "Date",
+                              value: form.date ? formatDisplayDate(form.date) : "Select a date",
+                            },
+                            {
+                              icon: Clock3,
+                              label: "Time",
+                              value: form.time ? formatDisplayTime(form.time) : "Select a time",
+                            },
+                            {
+                              icon: Wallet,
+                              label: "Booking Fee",
+                              value: formatCurrencyAmount(bookingAmount, "KES"),
+                            },
+                          ].map((item) => (
+                            <div key={item.label} className="flex items-start gap-3">
+                              <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-primary/8 text-primary">
+                                <item.icon className="h-4 w-4" />
+                              </div>
+                              <div className="min-w-0">
+                                <p className="text-xs font-semibold uppercase tracking-[0.16em] text-primary/65">{item.label}</p>
+                                <p className="mt-1 text-sm font-medium leading-6 text-foreground">{item.value}</p>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+
+                      <div className="mt-4 rounded-[1.25rem] bg-primary/10 px-4 py-4 text-sm leading-7 text-foreground/85">
+                        To confirm your session, a refundable booking fee is required.
+                      </div>
+
+                      <Button
+                        variant="hero"
+                        size="lg"
+                        className="mt-5 w-full rounded-xl"
+                        onClick={() => {
+                          setPaymentPhone(form.clientPhone);
+                          setStep("payment");
+                        }}
+                      >
+                        Continue to Payment
                       </Button>
                     </div>
 
-                    <div className="mt-8 grid gap-5 lg:grid-cols-[1.02fr_0.98fr] lg:items-start">
-                      <SummaryCard
-                        serviceType={serviceType}
-                        sessionType={sessionType}
-                        date={form.date}
-                        time={form.time}
-                        therapistName={therapist.name}
-                      />
-                      <div className="space-y-5">
-                        <WhyPayCard />
-                        <Button
-                          variant="hero"
-                          size="lg"
-                          className="w-full rounded-full"
-                          onClick={() => {
-                            setPaymentPhone(form.clientPhone);
-                            setStep("payment");
-                          }}
-                        >
-                          Continue to Payment
+                    <div className="hidden rounded-[2rem] border border-border/60 bg-card p-6 shadow-card sm:block sm:p-8">
+                      <div className="flex items-center justify-between gap-4">
+                        <div>
+                          <p className="text-sm font-semibold uppercase tracking-[0.22em] text-primary/75">Step 1 of 3</p>
+                          <h3 className="mt-2 font-heading text-3xl font-semibold text-foreground">Review your session</h3>
+                        </div>
+                        <Button variant="heroBorder" className="rounded-full" onClick={() => setStep("details")}>
+                          <ArrowLeft className="h-4 w-4" />
+                          Edit Details
                         </Button>
                       </div>
-                    </div>
-                  </div>
-                ) : step === "payment" ? (
-                  <div className="rounded-[2rem] border border-border/60 bg-card p-6 shadow-card sm:p-8">
-                    <div className="flex items-center justify-between gap-4">
-                      <div>
-                        <p className="text-sm font-semibold uppercase tracking-[0.22em] text-primary/75">Step 2 of 3</p>
-                        <h3 className="mt-2 font-heading text-3xl font-semibold text-foreground">Pay the booking fee</h3>
-                      </div>
-                      <Button variant="heroBorder" className="rounded-full" onClick={() => setStep("summary")}>
-                        <ArrowLeft className="h-4 w-4" />
-                        Back
-                      </Button>
-                    </div>
 
-                    <div className="mt-8 grid gap-5 lg:grid-cols-[0.95fr_1.05fr] lg:items-start">
-                      <SummaryCard
-                        serviceType={serviceType}
-                        sessionType={sessionType}
-                        date={form.date}
-                        time={form.time}
-                        therapistName={therapist.name}
-                      />
-                      <div className="space-y-5">
-                        <div className="rounded-[1.9rem] border border-border/60 bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(247,249,246,0.96))] p-6 shadow-soft sm:p-7">
-                          <div className="text-center">
-                            <p className="text-sm font-semibold uppercase tracking-[0.18em] text-primary/70">Payment</p>
-                            <MpesaWordmark className="mt-4 justify-center" />
-                            <p className="mt-4 text-sm font-medium text-foreground/80">Pay Deposit</p>
-                            <p className="mt-2 text-4xl font-semibold tracking-tight text-primary">
-                              {formatCurrencyAmount(bookingAmount, "KES")}
-                            </p>
-                            <p className="mt-3 text-sm leading-7 text-muted-foreground">
-                              Enter the M-Pesa number you want to use for this booking fee.
-                            </p>
-                          </div>
-
-                          <div className="mt-7">
-                            <Label htmlFor="payment-phone">Enter your M-Pesa phone number</Label>
-                            <Input
-                              id="payment-phone"
-                              type="tel"
-                              value={paymentPhone}
-                              onChange={(event) => setPaymentPhone(event.target.value)}
-                              className="mt-2 h-12 rounded-2xl bg-background/95 text-center text-base tracking-[0.08em]"
-                              placeholder="07XXXXXXXX or 01XXXXXXXX"
-                              required
-                            />
-                          </div>
-
-                          <div className="mt-4 flex items-start justify-center gap-2 text-xs text-muted-foreground">
-                            <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
-                            <p>Your payment is secure and only used to send the Safaricom STK prompt.</p>
-                          </div>
-
-                          <div className="mt-5 rounded-[1.2rem] bg-secondary/35 px-4 py-3 text-center text-xs leading-6 text-muted-foreground">
-                            Powered by Safaricom M-Pesa
-                          </div>
-
-                          {paymentFeedback ? (
-                            <div className="mt-4 rounded-[1.2rem] border border-destructive/20 bg-destructive/10 px-4 py-3 text-sm leading-7 text-foreground">
-                              {paymentFeedback}
-                            </div>
-                          ) : null}
-
+                      <div className="mt-8 grid gap-5 lg:grid-cols-[1.02fr_0.98fr] lg:items-start">
+                        <SummaryCard
+                          serviceType={serviceType}
+                          sessionType={sessionType}
+                          date={form.date}
+                          time={form.time}
+                          therapistName={therapist.name}
+                        />
+                        <div className="space-y-5">
+                          <WhyPayCard />
                           <Button
                             variant="hero"
                             size="lg"
-                            className="mt-6 w-full rounded-full"
-                            onClick={handleStartPayment}
-                            disabled={isSubmitting}
+                            className="w-full rounded-full"
+                            onClick={() => {
+                              setPaymentPhone(form.clientPhone);
+                              setStep("payment");
+                            }}
                           >
-                            {isSubmitting ? "Sending STK Push..." : "Pay with M-Pesa"}
+                            Continue to Payment
                           </Button>
-
-                          <p className="mt-4 text-center text-xs leading-6 text-muted-foreground">
-                            By continuing, you agree to the session booking terms and refundable fee policy.
-                          </p>
                         </div>
-
-                        <WhyPayCard />
                       </div>
                     </div>
-                  </div>
+                  </>
+                ) : step === "payment" ? (
+                  <>
+                    <div className="mx-auto max-w-[23rem] rounded-[2rem] border border-border/60 bg-card p-4 shadow-card sm:hidden">
+                      <div className="flex items-center gap-3">
+                        <Button variant="ghost" size="icon" className="h-9 w-9 rounded-full border border-border/60" onClick={() => setStep("summary")}>
+                          <ArrowLeft className="h-4 w-4" />
+                        </Button>
+                        <div>
+                          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-primary/70">Step 2 of 3</p>
+                          <h3 className="mt-1 font-heading text-2xl font-semibold text-foreground">Payment</h3>
+                        </div>
+                      </div>
+
+                      <div className="mt-5 rounded-[1.6rem] border border-border/60 bg-background px-5 py-6 text-center shadow-soft">
+                        <MpesaWordmark className="justify-center" />
+                        <p className="mt-5 text-sm font-medium text-foreground/80">Pay Deposit</p>
+                        <p className="mt-2 text-4xl font-semibold tracking-tight text-primary">
+                          {formatCurrencyAmount(bookingAmount, "KES")}
+                        </p>
+                        <p className="mt-4 text-sm leading-7 text-foreground/80">Enter the M-Pesa number you want to use</p>
+
+                        <Input
+                          id="payment-phone-mobile"
+                          type="tel"
+                          value={paymentPhone}
+                          onChange={(event) => setPaymentPhone(event.target.value)}
+                          className="mt-5 h-12 rounded-2xl bg-white text-center text-base"
+                          placeholder="07 123 4567"
+                          required
+                        />
+
+                        <div className="mt-4 flex items-center justify-center gap-2 text-xs leading-6 text-muted-foreground">
+                          <ShieldCheck className="h-4 w-4 text-primary" />
+                          <p>Your payment is secure</p>
+                        </div>
+
+                        {paymentFeedback ? (
+                          <div className="mt-4 rounded-[1.2rem] border border-destructive/20 bg-destructive/10 px-4 py-3 text-sm leading-7 text-foreground">
+                            {paymentFeedback}
+                          </div>
+                        ) : null}
+
+                        <Button
+                          variant="hero"
+                          size="lg"
+                          className="mt-6 w-full rounded-xl"
+                          onClick={handleStartPayment}
+                          disabled={isSubmitting}
+                        >
+                          {isSubmitting ? "Sending STK Push..." : "Pay with M-Pesa"}
+                        </Button>
+
+                        <p className="mt-4 text-xs leading-6 text-muted-foreground">
+                          By continuing, you agree to our Terms and Conditions.
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="hidden rounded-[2rem] border border-border/60 bg-card p-6 shadow-card sm:block sm:p-8">
+                      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                        <div>
+                          <p className="text-sm font-semibold uppercase tracking-[0.22em] text-primary/75">Step 2 of 3</p>
+                          <h3 className="mt-2 font-heading text-3xl font-semibold text-foreground">Pay the booking fee</h3>
+                        </div>
+                        <Button variant="heroBorder" className="rounded-full" onClick={() => setStep("summary")}>
+                          <ArrowLeft className="h-4 w-4" />
+                          Back
+                        </Button>
+                      </div>
+
+                      <div className="mt-8 grid gap-5 lg:grid-cols-[0.95fr_1.05fr] lg:items-start">
+                        <div className="order-2 lg:order-1">
+                          <SummaryCard
+                            serviceType={serviceType}
+                            sessionType={sessionType}
+                            date={form.date}
+                            time={form.time}
+                            therapistName={therapist.name}
+                          />
+                        </div>
+                        <div className="order-1 space-y-5 lg:order-2">
+                          <div className="overflow-hidden rounded-[1.9rem] border border-border/60 bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(247,249,246,0.96))] shadow-soft">
+                            <div className="border-b border-border/60 bg-[linear-gradient(135deg,rgba(242,250,244,0.96),rgba(255,255,255,0.95))] px-5 py-5 sm:px-7">
+                              <div className="flex items-start justify-between gap-4">
+                                <div className="text-left">
+                                  <p className="text-xs font-semibold uppercase tracking-[0.22em] text-primary/70">M-Pesa Checkout</p>
+                                  <MpesaWordmark className="mt-3" />
+                                </div>
+                                <div className="rounded-full border border-primary/15 bg-white/90 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-primary/70">
+                                  Secure STK
+                                </div>
+                              </div>
+                              <div className="mt-5 flex items-end justify-between gap-4">
+                                <div>
+                                  <p className="text-sm font-medium text-foreground/80">Booking fee</p>
+                                  <p className="mt-1 text-4xl font-semibold tracking-tight text-primary">
+                                    {formatCurrencyAmount(bookingAmount, "KES")}
+                                  </p>
+                                </div>
+                                <div className="max-w-[11rem] text-right text-xs leading-6 text-muted-foreground">
+                                  Your session is only confirmed after the payment succeeds.
+                                </div>
+                              </div>
+                            </div>
+
+                            <div className="space-y-5 p-5 sm:p-7">
+                              <div className="grid gap-3 sm:grid-cols-3">
+                                {PAYMENT_FLOW_STEPS.map((item, index) => (
+                                  <div key={item.label} className="rounded-[1.2rem] border border-border/60 bg-background/85 px-4 py-4 text-left shadow-[0_12px_30px_-26px_rgba(17,24,39,0.35)]">
+                                    <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10 text-sm font-semibold text-primary">
+                                      {index + 1}
+                                    </div>
+                                    <p className="mt-3 text-sm font-semibold text-foreground">{item.label}</p>
+                                    <p className="mt-2 text-xs leading-6 text-muted-foreground">{item.description}</p>
+                                  </div>
+                                ))}
+                              </div>
+
+                              <div className="rounded-[1.4rem] border border-primary/12 bg-secondary/20 p-4 sm:p-5">
+                                <Label htmlFor="payment-phone" className="text-sm font-semibold text-foreground">
+                                  M-Pesa phone number
+                                </Label>
+                                <Input
+                                  id="payment-phone"
+                                  type="tel"
+                                  value={paymentPhone}
+                                  onChange={(event) => setPaymentPhone(event.target.value)}
+                                  className="mt-3 h-12 rounded-2xl bg-background/95 text-base sm:text-center"
+                                  placeholder="07XXXXXXXX or 01XXXXXXXX"
+                                  required
+                                />
+                                <p className="mt-3 text-xs leading-6 text-muted-foreground">
+                                  Use the Safaricom number that should receive the payment prompt.
+                                </p>
+                              </div>
+
+                              <div className="grid gap-3 sm:grid-cols-2">
+                                <div className="rounded-[1.2rem] border border-border/60 bg-background/90 px-4 py-4">
+                                  <p className="text-xs font-semibold uppercase tracking-[0.18em] text-primary/65">Session slot</p>
+                                  <p className="mt-2 text-sm font-medium leading-7 text-foreground">
+                                    {form.date && form.time
+                                      ? `${formatDisplayDate(form.date)} at ${formatDisplayTime(form.time)}`
+                                      : "Select a session time"}
+                                  </p>
+                                </div>
+                                <div className="rounded-[1.2rem] border border-border/60 bg-background/90 px-4 py-4">
+                                  <p className="text-xs font-semibold uppercase tracking-[0.18em] text-primary/65">Confirmation</p>
+                                  <p className="mt-2 text-sm font-medium leading-7 text-foreground">
+                                    Booking email and receipt send immediately after successful payment.
+                                  </p>
+                                </div>
+                              </div>
+
+                              <div className="flex items-start gap-2 rounded-[1.2rem] bg-secondary/35 px-4 py-3 text-xs leading-6 text-muted-foreground">
+                                <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
+                                <p>Your payment is secure and only used to send the Safaricom STK prompt and record the transaction.</p>
+                              </div>
+
+                              {paymentFeedback ? (
+                                <div className="rounded-[1.2rem] border border-destructive/20 bg-destructive/10 px-4 py-3 text-sm leading-7 text-foreground">
+                                  {paymentFeedback}
+                                </div>
+                              ) : null}
+
+                              <Button
+                                variant="hero"
+                                size="lg"
+                                className="w-full rounded-full"
+                                onClick={handleStartPayment}
+                                disabled={isSubmitting}
+                              >
+                                {isSubmitting ? "Sending STK Push..." : "Pay with M-Pesa"}
+                              </Button>
+
+                              <p className="text-center text-xs leading-6 text-muted-foreground">
+                                By continuing, you agree to the session booking terms and refundable fee policy.
+                              </p>
+                            </div>
+                          </div>
+
+                          <WhyPayCard />
+                        </div>
+                      </div>
+                    </div>
+                  </>
                 ) : (
                   renderStatusStep()
                 )}

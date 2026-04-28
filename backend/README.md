@@ -135,7 +135,9 @@ MPESA_SIMULATE_PAYMENTS=False
 
 Notes:
 
+- The backend also accepts `MPESA_ENV` as an alias for `MPESA_ENVIRONMENT`, and `MPESA_BUSINESS_SHORTCODE` as an alias for `MPESA_SHORTCODE`.
 - `MPESA_CALLBACK_URL` must be a public backend URL in hosted environments.
+- For real STK push testing from a local machine, do not use a localhost callback URL. Point `MPESA_CALLBACK_URL` to a public HTTPS URL for this backend, or use a tunnel while testing locally.
 - The frontend also polls Daraja status, so the user still sees `STK sent`, `processing`, `success`, and `failed` states in sequence.
 - The payment validator accepts Safaricom `07...` and `01...` mobile numbers.
 
