@@ -1,4 +1,4 @@
-import { type ReactNode, useEffect, useMemo, useRef, useState } from "react";
+import { Fragment, type ReactNode, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   ArrowLeft,
@@ -55,6 +55,7 @@ import LeafBannerHeading from "@/components/LeafBannerHeading";
 import ScrollReveal from "@/components/ScrollReveal";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
+import leafDecor from "@/assets/leaf-decoration.png";
 
 type BookingStep = "details" | "summary" | "payment" | "stk_sent" | "processing" | "success" | "failed";
 
@@ -151,6 +152,9 @@ const getCheckoutStageIndex = (step: BookingStep) => {
   return 2;
 };
 
+const isBookingConfirmed = (booking?: BookingCheckoutResponse["booking"] | null) =>
+  Boolean(booking?.confirmedAt) || booking?.status === "upcoming" || booking?.status === "rescheduled";
+
 const MpesaWordmark = ({ className }: { className?: string }) => (
   <div className={cn("inline-flex items-end gap-1 text-[#2b9a48]", className)} aria-label="M-Pesa">
     <span className="font-black leading-none tracking-[-0.08em] text-[2.05rem]">m</span>
@@ -207,6 +211,125 @@ const CheckoutStageRail = ({ step }: { step: BookingStep }) => {
             </div>
           );
         })}
+      </div>
+    </div>
+  );
+};
+
+const MobileStageDots = ({ step }: { step: BookingStep }) => {
+  const currentIndex = getCheckoutStageIndex(step);
+
+  return (
+    <div className="flex items-center gap-2" aria-hidden="true">
+      {CHECKOUT_STAGE_COPY.map((stage, index) => {
+        const isComplete = currentIndex > index || step === "success";
+        const isActive = currentIndex === index && step !== "success";
+
+        return (
+          <Fragment key={stage.label}>
+            <div
+              className={cn(
+                "flex h-7 w-7 items-center justify-center rounded-full border text-[11px] font-semibold transition-colors",
+                isComplete
+                  ? "border-primary bg-primary text-primary-foreground"
+                  : isActive
+                    ? "border-primary/50 bg-primary/10 text-primary"
+                    : "border-border/80 bg-background/90 text-muted-foreground",
+              )}
+            >
+              {isComplete ? <Check className="h-3.5 w-3.5" /> : index + 1}
+            </div>
+            {index < CHECKOUT_STAGE_COPY.length - 1 ? (
+              <div className={cn("h-px flex-1 rounded-full", currentIndex > index || step === "success" ? "bg-primary/45" : "bg-border/70")} />
+            ) : null}
+          </Fragment>
+        );
+      })}
+    </div>
+  );
+};
+
+const MobileSheetLeaves = ({ inverted = false }: { inverted?: boolean }) => (
+  <>
+    <img
+      src={leafDecor}
+      alt=""
+      aria-hidden="true"
+      className={cn(
+        "pointer-events-none absolute -right-8 top-3 w-28 opacity-[0.16] mix-blend-multiply saturate-150 animate-float",
+        inverted ? "rotate-[210deg] opacity-[0.18]" : "rotate-[24deg]",
+      )}
+    />
+    <img
+      src={leafDecor}
+      alt=""
+      aria-hidden="true"
+      className={cn(
+        "pointer-events-none absolute -left-8 bottom-2 w-24 opacity-[0.14] mix-blend-multiply saturate-150 animate-float animation-delay-200",
+        inverted ? "rotate-[24deg]" : "rotate-[198deg]",
+      )}
+    />
+  </>
+);
+
+const MobileStatusSheet = ({
+  step,
+  eyebrow,
+  title,
+  description,
+  tone = "light",
+  indicator,
+  children,
+}: {
+  step: BookingStep;
+  eyebrow: string;
+  title: string;
+  description: string;
+  tone?: "light" | "dark" | "destructive" | "success";
+  indicator: ReactNode;
+  children?: ReactNode;
+}) => {
+  const isDark = tone === "dark";
+  const isSuccess = tone === "success";
+  const isDestructive = tone === "destructive";
+
+  return (
+    <div className="sm:hidden">
+      <div className="fixed inset-0 z-30 bg-foreground/14 backdrop-blur-[1px]" aria-hidden="true" />
+      <div className="fixed inset-x-4 bottom-5 top-24 z-40 flex items-start">
+        <div
+          className={cn(
+            "relative max-h-full w-full overflow-hidden rounded-[2rem] border px-5 pb-5 pt-4 shadow-[0_30px_70px_-34px_rgba(17,24,39,0.38)]",
+            isDark
+              ? "border-white/10 bg-[linear-gradient(180deg,hsl(150_18%_16%),hsl(150_19%_12%))] text-white"
+              : isSuccess
+                ? "border-primary/12 bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(241,248,243,0.98))] text-foreground"
+                : isDestructive
+                  ? "border-destructive/12 bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(252,244,244,0.98))] text-foreground"
+                  : "border-border/60 bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(246,249,245,0.98))] text-foreground",
+          )}
+        >
+          <MobileSheetLeaves inverted={isDark} />
+          <div className="relative z-10 max-h-[calc(100vh-8.75rem)] overflow-y-auto pr-1">
+            <p className={cn("text-[11px] font-semibold uppercase tracking-[0.2em]", isDark ? "text-white/68" : "text-primary/72")}>
+              Step 3 of 3
+            </p>
+            <div className="mt-3">
+              <MobileStageDots step={step} />
+            </div>
+            <div className="mt-6">
+              <StatusHalo tone={isSuccess ? "success" : isDestructive ? "destructive" : "primary"}>{indicator}</StatusHalo>
+            </div>
+            <p className={cn("mt-6 text-xs font-semibold uppercase tracking-[0.18em]", isDark ? "text-white/68" : "text-primary/72")}>
+              {eyebrow}
+            </p>
+            <h3 className={cn("mt-3 font-heading text-[2rem] font-semibold leading-tight", isDark ? "text-white" : "text-foreground")}>
+              {title}
+            </h3>
+            <p className={cn("mt-4 text-sm leading-7", isDark ? "text-white/78" : "text-muted-foreground")}>{description}</p>
+            {children ? <div className="mt-6">{children}</div> : null}
+          </div>
+        </div>
       </div>
     </div>
   );
@@ -328,24 +451,24 @@ const getFailureCopy = (payment?: BookingPaymentRecord | null) => {
   switch (payment?.status) {
     case "cancelled":
       return {
-        title: "Payment not completed",
-        description: "The M-Pesa prompt was cancelled before the booking fee was confirmed. Your session is not booked yet.",
+        title: "Payment not complete",
+        description: "You cancelled the M-Pesa prompt before the booking fee was confirmed. Your session is not booked yet.",
       };
     case "timed_out":
       return {
         title: "Payment timed out",
-        description: "The STK prompt took too long to finish. Your session is not booked yet, so please try again.",
+        description: "The M-Pesa prompt on your phone took too long to finish. Your session is not booked yet, so please try again.",
       };
     case "insufficient_funds":
       return {
         title: "Insufficient funds",
-        description: "The wallet balance was not enough for the booking fee. Your session is not booked yet.",
+        description: "Your M-Pesa balance was not enough for the booking fee. Your session is not booked yet.",
       };
     default:
       return {
-        title: "Payment not completed",
+        title: "Payment not complete",
         description:
-          payment?.resultDescription || "The booking fee could not be confirmed. No session has been booked yet.",
+          payment?.resultDescription || "We could not confirm the booking fee on your phone. No session has been booked yet.",
       };
   }
 };
@@ -453,6 +576,12 @@ const BookingSection = () => {
 
         setCheckout(latest);
         const latestStatus = latest.payment.status;
+
+        if (isBookingConfirmed(latest.booking)) {
+          rememberBookingAccess(latest.booking.token, form.clientEmail.trim());
+          setStep("success");
+          return;
+        }
 
         if (latestStatus === "success") {
           rememberBookingAccess(latest.booking.token, form.clientEmail.trim());
@@ -628,128 +757,231 @@ const BookingSection = () => {
   const renderStatusStep = () => {
     if (step === "stk_sent") {
       return (
-        <div className="mx-auto max-w-xl overflow-hidden rounded-[2rem] border border-border/60 bg-[linear-gradient(180deg,hsl(150_18%_16%),hsl(150_19%_12%))] px-6 py-10 text-center text-white shadow-card sm:px-8">
-          <StatusHalo>
-            <CheckCircle2 className="h-10 w-10" />
-          </StatusHalo>
-          <p className="mt-8 text-sm font-semibold uppercase tracking-[0.22em] text-white/65">STK Push Sent</p>
-          <h3 className="mt-3 font-heading text-3xl font-semibold">STK Push Sent!</h3>
-          <p className="mt-4 text-sm leading-8 text-white/78 sm:text-base">
-            Enter your M-Pesa PIN on the prompt to finish the booking fee payment.
-          </p>
-          <div className="mt-8 hidden gap-3 text-left sm:grid">
-            {STK_PROMPT_STEPS.map((instruction, index) => (
-              <div key={instruction} className="flex items-start gap-3 rounded-[1.25rem] border border-white/10 bg-white/5 px-4 py-4">
-                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-white/10 text-sm font-semibold text-[hsl(136_60%_72%)]">
-                  {index + 1}
+        <>
+          <MobileStatusSheet
+            step={step}
+            tone="dark"
+            eyebrow="STK Push Sent"
+            title="Check your phone"
+            description="Enter your M-Pesa PIN on the Safaricom prompt. We will keep checking the payment and only confirm the booking after M-Pesa confirms success."
+            indicator={<CheckCircle2 className="h-10 w-10" />}
+          >
+            <div className="space-y-3 text-left">
+              {STK_PROMPT_STEPS.map((instruction, index) => (
+                <div key={instruction} className="flex items-start gap-3 rounded-[1.15rem] border border-white/10 bg-white/5 px-4 py-3">
+                  <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-white/10 text-xs font-semibold text-[hsl(136_60%_72%)]">
+                    {index + 1}
+                  </div>
+                  <p className="text-sm leading-6 text-white/78">{instruction}</p>
                 </div>
-                <p className="text-sm leading-7 text-white/78">{instruction}</p>
+              ))}
+            </div>
+            <div className="mt-4 rounded-[1.2rem] border border-white/10 bg-white/5 px-4 py-4 text-left">
+              <p className="text-[11px] uppercase tracking-[0.18em] text-white/58">Payment details</p>
+              <div className="mt-3 flex items-center justify-between gap-4 text-sm">
+                <span className="text-white/68">Phone</span>
+                <span className="font-medium text-white">{paymentPhone || "Pending"}</span>
               </div>
-            ))}
+              <div className="mt-2 flex items-center justify-between gap-4 text-sm">
+                <span className="text-white/68">Amount</span>
+                <span className="font-semibold text-[hsl(136_60%_72%)]">{formatCurrencyAmount(bookingAmount, "KES")}</span>
+              </div>
+            </div>
+          </MobileStatusSheet>
+
+          <div className="hidden overflow-hidden rounded-[2rem] border border-border/60 bg-[linear-gradient(180deg,hsl(150_18%_16%),hsl(150_19%_12%))] px-6 py-10 text-center text-white shadow-card sm:mx-auto sm:block sm:max-w-xl sm:px-8">
+            <StatusHalo>
+              <CheckCircle2 className="h-10 w-10" />
+            </StatusHalo>
+            <p className="mt-8 text-sm font-semibold uppercase tracking-[0.22em] text-white/65">STK Push Sent</p>
+            <h3 className="mt-3 font-heading text-3xl font-semibold">STK Push Sent!</h3>
+            <p className="mt-4 text-sm leading-8 text-white/78 sm:text-base">
+              Enter your M-Pesa PIN on the prompt to finish the booking fee payment.
+            </p>
+            <div className="mt-8 grid gap-3 text-left">
+              {STK_PROMPT_STEPS.map((instruction, index) => (
+                <div key={instruction} className="flex items-start gap-3 rounded-[1.25rem] border border-white/10 bg-white/5 px-4 py-4">
+                  <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-white/10 text-sm font-semibold text-[hsl(136_60%_72%)]">
+                    {index + 1}
+                  </div>
+                  <p className="text-sm leading-7 text-white/78">{instruction}</p>
+                </div>
+              ))}
+            </div>
+            <div className="mt-8 rounded-[1.4rem] border border-white/10 bg-white/5 px-5 py-4 text-left">
+              <p className="text-xs uppercase tracking-[0.18em] text-white/55">Payment details</p>
+              <div className="mt-3 flex items-center justify-between gap-4">
+                <span className="text-white/72">To</span>
+                <span className="font-medium text-white">THE HUB</span>
+              </div>
+              <div className="mt-2 flex items-center justify-between gap-4">
+                <span className="text-white/72">Phone</span>
+                <span className="font-medium text-white">{paymentPhone || "Pending"}</span>
+              </div>
+              <div className="mt-2 flex items-center justify-between gap-4">
+                <span className="text-white/72">Amount</span>
+                <span className="font-semibold text-[hsl(136_60%_72%)]">{formatCurrencyAmount(bookingAmount, "KES")}</span>
+              </div>
+            </div>
           </div>
-          <div className="mt-8 rounded-[1.4rem] border border-white/10 bg-white/5 px-5 py-4 text-left">
-            <p className="text-xs uppercase tracking-[0.18em] text-white/55">Payment details</p>
-            <div className="mt-3 flex items-center justify-between gap-4">
-              <span className="text-white/72">To</span>
-              <span className="font-medium text-white">THE HUB</span>
-            </div>
-            <div className="mt-2 hidden items-center justify-between gap-4 sm:flex">
-              <span className="text-white/72">Phone</span>
-              <span className="font-medium text-white">{paymentPhone || "Pending"}</span>
-            </div>
-            <div className="mt-2 flex items-center justify-between gap-4">
-              <span className="text-white/72">Amount</span>
-              <span className="font-semibold text-[hsl(136_60%_72%)]">{formatCurrencyAmount(bookingAmount, "KES")}</span>
-            </div>
-          </div>
-        </div>
+        </>
       );
     }
 
     if (step === "processing") {
       return (
-        <div className="mx-auto max-w-xl rounded-[2rem] border border-border/60 bg-[linear-gradient(180deg,hsl(150_18%_16%),hsl(150_19%_12%))] px-6 py-10 text-center text-white shadow-card sm:px-8">
-          <StatusHalo>
-            <LoaderCircle className="h-10 w-10 animate-spin" />
-          </StatusHalo>
-          <p className="mt-8 text-sm font-semibold uppercase tracking-[0.22em] text-white/65">Processing Payment</p>
-          <h3 className="mt-3 font-heading text-3xl font-semibold">Confirming your payment</h3>
-          <p className="mt-4 text-sm leading-8 text-white/78 sm:text-base">
-            Please wait while we confirm your booking fee with M-Pesa.
-          </p>
-          <div className="mt-8 rounded-[1.4rem] border border-white/10 bg-white/5 px-5 py-4 text-left text-sm leading-7 text-white/75">
-            <p className="font-medium text-white">What happens next</p>
-            <p className="mt-2">We are checking the Safaricom response, updating your booking, and preparing the confirmation details.</p>
-            <p className="mt-2 text-white/58">This usually takes a few seconds.</p>
-          </div>
-          {paymentFeedback ? (
-            <div className="mt-4 rounded-[1.1rem] border border-white/10 bg-white/5 px-4 py-3 text-sm leading-7 text-white/72">
-              {paymentFeedback}
+        <>
+          <MobileStatusSheet
+            step={step}
+            tone="dark"
+            eyebrow="Processing Payment"
+            title="Confirming your payment"
+            description="Please wait while we check the Safaricom response, update your booking, and prepare your confirmation email."
+            indicator={<LoaderCircle className="h-10 w-10 animate-spin" />}
+          >
+            <div className="rounded-[1.2rem] border border-white/10 bg-white/5 px-4 py-4 text-left text-sm leading-6 text-white/78">
+              <p className="font-medium text-white">What happens next</p>
+              <p className="mt-2">We only move you to the final booking step after the payment outcome is confirmed.</p>
+              <p className="mt-2 text-white/58">This usually takes a few seconds.</p>
             </div>
-          ) : null}
-        </div>
+            {paymentFeedback ? (
+              <div className="mt-4 rounded-[1.1rem] border border-white/10 bg-white/5 px-4 py-3 text-sm leading-6 text-white/72">
+                {paymentFeedback}
+              </div>
+            ) : null}
+          </MobileStatusSheet>
+
+          <div className="hidden rounded-[2rem] border border-border/60 bg-[linear-gradient(180deg,hsl(150_18%_16%),hsl(150_19%_12%))] px-6 py-10 text-center text-white shadow-card sm:mx-auto sm:block sm:max-w-xl sm:px-8">
+            <StatusHalo>
+              <LoaderCircle className="h-10 w-10 animate-spin" />
+            </StatusHalo>
+            <p className="mt-8 text-sm font-semibold uppercase tracking-[0.22em] text-white/65">Processing Payment</p>
+            <h3 className="mt-3 font-heading text-3xl font-semibold">Confirming your payment</h3>
+            <p className="mt-4 text-sm leading-8 text-white/78 sm:text-base">
+              Please wait while we confirm your booking fee with M-Pesa.
+            </p>
+            <div className="mt-8 rounded-[1.4rem] border border-white/10 bg-white/5 px-5 py-4 text-left text-sm leading-7 text-white/75">
+              <p className="font-medium text-white">What happens next</p>
+              <p className="mt-2">We are checking the Safaricom response, updating your booking, and preparing the confirmation details.</p>
+              <p className="mt-2 text-white/58">This usually takes a few seconds.</p>
+            </div>
+            {paymentFeedback ? (
+              <div className="mt-4 rounded-[1.1rem] border border-white/10 bg-white/5 px-4 py-3 text-sm leading-7 text-white/72">
+                {paymentFeedback}
+              </div>
+            ) : null}
+          </div>
+        </>
       );
     }
 
     if (step === "success") {
       return (
-        <div className="mx-auto max-w-xl rounded-[2rem] border border-border/60 bg-card px-6 py-10 text-center shadow-hover sm:px-8">
-          <StatusHalo tone="success">
-            <CheckCircle2 className="h-10 w-10" />
-          </StatusHalo>
-          <p className="mt-8 text-sm font-semibold uppercase tracking-[0.22em] text-primary/75">Payment Successful</p>
-          <h3 className="mt-3 font-heading text-3xl font-semibold text-foreground">Your session is booked</h3>
-          <p className="mt-4 text-sm leading-8 text-muted-foreground sm:text-base">
-            Your deposit of {formatCurrencyAmount(bookingAmount, "KES")} has been received. A confirmation email has
-            been sent for your session. Please check your mail.
-          </p>
-          <div className="mt-8 grid gap-3 sm:grid-cols-2">
-            <div className="rounded-[1.2rem] border border-border/60 bg-secondary/35 px-4 py-4 text-left">
-              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-primary/65">Payment method</p>
-              <p className="mt-2 text-base font-semibold text-foreground">{activePayment?.paymentMethod ?? "M-Pesa STK Push"}</p>
+        <>
+          <MobileStatusSheet
+            step={step}
+            tone="success"
+            eyebrow="Payment Successful"
+            title="Your session is booked"
+            description={`Your deposit of ${formatCurrencyAmount(bookingAmount, "KES")} has been received. Your confirmation email is ready, and we are taking you to the final booking step now.`}
+            indicator={<CheckCircle2 className="h-10 w-10" />}
+          >
+            <div className="grid gap-3">
+              <div className="rounded-[1.1rem] border border-border/60 bg-background/85 px-4 py-3 text-left">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-primary/65">Payment method</p>
+                <p className="mt-2 text-sm font-semibold text-foreground">{activePayment?.paymentMethod ?? "M-Pesa STK Push"}</p>
+              </div>
+              <div className="rounded-[1.1rem] border border-border/60 bg-background/85 px-4 py-3 text-left">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-primary/65">Transaction ID</p>
+                <p className="mt-2 text-sm font-semibold text-foreground">{activePayment?.transactionId ?? "Awaiting receipt"}</p>
+              </div>
             </div>
-            <div className="rounded-[1.2rem] border border-border/60 bg-secondary/35 px-4 py-4 text-left">
-              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-primary/65">Transaction ID</p>
-              <p className="mt-2 text-base font-semibold text-foreground">{activePayment?.transactionId ?? "Awaiting receipt"}</p>
+          </MobileStatusSheet>
+
+          <div className="hidden rounded-[2rem] border border-border/60 bg-card px-6 py-10 text-center shadow-hover sm:mx-auto sm:block sm:max-w-xl sm:px-8">
+            <StatusHalo tone="success">
+              <CheckCircle2 className="h-10 w-10" />
+            </StatusHalo>
+            <p className="mt-8 text-sm font-semibold uppercase tracking-[0.22em] text-primary/75">Payment Successful</p>
+            <h3 className="mt-3 font-heading text-3xl font-semibold text-foreground">Your session is booked</h3>
+            <p className="mt-4 text-sm leading-8 text-muted-foreground sm:text-base">
+              Your deposit of {formatCurrencyAmount(bookingAmount, "KES")} has been received. A confirmation email has
+              been sent for your session. Please check your mail.
+            </p>
+            <div className="mt-8 grid gap-3 sm:grid-cols-2">
+              <div className="rounded-[1.2rem] border border-border/60 bg-secondary/35 px-4 py-4 text-left">
+                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-primary/65">Payment method</p>
+                <p className="mt-2 text-base font-semibold text-foreground">{activePayment?.paymentMethod ?? "M-Pesa STK Push"}</p>
+              </div>
+              <div className="rounded-[1.2rem] border border-border/60 bg-secondary/35 px-4 py-4 text-left">
+                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-primary/65">Transaction ID</p>
+                <p className="mt-2 text-base font-semibold text-foreground">{activePayment?.transactionId ?? "Awaiting receipt"}</p>
+              </div>
             </div>
+            <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:justify-center">
+              <Button variant="hero" className="rounded-full" onClick={() => checkout && navigate(`/manage/${checkout.booking.token}`)}>
+                View Booking
+              </Button>
+              <Button variant="heroBorder" className="rounded-full" onClick={() => navigate("/")}>
+                <Home className="h-4 w-4" />
+                Back Home
+              </Button>
+            </div>
+            <p className="mt-4 text-xs uppercase tracking-[0.18em] text-primary/60">Opening your booking page automatically...</p>
           </div>
-          <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:justify-center">
-            <Button variant="hero" className="rounded-full" onClick={() => checkout && navigate(`/manage/${checkout.booking.token}`)}>
-              View Booking
-            </Button>
-            <Button variant="heroBorder" className="rounded-full" onClick={() => navigate("/")}>
-              <Home className="h-4 w-4" />
-              Back Home
-            </Button>
-          </div>
-          <p className="mt-4 text-xs uppercase tracking-[0.18em] text-primary/60">Opening your booking page automatically...</p>
-        </div>
+        </>
       );
     }
 
     return (
-      <div className="mx-auto max-w-xl rounded-[2rem] border border-border/60 bg-card px-6 py-10 text-center shadow-card sm:px-8">
-        <StatusHalo tone="destructive">
-          <CircleAlert className="h-10 w-10" />
-        </StatusHalo>
-        <p className="mt-8 text-sm font-semibold uppercase tracking-[0.22em] text-primary/75">Payment Failed</p>
-        <h3 className="mt-3 font-heading text-3xl font-semibold text-foreground">{failureCopy.title}</h3>
-        <p className="mt-4 text-sm leading-8 text-muted-foreground sm:text-base">{failureCopy.description}</p>
-        {activePayment?.resultDescription ? (
-          <div className="mt-6 rounded-[1.2rem] border border-border/60 bg-secondary/35 px-4 py-4 text-left text-sm leading-7 text-muted-foreground">
-            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-primary/70">Reason</p>
-            <p className="mt-2 text-foreground">{activePayment.resultDescription}</p>
+      <>
+        <MobileStatusSheet
+          step={step}
+          tone="destructive"
+          eyebrow="Payment Not Complete"
+          title={failureCopy.title}
+          description={failureCopy.description}
+          indicator={<CircleAlert className="h-10 w-10" />}
+        >
+          {activePayment?.resultDescription ? (
+            <div className="rounded-[1.1rem] border border-destructive/12 bg-white/75 px-4 py-3 text-left text-sm leading-6 text-muted-foreground">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-primary/70">Reason</p>
+              <p className="mt-2 text-foreground">{activePayment.resultDescription}</p>
+            </div>
+          ) : null}
+          <div className="mt-4 grid gap-3">
+            <Button variant="hero" className="w-full rounded-xl" onClick={handleStartPayment} disabled={isSubmitting}>
+              {isSubmitting ? "Trying Again..." : "Try Again"}
+            </Button>
+            <Button variant="heroBorder" className="w-full rounded-xl" onClick={resetToPaymentStep}>
+              Change Phone Number
+            </Button>
           </div>
-        ) : null}
-        <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:justify-center">
-          <Button variant="hero" className="rounded-full" onClick={handleStartPayment} disabled={isSubmitting}>
-            {isSubmitting ? "Trying Again..." : "Try Again"}
-          </Button>
-          <Button variant="heroBorder" className="rounded-full" onClick={resetToPaymentStep}>
-            Change Phone Number
-          </Button>
+        </MobileStatusSheet>
+
+        <div className="hidden rounded-[2rem] border border-border/60 bg-card px-6 py-10 text-center shadow-card sm:mx-auto sm:block sm:max-w-xl sm:px-8">
+          <StatusHalo tone="destructive">
+            <CircleAlert className="h-10 w-10" />
+          </StatusHalo>
+          <p className="mt-8 text-sm font-semibold uppercase tracking-[0.22em] text-primary/75">Payment Failed</p>
+          <h3 className="mt-3 font-heading text-3xl font-semibold text-foreground">{failureCopy.title}</h3>
+          <p className="mt-4 text-sm leading-8 text-muted-foreground sm:text-base">{failureCopy.description}</p>
+          {activePayment?.resultDescription ? (
+            <div className="mt-6 rounded-[1.2rem] border border-border/60 bg-secondary/35 px-4 py-4 text-left text-sm leading-7 text-muted-foreground">
+              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-primary/70">Reason</p>
+              <p className="mt-2 text-foreground">{activePayment.resultDescription}</p>
+            </div>
+          ) : null}
+          <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:justify-center">
+            <Button variant="hero" className="rounded-full" onClick={handleStartPayment} disabled={isSubmitting}>
+              {isSubmitting ? "Trying Again..." : "Try Again"}
+            </Button>
+            <Button variant="heroBorder" className="rounded-full" onClick={resetToPaymentStep}>
+              Change Phone Number
+            </Button>
+          </div>
         </div>
-      </div>
+      </>
     );
   };
 
@@ -820,7 +1052,7 @@ const BookingSection = () => {
             <ScrollReveal direction="right">
               <div className={step === "details" ? "" : "mx-auto w-full max-w-5xl"}>
                 {step !== "details" ? (
-                  <div className="mb-6 text-center">
+                  <div className="mb-6 hidden text-center sm:block">
                     <p className="text-sm font-semibold uppercase tracking-[0.24em] text-primary/75">Secure Booking Checkout</p>
                     <h2 className="mt-2 font-heading text-3xl font-semibold text-foreground sm:text-4xl">
                       Confirm your session in a few guided steps
@@ -1067,18 +1299,22 @@ const BookingSection = () => {
                   </form>
                 ) : step === "summary" ? (
                   <>
-                    <div className="mx-auto max-w-[23rem] rounded-[2rem] border border-border/60 bg-card p-4 shadow-card sm:hidden">
-                      <div className="flex items-center gap-3">
+                    <div className="relative mx-auto max-w-[23rem] overflow-hidden rounded-[2rem] border border-border/60 bg-card p-4 shadow-card sm:hidden">
+                      <MobileSheetLeaves />
+                      <div className="relative z-10 flex items-start gap-3">
                         <Button variant="ghost" size="icon" className="h-9 w-9 rounded-full border border-border/60" onClick={() => setStep("details")}>
                           <ArrowLeft className="h-4 w-4" />
                         </Button>
-                        <div>
+                        <div className="min-w-0 flex-1">
                           <p className="text-xs font-semibold uppercase tracking-[0.2em] text-primary/70">Step 1 of 3</p>
-                          <h3 className="mt-1 font-heading text-2xl font-semibold text-foreground">Book a Session</h3>
+                          <div className="mt-3">
+                            <MobileStageDots step={step} />
+                          </div>
+                          <h3 className="mt-4 font-heading text-[1.95rem] font-semibold text-foreground">Review your session</h3>
                         </div>
                       </div>
 
-                      <div className="mt-5 rounded-[1.6rem] border border-border/60 bg-background p-5 shadow-soft">
+                      <div className="relative z-10 mt-5 rounded-[1.6rem] border border-border/60 bg-background/95 p-5 shadow-soft">
                         <h4 className="text-lg font-semibold text-foreground">Session Summary</h4>
                         <div className="mt-4 space-y-4 border-t border-border/60 pt-4">
                           {[
@@ -1116,14 +1352,14 @@ const BookingSection = () => {
                         </div>
                       </div>
 
-                      <div className="mt-4 rounded-[1.25rem] bg-primary/10 px-4 py-4 text-sm leading-7 text-foreground/85">
+                      <div className="relative z-10 mt-4 rounded-[1.25rem] bg-primary/10 px-4 py-4 text-sm leading-7 text-foreground/85">
                         To confirm your session, a refundable booking fee is required.
                       </div>
 
                       <Button
                         variant="hero"
                         size="lg"
-                        className="mt-5 w-full rounded-xl"
+                        className="relative z-10 mt-5 w-full rounded-xl"
                         onClick={() => {
                           setPaymentPhone(form.clientPhone);
                           setStep("payment");
@@ -1172,18 +1408,22 @@ const BookingSection = () => {
                   </>
                 ) : step === "payment" ? (
                   <>
-                    <div className="mx-auto max-w-[23rem] rounded-[2rem] border border-border/60 bg-card p-4 shadow-card sm:hidden">
-                      <div className="flex items-center gap-3">
+                    <div className="relative mx-auto max-w-[23rem] overflow-hidden rounded-[2rem] border border-border/60 bg-card p-4 shadow-card sm:hidden">
+                      <MobileSheetLeaves />
+                      <div className="relative z-10 flex items-start gap-3">
                         <Button variant="ghost" size="icon" className="h-9 w-9 rounded-full border border-border/60" onClick={() => setStep("summary")}>
                           <ArrowLeft className="h-4 w-4" />
                         </Button>
-                        <div>
+                        <div className="min-w-0 flex-1">
                           <p className="text-xs font-semibold uppercase tracking-[0.2em] text-primary/70">Step 2 of 3</p>
-                          <h3 className="mt-1 font-heading text-2xl font-semibold text-foreground">Payment</h3>
+                          <div className="mt-3">
+                            <MobileStageDots step={step} />
+                          </div>
+                          <h3 className="mt-4 font-heading text-[1.95rem] font-semibold text-foreground">Complete payment</h3>
                         </div>
                       </div>
 
-                      <div className="mt-5 rounded-[1.6rem] border border-border/60 bg-background px-5 py-6 text-center shadow-soft">
+                      <div className="relative z-10 mt-5 rounded-[1.6rem] border border-border/60 bg-background/95 px-5 py-6 text-center shadow-soft">
                         <MpesaWordmark className="justify-center" />
                         <p className="mt-5 text-sm font-medium text-foreground/80">Pay Deposit</p>
                         <p className="mt-2 text-4xl font-semibold tracking-tight text-primary">

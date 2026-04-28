@@ -6,3 +6,11 @@ Django version 5.0.7, using settings 'config.settings'
 Starting development server at http://127.0.0.1:8000/
 Quit the server with CTRL-BREAK.
 
+Performing system checks...
+
+System check identified no issues (0 silenced).
+April 29, 2026 - 00:17:50
+Django version 5.0.7, using settings 'config.settings'
+Starting development server at http://127.0.0.1:8000/
+Quit the server with CTRL-BREAK.
+

@@ -60,10 +60,10 @@ interface TherapistProfileFormState {
 const DASHBOARD_TABS = [
   "overview",
   "sessions",
-  "transactions",
   "calls",
   "blog",
   "notifications",
+  "transactions",
   "completed",
   "profile",
   "security",
@@ -860,9 +860,6 @@ const TherapistDashboardPage = () => {
                     <TabsTrigger value="sessions" className="h-auto shrink-0 rounded-full px-3 py-2 text-[11px] sm:px-4 sm:text-sm lg:px-5">
                       Sessions
                     </TabsTrigger>
-                    <TabsTrigger value="transactions" className="h-auto shrink-0 rounded-full px-3 py-2 text-[10px] sm:px-4 sm:text-sm lg:px-5">
-                      Transactions
-                    </TabsTrigger>
                     <TabsTrigger value="calls" className="h-auto shrink-0 rounded-full px-3 py-2 text-[11px] sm:px-4 sm:text-sm lg:px-5">
                       Calls
                     </TabsTrigger>
@@ -886,6 +883,9 @@ const TherapistDashboardPage = () => {
                         <span className="hidden sm:inline">Notifications</span>
                         <span className="sm:hidden">Alerts</span>
                       </span>
+                    </TabsTrigger>
+                    <TabsTrigger value="transactions" className="h-auto shrink-0 rounded-full px-3 py-2 text-[10px] sm:px-4 sm:text-sm lg:px-5">
+                      Transactions
                     </TabsTrigger>
                     <TabsTrigger value="completed" className="h-auto shrink-0 rounded-full px-3 py-2 text-[10px] sm:px-4 sm:text-sm lg:px-5">
                       Completed

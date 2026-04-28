@@ -1,5 +1,6 @@
 import html
 from datetime import timedelta
+from unittest.mock import patch
 from urllib.parse import parse_qs, urlparse
 
 from django.core.management import call_command
@@ -11,6 +12,7 @@ from rest_framework.test import APITestCase
 
 from apps.bookings.models import Booking, BookingPayment
 from apps.bookings.delivery import REMINDER_EMAIL_KIND
+from apps.bookings.payments import MpesaQueryResponse, MpesaStkPushResponse
 from apps.notifications.models import Notification
 from apps.therapists.models import TherapistProfile
 
@@ -803,6 +805,112 @@ class PaidBookingCheckoutApiTests(APITestCase):
         self.assertEqual(retry_response.status_code, status.HTTP_200_OK)
         self.assertEqual(retry_response.data["booking"]["status"], Booking.Status.PAYMENT_PENDING)
         self.assertEqual(retry_response.data["payment"]["status"], BookingPayment.Status.STK_PUSH_SENT)
+
+    @override_settings(
+        MPESA_SIMULATE_PAYMENTS=False,
+        MPESA_CONSUMER_KEY="test-key",
+        MPESA_CONSUMER_SECRET="test-secret",
+        MPESA_SHORTCODE="174379",
+        MPESA_PASSKEY="test-passkey",
+        MPESA_CALLBACK_URL="https://example.com/api/v1/payments/mpesa/callback/",
+    )
+    @patch("apps.bookings.services.query_stk_push_status")
+    @patch("apps.bookings.services.initiate_stk_push")
+    def test_status_endpoint_waits_for_callback_before_surface_query_failure(
+        self,
+        initiate_stk_push_mock,
+        query_stk_push_status_mock,
+    ):
+        unique_tag = timezone.now().strftime("%H%M%S%f")
+        initiate_stk_push_mock.return_value = MpesaStkPushResponse(
+            merchant_request_id="mr_live_wait",
+            checkout_request_id="ws_live_wait",
+            raw={
+                "MerchantRequestID": "mr_live_wait",
+                "CheckoutRequestID": "ws_live_wait",
+                "ResponseCode": "0",
+                "ResponseDescription": "Success. Request accepted for processing",
+            },
+        )
+        query_stk_push_status_mock.return_value = MpesaQueryResponse(
+            is_final=True,
+            result_code="1032",
+            result_description="Request cancelled by user.",
+            raw={
+                "ResponseCode": "0",
+                "ResponseDescription": "The transaction status has been received.",
+                "CheckoutRequestID": "ws_live_wait",
+                "ResultCode": "1032",
+                "ResultDesc": "Request cancelled by user.",
+            },
+            metadata={},
+        )
+
+        checkout_response = self.client.post(
+            "/api/v1/bookings/checkout/",
+            {
+                "clientName": "Live Wait Client",
+                "clientEmail": f"live-wait-{unique_tag}@example.com",
+                "clientPhone": "+254700777888",
+                "therapistId": "caroline-gichia",
+                "date": "2028-09-29",
+                "time": "16:30",
+                "serviceType": "individual",
+                "sessionType": "virtual",
+                "notes": "Wait for callback before failure.",
+                "mpesaPhoneNumber": "0712345678",
+            },
+            format="json",
+        )
+        self.assertEqual(checkout_response.status_code, status.HTTP_201_CREATED)
+
+        booking = Booking.objects.get(pk=checkout_response.data["booking"]["id"])
+        payment = BookingPayment.objects.get(pk=checkout_response.data["payment"]["id"])
+
+        status_response = self.client.get(
+            f"/api/v1/bookings/checkout/{booking.manage_token}/payments/{payment.id}/status/"
+        )
+        self.assertEqual(status_response.status_code, status.HTTP_200_OK)
+        self.assertEqual(status_response.data["payment"]["status"], BookingPayment.Status.PROCESSING)
+        self.assertEqual(status_response.data["booking"]["status"], Booking.Status.PAYMENT_PENDING)
+        self.assertEqual(len(mail.outbox), 0)
+
+        callback_response = self.client.post(
+            "/api/v1/payments/mpesa/callback/",
+            {
+                "Body": {
+                    "stkCallback": {
+                        "MerchantRequestID": "mr_live_wait",
+                        "CheckoutRequestID": "ws_live_wait",
+                        "ResultCode": 0,
+                        "ResultDesc": "The service request is processed successfully.",
+                        "CallbackMetadata": {
+                            "Item": [
+                                {"Name": "Amount", "Value": 200},
+                                {"Name": "MpesaReceiptNumber", "Value": "QWE123456"},
+                                {"Name": "PhoneNumber", "Value": 254712345678},
+                            ]
+                        },
+                    }
+                }
+            },
+            format="json",
+        )
+        self.assertEqual(callback_response.status_code, status.HTTP_200_OK)
+
+        final_status_response = self.client.get(
+            f"/api/v1/bookings/checkout/{booking.manage_token}/payments/{payment.id}/status/"
+        )
+        self.assertEqual(final_status_response.status_code, status.HTTP_200_OK)
+        self.assertEqual(final_status_response.data["payment"]["status"], BookingPayment.Status.SUCCESS)
+        self.assertEqual(final_status_response.data["booking"]["status"], Booking.Status.UPCOMING)
+
+        booking.refresh_from_db()
+        payment.refresh_from_db()
+        self.assertEqual(booking.status, Booking.Status.UPCOMING)
+        self.assertEqual(payment.status, BookingPayment.Status.SUCCESS)
+        self.assertEqual(payment.transaction_id, "QWE123456")
+        self.assertEqual(len(mail.outbox), 2)
 
     def test_direct_full_session_booking_requires_payment_flow(self):
         response = self.client.post(

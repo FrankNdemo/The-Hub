@@ -33,6 +33,8 @@ from .payments import (
 )
 from .scheduling import ensure_client_can_book, ensure_slot_is_available
 
+QUERY_FAILURE_CONFIRMATION_GRACE_SECONDS = 25
+
 
 def make_id(prefix: str) -> str:
     return f"{prefix}-{secrets.token_hex(8)}"
@@ -181,7 +183,7 @@ def get_payment_failure_history_title(payment: BookingPayment) -> str:
 
 def get_payment_failure_message(result_code: str, result_description: str) -> tuple[str, str]:
     code = str(result_code).strip()
-    description = result_description.strip() or "The payment did not complete."
+    description = normalize_payment_result_description(result_description)
 
     if code == "0":
         return BookingPayment.Status.SUCCESS, description
@@ -193,6 +195,19 @@ def get_payment_failure_message(result_code: str, result_description: str) -> tu
         return BookingPayment.Status.INSUFFICIENT_FUNDS, "The M-Pesa wallet has insufficient funds."
 
     return BookingPayment.Status.FAILED, description
+
+
+def normalize_payment_result_description(result_description: str) -> str:
+    description = result_description.strip() or "The payment did not complete."
+    lowered_description = description.lower()
+
+    if "initiator" in lowered_description or "credential" in lowered_description:
+        return "We could not confirm the M-Pesa request from your phone. Please try again and approve the prompt carefully."
+
+    if "invalid access token" in lowered_description:
+        return "We could not finish confirming your M-Pesa request right now. Please try again in a moment."
+
+    return description
 
 
 def mark_booking_payment_failed(*, booking: Booking, payment: BookingPayment) -> None:
@@ -392,6 +407,23 @@ def retry_paid_booking_checkout(*, booking: Booking, mpesa_phone_number: str) ->
     return start_booking_payment(booking=booking, mpesa_phone_number=mpesa_phone_number)
 
 
+def should_defer_query_failure_outcome(*, booking: Booking, payment: BookingPayment, result_code: str) -> bool:
+    if settings.MPESA_SIMULATE_PAYMENTS:
+        return False
+
+    if not result_code or result_code == "0":
+        return False
+
+    if booking.confirmed_at or payment.callback_received_at:
+        return False
+
+    current_time = timezone.now()
+    if booking.payment_expires_at and booking.payment_expires_at <= current_time:
+        return False
+
+    return current_time < payment.created_at + timedelta(seconds=QUERY_FAILURE_CONFIRMATION_GRACE_SECONDS)
+
+
 def sync_booking_payment_status(*, booking: Booking, payment: BookingPayment) -> tuple[Booking, BookingPayment]:
     if payment.is_final:
         return booking, payment
@@ -410,6 +442,20 @@ def sync_booking_payment_status(*, booking: Booking, payment: BookingPayment) ->
     if not query_result.is_final:
         payment.status = BookingPayment.Status.PROCESSING
         payment.result_description = query_result.result_description
+        payment.query_payload = query_result.raw
+        payment.last_status_check_at = timezone.now()
+        payment.save(update_fields=["status", "result_description", "query_payload", "last_status_check_at", "updated_at"])
+        return booking, payment
+
+    if should_defer_query_failure_outcome(
+        booking=booking,
+        payment=payment,
+        result_code=str(query_result.result_code).strip(),
+    ):
+        payment.status = BookingPayment.Status.PROCESSING
+        payment.result_description = (
+            "We have received your M-Pesa response and are waiting for final confirmation before updating your booking."
+        )
         payment.query_payload = query_result.raw
         payment.last_status_check_at = timezone.now()
         payment.save(update_fields=["status", "result_description", "query_payload", "last_status_check_at", "updated_at"])
