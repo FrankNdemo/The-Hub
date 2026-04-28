@@ -33,6 +33,7 @@ import type {
   BlogPost,
   BlogPostDraft,
   BookingInput,
+  BookingPaymentRecord,
   BookingRecord,
   NotificationItem,
   TherapistProfile,
@@ -77,6 +78,7 @@ const WellnessHubContext = createContext<WellnessHubContextValue | null>(null);
 const defaultState: WellnessHubState = {
   blogPosts: seedBlogPosts,
   bookings: [],
+  transactions: [],
   notifications: [],
   therapist: primaryTherapist,
   therapistSession: null,
@@ -163,6 +165,87 @@ const normalizeBlogPost = (post?: Partial<BlogPost> | null): BlogPost | null => 
   };
 };
 
+const normalizeAmount = (value: unknown, fallback = 0) => {
+  if (typeof value === "number" && Number.isFinite(value)) {
+    return value;
+  }
+
+  if (typeof value === "string") {
+    const parsed = Number.parseFloat(value);
+    if (Number.isFinite(parsed)) {
+      return parsed;
+    }
+  }
+
+  return fallback;
+};
+
+const normalizeBookingPayment = (payment?: Partial<BookingPaymentRecord> | null): BookingPaymentRecord | null => {
+  if (
+    !payment ||
+    typeof payment.id !== "string" ||
+    typeof payment.provider !== "string" ||
+    typeof payment.paymentMethod !== "string" ||
+    typeof payment.status !== "string" ||
+    typeof payment.statusLabel !== "string" ||
+    typeof payment.currency !== "string" ||
+    typeof payment.phoneNumber !== "string" ||
+    typeof payment.createdAt !== "string" ||
+    typeof payment.updatedAt !== "string"
+  ) {
+    return null;
+  }
+
+  const status: BookingPaymentRecord["status"] =
+    payment.status === "initiated" ||
+    payment.status === "stk_push_sent" ||
+    payment.status === "processing" ||
+    payment.status === "success" ||
+    payment.status === "failed" ||
+    payment.status === "cancelled" ||
+    payment.status === "timed_out" ||
+    payment.status === "insufficient_funds"
+      ? payment.status
+      : "failed";
+
+  return {
+    id: payment.id,
+    provider: payment.provider,
+    paymentMethod: payment.paymentMethod,
+    status,
+    statusLabel: payment.statusLabel,
+    canRetry: Boolean(payment.canRetry),
+    amount: normalizeAmount(payment.amount, 0),
+    currency: payment.currency,
+    phoneNumber: payment.phoneNumber,
+    merchantRequestId: typeof payment.merchantRequestId === "string" ? payment.merchantRequestId : "",
+    checkoutRequestId:
+      typeof payment.checkoutRequestId === "string" || payment.checkoutRequestId === null
+        ? payment.checkoutRequestId
+        : undefined,
+    transactionId: typeof payment.transactionId === "string" && payment.transactionId ? payment.transactionId : undefined,
+    resultCode: typeof payment.resultCode === "string" && payment.resultCode ? payment.resultCode : undefined,
+    resultDescription:
+      typeof payment.resultDescription === "string" && payment.resultDescription ? payment.resultDescription : undefined,
+    createdAt: payment.createdAt,
+    updatedAt: payment.updatedAt,
+    completedAt:
+      typeof payment.completedAt === "string" || payment.completedAt === null ? payment.completedAt : undefined,
+    bookingId: typeof payment.bookingId === "string" ? payment.bookingId : undefined,
+    bookingToken: typeof payment.bookingToken === "string" ? payment.bookingToken : undefined,
+    clientName: typeof payment.clientName === "string" ? payment.clientName : undefined,
+    clientEmail: typeof payment.clientEmail === "string" ? payment.clientEmail : undefined,
+    therapistName: typeof payment.therapistName === "string" ? payment.therapistName : undefined,
+    serviceType:
+      payment.serviceType === "family" || payment.serviceType === "corporate" || payment.serviceType === "individual"
+        ? payment.serviceType
+        : undefined,
+    sessionType: payment.sessionType === "physical" || payment.sessionType === "virtual" ? payment.sessionType : undefined,
+    sessionDate: typeof payment.sessionDate === "string" ? payment.sessionDate : undefined,
+    sessionTime: typeof payment.sessionTime === "string" ? payment.sessionTime : undefined,
+  };
+};
+
 const normalizeBooking = (booking?: Partial<BookingRecord> | null): BookingRecord | null => {
   if (
     !booking ||
@@ -185,6 +268,8 @@ const normalizeBooking = (booking?: Partial<BookingRecord> | null): BookingRecor
   }
 
   const status: BookingRecord["status"] =
+    booking.status === "payment_pending" ||
+    booking.status === "payment_failed" ||
     booking.status === "rescheduled" ||
     booking.status === "cancelled" ||
     booking.status === "completed"
@@ -224,6 +309,11 @@ const normalizeBooking = (booking?: Partial<BookingRecord> | null): BookingRecor
       typeof booking.therapistAddToCalendarUrl === "string" ? booking.therapistAddToCalendarUrl : "",
     createdAt: booking.createdAt,
     updatedAt: booking.updatedAt,
+    confirmedAt:
+      typeof booking.confirmedAt === "string" || booking.confirmedAt === null ? booking.confirmedAt : undefined,
+    bookingFeeAmount: normalizeAmount(booking.bookingFeeAmount, 200),
+    bookingFeeCurrency: typeof booking.bookingFeeCurrency === "string" ? booking.bookingFeeCurrency : "KES",
+    payment: normalizeBookingPayment(booking.payment),
     notes: typeof booking.notes === "string" && booking.notes ? booking.notes : undefined,
     isExplorationCall: Boolean(booking.isExplorationCall),
     emails: Array.isArray(booking.emails) ? booking.emails : [],
@@ -238,6 +328,11 @@ const applyDashboardSnapshot = (snapshot: DashboardOverviewResponse): WellnessHu
   bookings: snapshot.bookings
     .map((booking) => normalizeBooking(booking))
     .filter((booking): booking is BookingRecord => Boolean(booking)),
+  transactions: Array.isArray(snapshot.transactions)
+    ? snapshot.transactions
+        .map((payment) => normalizeBookingPayment(payment))
+        .filter((payment): payment is BookingPaymentRecord => Boolean(payment))
+    : [],
   notifications: snapshot.notifications
     .map((notification) => normalizeNotification(notification))
     .filter((notification): notification is NotificationItem => Boolean(notification)),
@@ -277,6 +372,7 @@ export const WellnessHubProvider = ({ children }: { children: React.ReactNode })
     setState((current) => ({
       ...current,
       bookings: [],
+      transactions: [],
       notifications: [],
       therapistSession: null,
     }));

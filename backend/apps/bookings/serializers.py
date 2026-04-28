@@ -11,8 +11,8 @@ from .delivery import (
     build_join_url,
     build_therapist_session_url,
 )
-from .exploration import get_public_booking_notes, is_exploration_call
-from .models import Booking, BookingHistoryEvent, EmailRecord
+from .exploration import get_public_booking_notes, is_exploration_call, is_exploration_call_notes
+from .models import Booking, BookingHistoryEvent, BookingPayment, EmailRecord
 
 
 def is_virtual_session_open(booking: Booking) -> bool:
@@ -39,6 +39,98 @@ class BookingHistoryEventSerializer(serializers.ModelSerializer):
         fields = ["id", "type", "title", "description", "createdAt"]
 
 
+def get_payment_status_label(payment: BookingPayment) -> str:
+    return payment.get_status_display()
+
+
+def get_payment_method_label(payment: BookingPayment) -> str:
+    if payment.provider == BookingPayment.Provider.MPESA:
+        return "M-Pesa STK Push"
+
+    return payment.get_provider_display()
+
+
+def get_payment_retry_flag(payment: BookingPayment) -> bool:
+    return payment.status in {
+        BookingPayment.Status.FAILED,
+        BookingPayment.Status.CANCELLED,
+        BookingPayment.Status.TIMED_OUT,
+        BookingPayment.Status.INSUFFICIENT_FUNDS,
+    }
+
+
+class BookingPaymentSummarySerializer(serializers.ModelSerializer):
+    paymentMethod = serializers.SerializerMethodField()
+    statusLabel = serializers.SerializerMethodField()
+    canRetry = serializers.SerializerMethodField()
+    merchantRequestId = serializers.CharField(source="merchant_request_id", allow_blank=True)
+    checkoutRequestId = serializers.CharField(source="checkout_request_id", allow_blank=True, allow_null=True)
+    transactionId = serializers.CharField(source="transaction_id", allow_blank=True)
+    resultCode = serializers.CharField(source="result_code", allow_blank=True)
+    resultDescription = serializers.CharField(source="result_description", allow_blank=True)
+    phoneNumber = serializers.CharField(source="phone_number")
+    createdAt = serializers.DateTimeField(source="created_at")
+    updatedAt = serializers.DateTimeField(source="updated_at")
+    completedAt = serializers.DateTimeField(source="completed_at", allow_null=True)
+
+    class Meta:
+        model = BookingPayment
+        fields = [
+            "id",
+            "provider",
+            "paymentMethod",
+            "status",
+            "statusLabel",
+            "canRetry",
+            "amount",
+            "currency",
+            "phoneNumber",
+            "merchantRequestId",
+            "checkoutRequestId",
+            "transactionId",
+            "resultCode",
+            "resultDescription",
+            "createdAt",
+            "updatedAt",
+            "completedAt",
+        ]
+
+    def get_paymentMethod(self, obj: BookingPayment) -> str:
+        return get_payment_method_label(obj)
+
+    def get_statusLabel(self, obj: BookingPayment) -> str:
+        return get_payment_status_label(obj)
+
+    def get_canRetry(self, obj: BookingPayment) -> bool:
+        return get_payment_retry_flag(obj)
+
+
+class BookingPaymentSerializer(BookingPaymentSummarySerializer):
+    bookingId = serializers.CharField(source="booking_id")
+    bookingToken = serializers.CharField(source="booking.manage_token")
+    clientName = serializers.CharField(source="booking.client_name")
+    clientEmail = serializers.EmailField(source="booking.client_email")
+    therapistName = serializers.CharField(source="booking.therapist_name_snapshot")
+    serviceType = serializers.CharField(source="booking.service_type")
+    sessionType = serializers.CharField(source="booking.session_type")
+    sessionDate = serializers.DateField(source="booking.date")
+    sessionTime = serializers.TimeField(source="booking.time", format="%H:%M")
+
+    class Meta(BookingPaymentSummarySerializer.Meta):
+        fields = [
+            "bookingId",
+            "bookingToken",
+            "clientName",
+            "clientEmail",
+            "therapistName",
+            "serviceType",
+            "sessionType",
+            "sessionDate",
+            "sessionTime",
+            *BookingPaymentSummarySerializer.Meta.fields,
+        ]
+
+
 class BookingDetailSerializer(serializers.ModelSerializer):
     token = serializers.CharField(source="manage_token")
     clientName = serializers.CharField(source="client_name")
@@ -59,6 +151,10 @@ class BookingDetailSerializer(serializers.ModelSerializer):
     therapistAddToCalendarUrl = serializers.SerializerMethodField()
     createdAt = serializers.DateTimeField(source="created_at")
     updatedAt = serializers.DateTimeField(source="updated_at")
+    confirmedAt = serializers.DateTimeField(source="confirmed_at", allow_null=True)
+    bookingFeeAmount = serializers.DecimalField(source="booking_fee_amount", max_digits=10, decimal_places=2)
+    bookingFeeCurrency = serializers.CharField(source="booking_fee_currency")
+    payment = serializers.SerializerMethodField()
     emails = serializers.SerializerMethodField()
     history = BookingHistoryEventSerializer(many=True, read_only=True)
     time = serializers.TimeField(format="%H:%M")
@@ -91,6 +187,10 @@ class BookingDetailSerializer(serializers.ModelSerializer):
             "therapistAddToCalendarUrl",
             "createdAt",
             "updatedAt",
+            "confirmedAt",
+            "bookingFeeAmount",
+            "bookingFeeCurrency",
+            "payment",
             "notes",
             "isExplorationCall",
             "emails",
@@ -146,6 +246,13 @@ class BookingDetailSerializer(serializers.ModelSerializer):
             return []
 
         return EmailRecordSerializer(obj.emails.all(), many=True).data
+
+    def get_payment(self, obj: Booking) -> dict | None:
+        payments = list(obj.payments.all())
+        if not payments:
+            return None
+
+        return BookingPaymentSummarySerializer(payments[0]).data
 
 
 class BookingJoinSerializer(serializers.ModelSerializer):
@@ -255,6 +362,21 @@ class BookingCreateSerializer(serializers.Serializer):
         if service_type != Booking.ServiceType.CORPORATE:
             attrs["participant_count"] = None
         return attrs
+
+
+class BookingCheckoutSerializer(BookingCreateSerializer):
+    mpesaPhoneNumber = serializers.CharField(max_length=32)
+
+    def validate(self, attrs):
+        attrs = super().validate(attrs)
+        if is_exploration_call_notes(attrs.get("notes", "")):
+            raise serializers.ValidationError({"notes": "Exploration call requests do not use the paid booking flow."})
+        return attrs
+
+
+class BookingPaymentRetrySerializer(serializers.Serializer):
+    bookingToken = serializers.CharField()
+    mpesaPhoneNumber = serializers.CharField(max_length=32)
 
 
 class BookingRescheduleSerializer(serializers.Serializer):

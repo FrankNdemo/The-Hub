@@ -7,7 +7,11 @@ from .views import (
     BookingManageRescheduleView,
     BookingReminderRunView,
     BookingTherapistSessionDetailView,
+    MpesaCallbackView,
     PublicBookingCreateView,
+    PublicBookingCheckoutRetryView,
+    PublicBookingCheckoutView,
+    PublicBookingPaymentStatusView,
     TherapistBookingCompleteView,
     TherapistBookingDeleteView,
     TherapistBookingListView,
@@ -16,6 +20,13 @@ from .views import (
 
 urlpatterns = [
     path("bookings/", PublicBookingCreateView.as_view(), name="public-booking-create"),
+    path("bookings/checkout/", PublicBookingCheckoutView.as_view(), name="public-booking-checkout"),
+    path("bookings/checkout/retry/", PublicBookingCheckoutRetryView.as_view(), name="public-booking-checkout-retry"),
+    path(
+        "bookings/checkout/<str:token>/payments/<uuid:payment_id>/status/",
+        PublicBookingPaymentStatusView.as_view(),
+        name="public-booking-payment-status",
+    ),
     path("bookings/join/<str:token>/", BookingJoinDetailView.as_view(), name="booking-join-detail"),
     path(
         "bookings/therapist-session/<str:token>/",
@@ -34,6 +45,7 @@ urlpatterns = [
         BookingManageCancelView.as_view(),
         name="booking-manage-cancel",
     ),
+    path("payments/mpesa/callback/", MpesaCallbackView.as_view(), name="mpesa-callback"),
     path("dashboard/bookings/", TherapistBookingListView.as_view(), name="dashboard-booking-list"),
     path(
         "dashboard/bookings/<uuid:pk>/complete/",

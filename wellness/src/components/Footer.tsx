@@ -26,6 +26,9 @@ const Footer = () => {
   const mapQuery = [...mapAddressLines, mapArea].join(", ");
   const mapHref = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(mapQuery)}`;
   const mapEmbedSrc = `https://www.google.com/maps?q=${encodeURIComponent(mapQuery)}&z=16&output=embed`;
+  const handleRouteLinkClick = () => {
+    window.scrollTo({ top: 0, left: 0, behavior: "auto" });
+  };
 
   if (isTherapistAuthenticated) {
     return null;
@@ -59,6 +62,7 @@ const Footer = () => {
                     <Link
                       key={link.label}
                       to={link.to}
+                      onClick={handleRouteLinkClick}
                       className="block text-sm text-primary-foreground/65 transition-colors hover:text-primary-foreground"
                     >
                       {link.label}

@@ -1,9 +1,31 @@
 export type SessionType = "virtual" | "physical";
 export type ServiceType = "individual" | "family" | "corporate";
 
-export type BookingStatus = "upcoming" | "rescheduled" | "cancelled" | "completed";
+export type BookingStatus =
+  | "payment_pending"
+  | "payment_failed"
+  | "upcoming"
+  | "rescheduled"
+  | "cancelled"
+  | "completed";
 
-export type BookingEventType = "created" | "rescheduled" | "cancelled" | "completed";
+export type BookingEventType =
+  | "created"
+  | "payment_initiated"
+  | "payment_failed"
+  | "rescheduled"
+  | "cancelled"
+  | "completed";
+
+export type PaymentStatus =
+  | "initiated"
+  | "stk_push_sent"
+  | "processing"
+  | "success"
+  | "failed"
+  | "cancelled"
+  | "timed_out"
+  | "insufficient_funds";
 
 export interface TherapistProfile {
   id: string;
@@ -63,6 +85,35 @@ export interface BookingHistoryEvent {
   createdAt: string;
 }
 
+export interface BookingPaymentRecord {
+  id: string;
+  provider: string;
+  paymentMethod: string;
+  status: PaymentStatus;
+  statusLabel: string;
+  canRetry: boolean;
+  amount: number;
+  currency: string;
+  phoneNumber: string;
+  merchantRequestId: string;
+  checkoutRequestId?: string | null;
+  transactionId?: string;
+  resultCode?: string;
+  resultDescription?: string;
+  createdAt: string;
+  updatedAt: string;
+  completedAt?: string | null;
+  bookingId?: string;
+  bookingToken?: string;
+  clientName?: string;
+  clientEmail?: string;
+  therapistName?: string;
+  serviceType?: ServiceType;
+  sessionType?: SessionType;
+  sessionDate?: string;
+  sessionTime?: string;
+}
+
 export interface BookingRecord {
   id: string;
   token: string;
@@ -87,6 +138,10 @@ export interface BookingRecord {
   therapistAddToCalendarUrl: string;
   createdAt: string;
   updatedAt: string;
+  confirmedAt?: string | null;
+  bookingFeeAmount: number;
+  bookingFeeCurrency: string;
+  payment?: BookingPaymentRecord | null;
   notes?: string;
   isExplorationCall: boolean;
   emails: EmailRecord[];
@@ -128,6 +183,7 @@ export interface TherapistSession {
 export interface WellnessHubState {
   blogPosts: BlogPost[];
   bookings: BookingRecord[];
+  transactions: BookingPaymentRecord[];
   notifications: NotificationItem[];
   therapist: TherapistProfile;
   therapistSession: TherapistSession | null;
@@ -144,6 +200,15 @@ export interface BookingInput {
   participantCount?: number;
   sessionType: SessionType;
   notes?: string;
+}
+
+export interface BookingCheckoutInput extends BookingInput {
+  mpesaPhoneNumber: string;
+}
+
+export interface BookingCheckoutResponse {
+  booking: BookingRecord;
+  payment: BookingPaymentRecord;
 }
 
 export interface RescheduleInput {

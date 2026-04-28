@@ -1,5 +1,7 @@
+import { Link } from "react-router-dom";
+import { Brain, Briefcase, Heart, Shield, Sparkles, Users } from "lucide-react";
+
 import { Button } from "@/components/ui/button";
-import { Heart, Users, Brain, Briefcase, Shield, Sparkles } from "lucide-react";
 import {
   familyServiceImage,
   individualServiceImage,
@@ -7,9 +9,21 @@ import {
 } from "@/lib/serviceImages";
 
 const featuredServices = [
-  { img: individualServiceImage, title: "Individual Support", desc: "Personalized therapy for adults facing challenges with stress, anxiety, depression, and finding healing from trauma." },
-  { img: familyServiceImage, title: "Family & Adolescent Support", desc: "Support for families, children, and teens addressing emotional, behavioral, and developmental challenges." },
-  { img: specializedServiceImage, title: "Specialized Care", desc: "Expert care for trauma, bariatric psychology, neurodivergence (ADHD, Autism, Dyslexia, Dyspraxia), oncopsychology, grief, LGBTQ+, and existential issues." },
+  {
+    img: individualServiceImage,
+    title: "Individual Support",
+    desc: "Personalized therapy for adults facing challenges with stress, anxiety, depression, and finding healing from trauma.",
+  },
+  {
+    img: familyServiceImage,
+    title: "Family & Adolescent Support",
+    desc: "Support for families, children, and teens addressing emotional, behavioral, and developmental challenges.",
+  },
+  {
+    img: specializedServiceImage,
+    title: "Specialized Care",
+    desc: "Expert care for trauma, bariatric psychology, neurodivergence (ADHD, Autism, Dyslexia, Dyspraxia), oncopsychology, grief, LGBTQ+, and existential issues.",
+  },
 ];
 
 const allServices = [
@@ -24,35 +38,53 @@ const allServices = [
 const ServicesSection = () => (
   <section id="services" className="py-24">
     <div className="container mx-auto px-4">
-      <h2 className="font-heading text-4xl md:text-5xl font-semibold text-foreground">Our Services</h2>
-      <p className="font-heading text-xl italic text-primary mt-2">How We Can Help You Thrive</p>
-      <p className="text-muted-foreground mt-4 max-w-2xl">
+      <h2 className="font-heading text-4xl font-semibold text-foreground md:text-5xl">Our Services</h2>
+      <p className="mt-2 font-heading text-xl italic text-primary">How We Can Help You Thrive</p>
+      <p className="mt-4 max-w-2xl text-muted-foreground">
         We provide professional, compassionate therapy and wellness support tailored to your unique needs.
       </p>
 
-      <div className="grid md:grid-cols-3 gap-6 mt-12">
-        {featuredServices.map((s) => (
-          <div key={s.title} className="bg-card rounded-2xl overflow-hidden shadow-card hover:shadow-hover transition-shadow duration-300 group">
-            <div className="overflow-hidden h-52">
-              <img src={s.img} alt={s.title} loading="lazy" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+      <div className="mt-12 grid gap-6 md:grid-cols-3">
+        {featuredServices.map((service) => (
+          <div
+            key={service.title}
+            className="group overflow-hidden rounded-2xl bg-card shadow-card transition-shadow duration-300 hover:shadow-hover"
+          >
+            <div className="h-52 overflow-hidden">
+              <img
+                src={service.img}
+                alt={service.title}
+                loading="lazy"
+                className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+              />
             </div>
             <div className="p-6">
-              <h3 className="font-heading text-xl font-semibold text-foreground">{s.title}</h3>
-              <p className="text-muted-foreground text-sm mt-2 leading-relaxed">{s.desc}</p>
+              <h3 className="font-heading text-xl font-semibold text-foreground">{service.title}</h3>
+              <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{service.desc}</p>
               <Button variant="hero" size="sm" className="mt-4" asChild>
-                <a href="#booking">Meet Our Therapists →</a>
+                <Link
+                  to="/booking"
+                  onClick={() => {
+                    window.scrollTo({ top: 0, left: 0, behavior: "auto" });
+                  }}
+                >
+                  Book a Session →
+                </Link>
               </Button>
             </div>
           </div>
         ))}
       </div>
 
-      <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5 mt-12">
-        {allServices.map((s) => (
-          <div key={s.title} className="bg-card/60 rounded-xl p-5 hover:shadow-card transition-shadow duration-300 border border-border/50">
-            <s.icon className="w-8 h-8 text-primary mb-3" />
-            <h4 className="font-heading text-lg font-medium text-foreground">{s.title}</h4>
-            <p className="text-muted-foreground text-sm mt-1">{s.desc}</p>
+      <div className="mt-12 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+        {allServices.map((service) => (
+          <div
+            key={service.title}
+            className="rounded-xl border border-border/50 bg-card/60 p-5 transition-shadow duration-300 hover:shadow-card"
+          >
+            <service.icon className="mb-3 h-8 w-8 text-primary" />
+            <h4 className="font-heading text-lg font-medium text-foreground">{service.title}</h4>
+            <p className="mt-1 text-sm text-muted-foreground">{service.desc}</p>
           </div>
         ))}
       </div>

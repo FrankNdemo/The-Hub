@@ -7,23 +7,32 @@ from rest_framework.views import APIView
 
 from apps.therapists.permissions import IsTherapistAuthenticated
 
+from .exploration import is_exploration_call_notes
 from .models import Booking
 from .serializers import (
     BookingAccessSerializer,
     BookingCreateSerializer,
+    BookingCheckoutSerializer,
     BookingDeleteSerializer,
     BookingDetailSerializer,
     BookingJoinSerializer,
+    BookingPaymentRetrySerializer,
+    BookingPaymentSummarySerializer,
     BookingRescheduleSerializer,
 )
 from .delivery import BookingDeliveryError, verify_therapist_session_access_token
+from .payments import BookingPaymentError
 from .services import (
     cancel_booking,
     complete_booking,
     create_booking,
+    create_paid_booking_checkout,
     delete_booking,
+    handle_mpesa_callback,
+    retry_paid_booking_checkout,
     reschedule_booking,
     send_upcoming_session_reminders,
+    sync_booking_payment_status,
 )
 from .scheduling import BookingAvailabilityError
 
@@ -48,10 +57,32 @@ def access_denied_response() -> Response:
 
 def get_public_booking(token: str) -> Booking:
     return generics.get_object_or_404(
-        Booking.objects.select_related("therapist").prefetch_related("emails", "history"),
+        Booking.objects.select_related("therapist").prefetch_related("emails", "history", "payments"),
+        manage_token=token,
+        deleted_at__isnull=True,
+        status__in=[
+            Booking.Status.UPCOMING,
+            Booking.Status.RESCHEDULED,
+            Booking.Status.CANCELLED,
+            Booking.Status.COMPLETED,
+        ],
+    )
+
+
+def get_checkout_booking(token: str) -> Booking:
+    return generics.get_object_or_404(
+        Booking.objects.select_related("therapist").prefetch_related("history", "payments"),
         manage_token=token,
         deleted_at__isnull=True,
     )
+
+
+def get_payment_error_status(error: BookingPaymentError) -> int:
+    if error.code == "invalid_mpesa_phone":
+        return status.HTTP_400_BAD_REQUEST
+    if error.code == "mpesa_not_configured":
+        return status.HTTP_503_SERVICE_UNAVAILABLE
+    return status.HTTP_400_BAD_REQUEST
 
 
 class PublicBookingCreateView(APIView):
@@ -61,6 +92,19 @@ class PublicBookingCreateView(APIView):
     def post(self, request):
         serializer = BookingCreateSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
+
+        if (
+            settings.BOOKING_PAYMENT_REQUIRED_FOR_SESSIONS
+            and not is_exploration_call_notes(serializer.validated_data.get("notes", ""))
+        ):
+            return Response(
+                {
+                    "detail": f"A refundable booking fee of {settings.BOOKING_FEE_CURRENCY} {settings.BOOKING_FEE_AMOUNT} is required to confirm this session.",
+                    "code": "payment_required",
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
         try:
             booking = create_booking(
                 therapist=serializer.validated_data["therapist"],
@@ -71,6 +115,99 @@ class PublicBookingCreateView(APIView):
         except BookingDeliveryError as exc:
             return Response({"detail": str(exc)}, status=status.HTTP_503_SERVICE_UNAVAILABLE)
         return Response(BookingDetailSerializer(booking).data, status=status.HTTP_201_CREATED)
+
+
+class PublicBookingCheckoutView(APIView):
+    permission_classes = [AllowAny]
+    authentication_classes = []
+
+    def post(self, request):
+        serializer = BookingCheckoutSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        try:
+            booking, payment = create_paid_booking_checkout(
+                therapist=serializer.validated_data["therapist"],
+                data=serializer.validated_data,
+                mpesa_phone_number=serializer.validated_data["mpesaPhoneNumber"],
+            )
+        except BookingAvailabilityError as exc:
+            return Response(exc.as_response(), status=exc.status_code)
+        except BookingPaymentError as exc:
+            return Response({"detail": exc.detail, "code": exc.code}, status=get_payment_error_status(exc))
+
+        return Response(
+            {
+                "booking": BookingDetailSerializer(booking).data,
+                "payment": BookingPaymentSummarySerializer(payment).data,
+            },
+            status=status.HTTP_201_CREATED,
+        )
+
+
+class PublicBookingCheckoutRetryView(APIView):
+    permission_classes = [AllowAny]
+    authentication_classes = []
+
+    def post(self, request):
+        serializer = BookingPaymentRetrySerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        booking = get_checkout_booking(serializer.validated_data["bookingToken"])
+
+        try:
+            booking, payment = retry_paid_booking_checkout(
+                booking=booking,
+                mpesa_phone_number=serializer.validated_data["mpesaPhoneNumber"],
+            )
+        except BookingAvailabilityError as exc:
+            return Response(exc.as_response(), status=exc.status_code)
+        except BookingPaymentError as exc:
+            return Response({"detail": exc.detail, "code": exc.code}, status=get_payment_error_status(exc))
+        except ValueError as exc:
+            return Response({"detail": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
+
+        return Response(
+            {
+                "booking": BookingDetailSerializer(booking).data,
+                "payment": BookingPaymentSummarySerializer(payment).data,
+            }
+        )
+
+
+class PublicBookingPaymentStatusView(APIView):
+    permission_classes = [AllowAny]
+    authentication_classes = []
+
+    def get(self, request, token, payment_id):
+        booking = get_checkout_booking(token)
+        payment = generics.get_object_or_404(
+            booking.payments.select_related("booking", "booking__therapist"),
+            pk=payment_id,
+        )
+
+        try:
+            booking, payment = sync_booking_payment_status(booking=booking, payment=payment)
+        except BookingPaymentError as exc:
+            return Response({"detail": exc.detail, "code": exc.code}, status=get_payment_error_status(exc))
+
+        return Response(
+            {
+                "booking": BookingDetailSerializer(booking).data,
+                "payment": BookingPaymentSummarySerializer(payment).data,
+            }
+        )
+
+
+class MpesaCallbackView(APIView):
+    permission_classes = [AllowAny]
+    authentication_classes = []
+
+    def post(self, request):
+        payload = request.data if isinstance(request.data, dict) else {}
+        callback = payload.get("Body", {}).get("stkCallback", {}) if isinstance(payload.get("Body"), dict) else {}
+        checkout_request_id = callback.get("CheckoutRequestID", "")
+        handle_mpesa_callback(checkout_request_id=str(checkout_request_id), payload=payload)
+        return Response({"ResultCode": 0, "ResultDesc": "Accepted"})
 
 
 class BookingManageDetailView(APIView):
@@ -190,9 +327,18 @@ class TherapistBookingListView(APIView):
 
     def get(self, request):
         bookings = (
-            Booking.objects.filter(therapist=request.user.therapist_profile, deleted_at__isnull=True)
+            Booking.objects.filter(
+                therapist=request.user.therapist_profile,
+                deleted_at__isnull=True,
+                status__in=[
+                    Booking.Status.UPCOMING,
+                    Booking.Status.RESCHEDULED,
+                    Booking.Status.CANCELLED,
+                    Booking.Status.COMPLETED,
+                ],
+            )
             .select_related("therapist")
-            .prefetch_related("emails", "history")
+            .prefetch_related("emails", "history", "payments")
         )
         return Response(
             BookingDetailSerializer(
@@ -212,7 +358,7 @@ class TherapistBookingCompleteView(APIView):
 
     def post(self, request, pk):
         booking = generics.get_object_or_404(
-            Booking.objects.select_related("therapist").prefetch_related("emails", "history"),
+            Booking.objects.select_related("therapist").prefetch_related("emails", "history", "payments"),
             pk=pk,
             therapist=request.user.therapist_profile,
             deleted_at__isnull=True,
@@ -232,7 +378,7 @@ class TherapistBookingDeleteView(APIView):
         serializer.is_valid(raise_exception=True)
 
         booking = generics.get_object_or_404(
-            Booking.objects.select_related("therapist").prefetch_related("emails", "history"),
+            Booking.objects.select_related("therapist").prefetch_related("emails", "history", "payments"),
             pk=pk,
             therapist=request.user.therapist_profile,
             deleted_at__isnull=True,

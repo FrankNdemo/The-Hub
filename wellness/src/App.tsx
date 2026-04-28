@@ -29,15 +29,22 @@ const ScrollAndPreviewManager = () => {
   const location = useLocation();
   const { previewPath } = useNavigationPreview();
   const savedScrollRef = useRef<number | null>(null);
-  const previousLocationRef = useRef(location.pathname);
+  const previousLocationRef = useRef({ pathname: location.pathname, key: location.key });
 
   useEffect(() => {
-    if (previousLocationRef.current !== location.pathname) {
+    const previousLocation = previousLocationRef.current;
+    const navigated =
+      previousLocation.pathname !== location.pathname || previousLocation.key !== location.key;
+
+    if (navigated) {
       savedScrollRef.current = null;
-      previousLocationRef.current = location.pathname;
-      window.scrollTo({ top: 0, left: 0, behavior: "auto" });
+      previousLocationRef.current = { pathname: location.pathname, key: location.key };
+
+      if (!location.hash) {
+        window.scrollTo({ top: 0, left: 0, behavior: "auto" });
+      }
     }
-  }, [location.pathname]);
+  }, [location.hash, location.key, location.pathname]);
 
   useEffect(() => {
     if (!location.hash) {

@@ -1,8 +1,11 @@
 import type {
   BlogPost,
   BlogPostDraft,
+  BookingCheckoutInput,
+  BookingCheckoutResponse,
   BookingInput,
   BookingJoinRecord,
+  BookingPaymentRecord,
   BookingRecord,
   NotificationItem,
   TherapistProfile,
@@ -122,6 +125,7 @@ export interface TherapistLoginResponse {
 export interface DashboardOverviewResponse {
   blogPosts: BlogPost[];
   bookings: BookingRecord[];
+  transactions: BookingPaymentRecord[];
   notifications: NotificationItem[];
   therapist: TherapistProfile;
   therapistSession: TherapistSession;
@@ -451,6 +455,35 @@ export const createBooking = (input: BookingInput) =>
     {
       method: "POST",
       body: JSON.stringify(input),
+    },
+    { auth: false },
+  );
+
+export const startBookingCheckout = (input: BookingCheckoutInput) =>
+  request<BookingCheckoutResponse>(
+    "/bookings/checkout/",
+    {
+      method: "POST",
+      body: JSON.stringify(input),
+    },
+    { auth: false },
+  );
+
+export const retryBookingCheckout = (bookingToken: string, mpesaPhoneNumber: string) =>
+  request<BookingCheckoutResponse>(
+    "/bookings/checkout/retry/",
+    {
+      method: "POST",
+      body: JSON.stringify({ bookingToken, mpesaPhoneNumber }),
+    },
+    { auth: false },
+  );
+
+export const fetchBookingPaymentStatus = (bookingToken: string, paymentId: string) =>
+  request<BookingCheckoutResponse>(
+    `/bookings/checkout/${encodeURIComponent(bookingToken)}/payments/${encodeURIComponent(paymentId)}/status/`,
+    {
+      method: "GET",
     },
     { auth: false },
   );

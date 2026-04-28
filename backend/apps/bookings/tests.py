@@ -9,7 +9,7 @@ from django.utils import timezone
 from rest_framework import status
 from rest_framework.test import APITestCase
 
-from apps.bookings.models import Booking
+from apps.bookings.models import Booking, BookingPayment
 from apps.bookings.delivery import REMINDER_EMAIL_KIND
 from apps.notifications.models import Notification
 
@@ -22,6 +22,7 @@ from apps.notifications.models import Notification
     BOOKING_CALENDAR_ORGANIZER_NAME="The Wellness Hub",
     BREVO_API_KEY="",
     CRON_SECRET="test-cron-secret",
+    BOOKING_PAYMENT_REQUIRED_FOR_SESSIONS=False,
 )
 class BookingApiTests(APITestCase):
     def setUp(self):
@@ -35,7 +36,7 @@ class BookingApiTests(APITestCase):
                 "clientEmail": "client@example.com",
                 "clientPhone": "+254700000000",
                 "therapistId": "caroline-gichia",
-                "date": "2026-04-14",
+                "date": "2028-04-18",
                 "time": "10:30",
                 "serviceType": "individual",
                 "sessionType": "virtual",
@@ -206,7 +207,7 @@ class BookingApiTests(APITestCase):
 
         reschedule_response = self.client.post(
             f"/api/v1/bookings/manage/{token}/reschedule/",
-            {"clientEmail": "client@example.com", "date": "2026-04-15", "time": "12:15"},
+            {"clientEmail": "client@example.com", "date": "2028-04-19", "time": "12:15"},
             format="json",
         )
         self.assertEqual(reschedule_response.status_code, status.HTTP_200_OK)
@@ -245,7 +246,7 @@ class BookingApiTests(APITestCase):
                 "clientEmail": "physical@example.com",
                 "clientPhone": "+254700000777",
                 "therapistId": "caroline-gichia",
-                "date": "2026-04-14",
+                "date": "2028-04-18",
                 "time": "13:00",
                 "serviceType": "individual",
                 "sessionType": "physical",
@@ -330,7 +331,7 @@ class BookingApiTests(APITestCase):
                 "clientEmail": "reminder@example.com",
                 "clientPhone": "+254700000888",
                 "therapistId": "caroline-gichia",
-                "date": "2026-04-14",
+                "date": "2028-04-18",
                 "time": "14:00",
                 "serviceType": "individual",
                 "sessionType": "virtual",
@@ -376,7 +377,7 @@ class BookingApiTests(APITestCase):
                 "clientEmail": "early@example.com",
                 "clientPhone": "+254700000123",
                 "therapistId": "caroline-gichia",
-                "date": "2026-04-14",
+                "date": "2028-04-18",
                 "time": "09:00",
                 "serviceType": "individual",
                 "sessionType": "virtual",
@@ -386,7 +387,7 @@ class BookingApiTests(APITestCase):
 
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertEqual(response.data["code"], "outside_hours")
-        self.assertEqual(response.data["suggestedDate"], "2026-04-14")
+        self.assertEqual(response.data["suggestedDate"], "2028-04-18")
         self.assertEqual(response.data["suggestedTime"], "10:00")
         self.assertIn("Tuesday to Saturday", response.data["detail"])
 
@@ -398,7 +399,7 @@ class BookingApiTests(APITestCase):
                 "clientEmail": "booked@example.com",
                 "clientPhone": "+254700000124",
                 "therapistId": "caroline-gichia",
-                "date": "2026-04-15",
+                "date": "2028-04-19",
                 "time": "11:05",
                 "serviceType": "individual",
                 "sessionType": "virtual",
@@ -415,7 +416,7 @@ class BookingApiTests(APITestCase):
                 "clientEmail": "overlap@example.com",
                 "clientPhone": "+254700000125",
                 "therapistId": "caroline-gichia",
-                "date": "2026-04-15",
+                "date": "2028-04-19",
                 "time": "10:10",
                 "serviceType": "individual",
                 "sessionType": "virtual",
@@ -425,7 +426,7 @@ class BookingApiTests(APITestCase):
 
         self.assertEqual(conflict_response.status_code, status.HTTP_409_CONFLICT)
         self.assertEqual(conflict_response.data["code"], "slot_unavailable")
-        self.assertEqual(conflict_response.data["suggestedDate"], "2026-04-15")
+        self.assertEqual(conflict_response.data["suggestedDate"], "2028-04-19")
         self.assertEqual(conflict_response.data["suggestedTime"], "12:05")
         self.assertFalse(conflict_response.data["dayFullyBooked"])
 
@@ -438,7 +439,7 @@ class BookingApiTests(APITestCase):
                     "clientEmail": f"client-{hour}@example.com",
                     "clientPhone": f"+254700000{hour}",
                     "therapistId": "caroline-gichia",
-                    "date": "2026-04-17",
+                    "date": "2028-04-21",
                     "time": f"{hour:02d}:00",
                     "serviceType": "individual",
                     "sessionType": "physical",
@@ -454,7 +455,7 @@ class BookingApiTests(APITestCase):
                 "clientEmail": "overflow@example.com",
                 "clientPhone": "+254700000999",
                 "therapistId": "caroline-gichia",
-                "date": "2026-04-17",
+                "date": "2028-04-21",
                 "time": "14:30",
                 "serviceType": "individual",
                 "sessionType": "physical",
@@ -465,7 +466,7 @@ class BookingApiTests(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_409_CONFLICT)
         self.assertEqual(response.data["code"], "day_full")
         self.assertTrue(response.data["dayFullyBooked"])
-        self.assertEqual(response.data["suggestedDate"], "2026-04-18")
+        self.assertEqual(response.data["suggestedDate"], "2028-04-22")
         self.assertEqual(response.data["suggestedTime"], "10:00")
 
     def test_same_email_cannot_hold_multiple_live_sessions(self):
@@ -476,7 +477,7 @@ class BookingApiTests(APITestCase):
                 "clientEmail": "repeat@example.com",
                 "clientPhone": "+254700000126",
                 "therapistId": "caroline-gichia",
-                "date": "2026-04-21",
+                "date": "2028-04-25",
                 "time": "11:00",
                 "serviceType": "individual",
                 "sessionType": "virtual",
@@ -492,7 +493,7 @@ class BookingApiTests(APITestCase):
                 "clientEmail": "repeat@example.com",
                 "clientPhone": "+254700000126",
                 "therapistId": "caroline-gichia",
-                "date": "2026-04-22",
+                "date": "2028-04-26",
                 "time": "13:00",
                 "serviceType": "individual",
                 "sessionType": "virtual",
@@ -512,7 +513,7 @@ class BookingApiTests(APITestCase):
                 "clientEmail": "repeat@example.com",
                 "clientPhone": "+254700000126",
                 "therapistId": "caroline-gichia",
-                "date": "2026-04-22",
+                "date": "2028-04-26",
                 "time": "13:00",
                 "serviceType": "individual",
                 "sessionType": "virtual",
@@ -529,7 +530,7 @@ class BookingApiTests(APITestCase):
                 "clientEmail": "deleteme@example.com",
                 "clientPhone": "+254700111222",
                 "therapistId": "caroline-gichia",
-                "date": "2026-04-18",
+                "date": "2028-04-22",
                 "time": "11:00",
                 "serviceType": "individual",
                 "sessionType": "physical",
@@ -558,3 +559,157 @@ class BookingApiTests(APITestCase):
 
         manage_response = self.client.get(f"/api/v1/bookings/manage/{create_response.data['token']}/")
         self.assertEqual(manage_response.status_code, status.HTTP_404_NOT_FOUND)
+
+
+@override_settings(
+    EMAIL_BACKEND="django.core.mail.backends.locmem.EmailBackend",
+    DEFAULT_FROM_EMAIL="The Wellness Hub <no-reply@wellnesshub.local>",
+    WELLNESS_HUB_REPLY_TO="hello@wellnesshub.local",
+    BOOKING_CALENDAR_UID_DOMAIN="wellnesshub.local",
+    BOOKING_CALENDAR_ORGANIZER_NAME="The Wellness Hub",
+    BREVO_API_KEY="",
+    BOOKING_PAYMENT_REQUIRED_FOR_SESSIONS=True,
+    MPESA_SIMULATE_PAYMENTS=True,
+)
+class PaidBookingCheckoutApiTests(APITestCase):
+    def setUp(self):
+        call_command("bootstrap_wellness_demo")
+
+    def test_paid_booking_checkout_success_confirms_booking_and_records_transaction(self):
+        checkout_response = self.client.post(
+            "/api/v1/bookings/checkout/",
+            {
+                "clientName": "Paid Client",
+                "clientEmail": "paid@example.com",
+                "clientPhone": "+254700444555",
+                "therapistId": "caroline-gichia",
+                "date": "2026-06-18",
+                "time": "11:00",
+                "serviceType": "individual",
+                "sessionType": "virtual",
+                "notes": "Needs a first session",
+                "mpesaPhoneNumber": "0712345555",
+            },
+            format="json",
+        )
+        self.assertEqual(checkout_response.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(checkout_response.data["booking"]["status"], Booking.Status.PAYMENT_PENDING)
+        self.assertEqual(checkout_response.data["payment"]["status"], BookingPayment.Status.STK_PUSH_SENT)
+
+        booking = Booking.objects.select_related("therapist__user").get(pk=checkout_response.data["booking"]["id"])
+        payment = BookingPayment.objects.get(pk=checkout_response.data["payment"]["id"])
+        BookingPayment.objects.filter(pk=payment.pk).update(created_at=timezone.now() - timedelta(seconds=8))
+
+        status_response = self.client.get(
+            f"/api/v1/bookings/checkout/{booking.manage_token}/payments/{payment.id}/status/"
+        )
+        self.assertEqual(status_response.status_code, status.HTTP_200_OK)
+        self.assertEqual(status_response.data["payment"]["status"], BookingPayment.Status.SUCCESS)
+        self.assertEqual(status_response.data["booking"]["status"], Booking.Status.UPCOMING)
+
+        booking.refresh_from_db()
+        payment.refresh_from_db()
+        self.assertIsNotNone(booking.confirmed_at)
+        self.assertEqual(booking.status, Booking.Status.UPCOMING)
+        self.assertTrue(payment.transaction_id.startswith("THB"))
+        self.assertEqual(len(mail.outbox), 2)
+
+        manage_response = self.client.post(
+            f"/api/v1/bookings/manage/{booking.manage_token}/",
+            {"email": "paid@example.com"},
+            format="json",
+        )
+        self.assertEqual(manage_response.status_code, status.HTTP_200_OK)
+        self.assertEqual(manage_response.data["payment"]["transactionId"], payment.transaction_id)
+        self.assertEqual(manage_response.data["payment"]["paymentMethod"], "M-Pesa STK Push")
+
+        self.client.force_authenticate(user=booking.therapist.user)
+        dashboard_response = self.client.get("/api/v1/dashboard/")
+        self.assertEqual(dashboard_response.status_code, status.HTTP_200_OK)
+        self.assertEqual(dashboard_response.data["transactions"][0]["transactionId"], payment.transaction_id)
+        self.assertEqual(dashboard_response.data["bookings"][0]["payment"]["transactionId"], payment.transaction_id)
+        self.client.force_authenticate(user=None)
+
+    def test_paid_booking_checkout_accepts_safaricom_01_numbers(self):
+        checkout_response = self.client.post(
+            "/api/v1/bookings/checkout/",
+            {
+                "clientName": "Paid Client",
+                "clientEmail": "paid-01@example.com",
+                "clientPhone": "+254711111111",
+                "therapistId": "caroline-gichia",
+                "date": "2026-06-23",
+                "time": "11:00",
+                "serviceType": "individual",
+                "sessionType": "virtual",
+                "notes": "Uses a newer Safaricom line",
+                "mpesaPhoneNumber": "0112345678",
+            },
+            format="json",
+        )
+        self.assertEqual(checkout_response.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(checkout_response.data["payment"]["phoneNumber"], "254112345678")
+
+    def test_failed_checkout_can_be_retried_with_a_new_number(self):
+        checkout_response = self.client.post(
+            "/api/v1/bookings/checkout/",
+            {
+                "clientName": "Retry Client",
+                "clientEmail": "retry@example.com",
+                "clientPhone": "+254700888999",
+                "therapistId": "caroline-gichia",
+                "date": "2026-06-19",
+                "time": "14:00",
+                "serviceType": "individual",
+                "sessionType": "physical",
+                "mpesaPhoneNumber": "0711111222",
+            },
+            format="json",
+        )
+        self.assertEqual(checkout_response.status_code, status.HTTP_201_CREATED)
+
+        booking = Booking.objects.get(pk=checkout_response.data["booking"]["id"])
+        payment = BookingPayment.objects.get(pk=checkout_response.data["payment"]["id"])
+        BookingPayment.objects.filter(pk=payment.pk).update(created_at=timezone.now() - timedelta(seconds=8))
+
+        status_response = self.client.get(
+            f"/api/v1/bookings/checkout/{booking.manage_token}/payments/{payment.id}/status/"
+        )
+        self.assertEqual(status_response.status_code, status.HTTP_200_OK)
+        self.assertEqual(status_response.data["payment"]["status"], BookingPayment.Status.TIMED_OUT)
+
+        booking.refresh_from_db()
+        payment.refresh_from_db()
+        self.assertEqual(booking.status, Booking.Status.PAYMENT_FAILED)
+        self.assertEqual(len(mail.outbox), 0)
+
+        retry_response = self.client.post(
+            "/api/v1/bookings/checkout/retry/",
+            {
+                "bookingToken": booking.manage_token,
+                "mpesaPhoneNumber": "0711111555",
+            },
+            format="json",
+        )
+        self.assertEqual(retry_response.status_code, status.HTTP_200_OK)
+        self.assertEqual(retry_response.data["booking"]["status"], Booking.Status.PAYMENT_PENDING)
+        self.assertEqual(retry_response.data["payment"]["status"], BookingPayment.Status.STK_PUSH_SENT)
+
+    def test_direct_full_session_booking_requires_payment_flow(self):
+        response = self.client.post(
+            "/api/v1/bookings/",
+            {
+                "clientName": "Direct Client",
+                "clientEmail": "direct@example.com",
+                "clientPhone": "+254700123456",
+                "therapistId": "caroline-gichia",
+                "date": "2026-06-20",
+                "time": "12:00",
+                "serviceType": "individual",
+                "sessionType": "virtual",
+            },
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(response.data["code"], "payment_required")

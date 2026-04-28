@@ -39,8 +39,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useWellnessHub } from "@/context/WellnessHubContext";
 import { getApiErrorMessage, uploadTherapistProfileImageRequest } from "@/lib/api";
 import { softPageBackgroundStyle } from "@/lib/pageBackground";
-import { formatDisplayDate, formatDisplayTime, formatServiceType, stripHtml } from "@/lib/wellness";
-import type { BlogPostDraft, BookingRecord, BookingStatus, TherapistProfile } from "@/types/wellness";
+import { formatCurrencyAmount, formatDisplayDate, formatDisplayTime, formatServiceType, stripHtml } from "@/lib/wellness";
+import type { BlogPostDraft, BookingPaymentRecord, BookingRecord, BookingStatus, TherapistProfile } from "@/types/wellness";
 
 interface TherapistProfileFormState {
   name: string;
@@ -60,6 +60,7 @@ interface TherapistProfileFormState {
 const DASHBOARD_TABS = [
   "overview",
   "sessions",
+  "transactions",
   "calls",
   "blog",
   "notifications",
@@ -173,6 +174,25 @@ const getStatusBadgeClassName = (status: BookingStatus | "expired") => {
       return "bg-rose-100 text-rose-800 border border-rose-200";
     case "rescheduled":
       return "bg-emerald-100 text-emerald-800 border border-emerald-200";
+    default:
+      return "bg-primary/10 text-primary border border-primary/15";
+  }
+};
+
+const getPaymentStatusBadgeClassName = (status: BookingPaymentRecord["status"]) => {
+  switch (status) {
+    case "success":
+      return "bg-emerald-100 text-emerald-800 border border-emerald-200";
+    case "stk_push_sent":
+    case "processing":
+    case "initiated":
+      return "bg-amber-100 text-amber-800 border border-amber-200";
+    case "cancelled":
+      return "bg-rose-100 text-rose-800 border border-rose-200";
+    case "timed_out":
+    case "failed":
+    case "insufficient_funds":
+      return "bg-stone-100 text-stone-800 border border-stone-200";
     default:
       return "bg-primary/10 text-primary border border-primary/15";
   }
@@ -295,6 +315,7 @@ const TherapistDashboardPage = () => {
   const {
     blogPosts,
     bookings,
+    transactions,
     notifications,
     therapist,
     therapistSession,
@@ -381,6 +402,28 @@ const TherapistDashboardPage = () => {
   const sortedBookings = useMemo(
     () => [...bookings].sort((left, right) => right.updatedAt.localeCompare(left.updatedAt)),
     [bookings],
+  );
+  const sortedTransactions = useMemo(
+    () => [...transactions].sort((left, right) => right.updatedAt.localeCompare(left.updatedAt)),
+    [transactions],
+  );
+  const transactionMetrics = useMemo(
+    () => ({
+      total: sortedTransactions.length,
+      paid: sortedTransactions.filter((transaction) => transaction.status === "success").length,
+      processing: sortedTransactions.filter((transaction) =>
+        transaction.status === "initiated" ||
+        transaction.status === "stk_push_sent" ||
+        transaction.status === "processing",
+      ).length,
+      failed: sortedTransactions.filter((transaction) =>
+        transaction.status === "failed" ||
+        transaction.status === "cancelled" ||
+        transaction.status === "timed_out" ||
+        transaction.status === "insufficient_funds",
+      ).length,
+    }),
+    [sortedTransactions],
   );
   const sessionBookings = useMemo(
     () => sortedBookings.filter((booking) => !booking.isExplorationCall),
@@ -817,6 +860,9 @@ const TherapistDashboardPage = () => {
                     <TabsTrigger value="sessions" className="h-auto shrink-0 rounded-full px-3 py-2 text-[11px] sm:px-4 sm:text-sm lg:px-5">
                       Sessions
                     </TabsTrigger>
+                    <TabsTrigger value="transactions" className="h-auto shrink-0 rounded-full px-3 py-2 text-[10px] sm:px-4 sm:text-sm lg:px-5">
+                      Transactions
+                    </TabsTrigger>
                     <TabsTrigger value="calls" className="h-auto shrink-0 rounded-full px-3 py-2 text-[11px] sm:px-4 sm:text-sm lg:px-5">
                       Calls
                     </TabsTrigger>
@@ -1143,6 +1189,159 @@ const TherapistDashboardPage = () => {
                           ) : null}
                         </TableBody>
                       </Table>
+                    </div>
+                  </TabsContent>
+
+                  <TabsContent value="transactions" className="mt-8">
+                    <div className="rounded-[1.75rem] border border-border/60 bg-card/80 p-5 shadow-card sm:p-6">
+                      <div>
+                        <h2 className="font-heading text-xl font-semibold text-foreground sm:text-2xl">Transaction Review</h2>
+                        <p className="mt-2 text-sm leading-7 text-muted-foreground">
+                          Review booking fee payments, transaction IDs, methods, and failed attempts in one place.
+                        </p>
+                      </div>
+
+                      <div className="mt-6 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+                        {[
+                          { label: "Total Attempts", value: transactionMetrics.total },
+                          { label: "Paid", value: transactionMetrics.paid },
+                          { label: "In Progress", value: transactionMetrics.processing },
+                          { label: "Needs Follow-up", value: transactionMetrics.failed },
+                        ].map((metric) => (
+                          <div key={metric.label} className="rounded-[1.3rem] border border-border/60 bg-secondary/25 px-4 py-4">
+                            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-primary/70">{metric.label}</p>
+                            <p className="mt-2 font-heading text-3xl font-semibold text-foreground">{metric.value}</p>
+                          </div>
+                        ))}
+                      </div>
+
+                      <div className="mt-6 space-y-4 md:hidden">
+                        {sortedTransactions.map((transaction) => (
+                          <div key={transaction.id} className="rounded-[1.5rem] border border-border/60 bg-secondary/25 p-4 shadow-card">
+                            <div className="flex items-start justify-between gap-3">
+                              <div className="min-w-0">
+                                <p className="font-medium text-foreground">{transaction.clientName ?? "Booking payment"}</p>
+                                <p className="mt-1 text-xs uppercase tracking-[0.18em] text-primary/65">
+                                  {transaction.sessionDate ? formatDisplayDate(transaction.sessionDate) : "Pending session"}
+                                  {transaction.sessionTime ? ` · ${formatDisplayTime(transaction.sessionTime)}` : ""}
+                                </p>
+                              </div>
+                              <Badge
+                                variant="secondary"
+                                className={`rounded-full px-3 py-1 capitalize ${getPaymentStatusBadgeClassName(transaction.status)}`}
+                              >
+                                {transaction.statusLabel}
+                              </Badge>
+                            </div>
+                            <div className="mt-4 space-y-2 text-sm leading-6 text-muted-foreground">
+                              <p>
+                                <span className="font-medium text-foreground">Amount:</span>{" "}
+                                {formatCurrencyAmount(transaction.amount, transaction.currency)}
+                              </p>
+                              <p>
+                                <span className="font-medium text-foreground">Method:</span> {transaction.paymentMethod}
+                              </p>
+                              <p className="break-all">
+                                <span className="font-medium text-foreground">Transaction ID:</span>{" "}
+                                {transaction.transactionId || "Awaiting receipt"}
+                              </p>
+                              <p className="break-all">
+                                <span className="font-medium text-foreground">Phone:</span> {transaction.phoneNumber}
+                              </p>
+                              {transaction.resultDescription ? (
+                                <p>
+                                  <span className="font-medium text-foreground">Notes:</span> {transaction.resultDescription}
+                                </p>
+                              ) : null}
+                            </div>
+                          </div>
+                        ))}
+                        {sortedTransactions.length === 0 ? (
+                          <div className="rounded-[1.5rem] bg-secondary/45 p-4 text-sm text-muted-foreground">
+                            Payment attempts will appear here as soon as clients begin paying the booking fee.
+                          </div>
+                        ) : null}
+                      </div>
+
+                      <div className="mt-6 hidden overflow-x-auto md:block">
+                        <Table>
+                          <TableHeader>
+                            <TableRow>
+                              <TableHead>Client</TableHead>
+                              <TableHead>Session</TableHead>
+                              <TableHead>Amount</TableHead>
+                              <TableHead>Method</TableHead>
+                              <TableHead>Transaction ID</TableHead>
+                              <TableHead>Status</TableHead>
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                            {sortedTransactions.map((transaction) => (
+                              <Fragment key={transaction.id}>
+                                <TableRow>
+                                  <TableCell>
+                                    <div className="space-y-1">
+                                      <p className="font-medium text-foreground">{transaction.clientName ?? "Booking payment"}</p>
+                                      <p className="text-xs text-muted-foreground">{transaction.clientEmail ?? "Email not captured"}</p>
+                                      <p className="text-xs text-muted-foreground">{transaction.phoneNumber}</p>
+                                    </div>
+                                  </TableCell>
+                                  <TableCell>
+                                    <div className="space-y-1">
+                                      <p className="text-sm text-foreground">
+                                        {transaction.sessionDate ? formatDisplayDate(transaction.sessionDate) : "Pending session"}
+                                      </p>
+                                      <p className="text-xs text-muted-foreground">
+                                        {transaction.sessionTime ? formatDisplayTime(transaction.sessionTime) : transaction.therapistName ?? ""}
+                                      </p>
+                                    </div>
+                                  </TableCell>
+                                  <TableCell>{formatCurrencyAmount(transaction.amount, transaction.currency)}</TableCell>
+                                  <TableCell>{transaction.paymentMethod}</TableCell>
+                                  <TableCell className="max-w-[200px] truncate">{transaction.transactionId || "Awaiting receipt"}</TableCell>
+                                  <TableCell>
+                                    <Badge
+                                      variant="secondary"
+                                      className={`rounded-full px-3 py-1 capitalize ${getPaymentStatusBadgeClassName(transaction.status)}`}
+                                    >
+                                      {transaction.statusLabel}
+                                    </Badge>
+                                  </TableCell>
+                                </TableRow>
+                                <TableRow>
+                                  <TableCell colSpan={6} className="pt-0">
+                                    <div className="grid gap-4 border-t border-border/40 pt-3 text-sm md:grid-cols-3">
+                                      <div>
+                                        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-primary/70">Reference</p>
+                                        <p className="mt-1 break-all text-muted-foreground">
+                                          {transaction.transactionId || transaction.checkoutRequestId || transaction.merchantRequestId || "Awaiting reference"}
+                                        </p>
+                                      </div>
+                                      <div>
+                                        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-primary/70">Reason</p>
+                                        <p className="mt-1 text-muted-foreground">
+                                          {transaction.resultDescription || "Payment completed successfully."}
+                                        </p>
+                                      </div>
+                                      <div>
+                                        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-primary/70">Last Updated</p>
+                                        <p className="mt-1 text-muted-foreground">{new Date(transaction.updatedAt).toLocaleString()}</p>
+                                      </div>
+                                    </div>
+                                  </TableCell>
+                                </TableRow>
+                              </Fragment>
+                            ))}
+                            {sortedTransactions.length === 0 ? (
+                              <TableRow>
+                                <TableCell colSpan={6} className="text-center text-muted-foreground">
+                                  Payment attempts will appear here as soon as clients begin paying the booking fee.
+                                </TableCell>
+                              </TableRow>
+                            ) : null}
+                          </TableBody>
+                        </Table>
+                      </div>
                     </div>
                   </TabsContent>
 

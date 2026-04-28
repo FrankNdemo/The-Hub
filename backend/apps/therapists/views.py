@@ -145,17 +145,27 @@ class DashboardOverviewView(APIView):
     def get(self, request):
         from apps.blog.models import BlogPost
         from apps.blog.serializers import BlogPostSerializer
-        from apps.bookings.models import Booking
-        from apps.bookings.serializers import BookingDetailSerializer
+        from apps.bookings.models import Booking, BookingPayment
+        from apps.bookings.serializers import BookingDetailSerializer, BookingPaymentSerializer
         from apps.notifications.models import Notification
         from apps.notifications.serializers import NotificationSerializer
 
         therapist = request.user.therapist_profile
         bookings = (
-            Booking.objects.filter(therapist=therapist, deleted_at__isnull=True)
+            Booking.objects.filter(
+                therapist=therapist,
+                deleted_at__isnull=True,
+                status__in=[
+                    Booking.Status.UPCOMING,
+                    Booking.Status.RESCHEDULED,
+                    Booking.Status.CANCELLED,
+                    Booking.Status.COMPLETED,
+                ],
+            )
             .select_related("therapist")
-            .prefetch_related("emails", "history")
+            .prefetch_related("emails", "history", "payments")
         )
+        transactions = BookingPayment.objects.filter(booking__therapist=therapist, booking__deleted_at__isnull=True).select_related("booking")
         blog_posts = BlogPost.objects.select_related("author").all()
         notifications = Notification.objects.filter(therapist=therapist)
 
@@ -171,6 +181,7 @@ class DashboardOverviewView(APIView):
                         "include_email_records": True,
                     },
                 ).data,
+                "transactions": BookingPaymentSerializer(transactions, many=True).data,
                 "notifications": NotificationSerializer(notifications, many=True).data,
                 "therapist": TherapistProfilePublicSerializer(therapist).data,
                 "therapistSession": TherapistSessionSerializer(build_therapist_session(request.user)).data,

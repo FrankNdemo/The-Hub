@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useWellnessHub } from "@/context/WellnessHubContext";
+import { getRememberedBookingAccess } from "@/lib/bookingAccess";
 import { getApiErrorMessage, getSuggestedBookingSlot } from "@/lib/api";
 import { softPageBackgroundStyle } from "@/lib/pageBackground";
 import {
@@ -16,6 +17,7 @@ import {
   BOOKING_LAST_START_TIME,
   BOOKING_OPEN_TIME,
   BOOKING_TIME_STEP_SECONDS,
+  formatCurrencyAmount,
   formatDisplayDate,
   formatDisplayTime,
   formatServiceType,
@@ -46,12 +48,71 @@ const ManageBookingPage = () => {
     setIsLoading(false);
   }, [token]);
 
+  useEffect(() => {
+    let isActive = true;
+
+    const openRememberedBooking = async () => {
+      if (!token || booking) {
+        return;
+      }
+
+      const rememberedEmail = getRememberedBookingAccess(token);
+      if (!rememberedEmail) {
+        return;
+      }
+
+      setIsLoading(true);
+      setAccessError("");
+
+      try {
+        const nextBooking = await getBookingByToken(token, rememberedEmail);
+        if (!isActive || !nextBooking) {
+          return;
+        }
+
+        setBooking(nextBooking);
+        setDate(nextBooking.date);
+        setTime(nextBooking.time);
+        setAccessEmail(rememberedEmail);
+      } catch {
+        if (isActive) {
+          setIsLoading(false);
+        }
+      } finally {
+        if (isActive) {
+          setIsLoading(false);
+        }
+      }
+    };
+
+    void openRememberedBooking();
+
+    return () => {
+      isActive = false;
+    };
+  }, [booking, getBookingByToken, token]);
+
   const statusLabel = useMemo(() => {
     if (!booking) {
       return "";
     }
 
-    return booking.status.charAt(0).toUpperCase() + booking.status.slice(1);
+    switch (booking.status) {
+      case "upcoming":
+        return "Confirmed";
+      case "payment_pending":
+        return "Payment Pending";
+      case "payment_failed":
+        return "Payment Failed";
+      case "rescheduled":
+        return "Rescheduled";
+      case "cancelled":
+        return "Cancelled";
+      case "completed":
+        return "Completed";
+      default:
+        return booking.status.charAt(0).toUpperCase() + booking.status.slice(1);
+    }
   }, [booking]);
 
   const handleVerifyAccess = async (event: React.FormEvent) => {
@@ -236,10 +297,12 @@ const ManageBookingPage = () => {
               <div className="mt-4 flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
                 <div>
                   <h1 className="font-heading text-4xl font-semibold text-foreground md:text-5xl">
-                    {booking.isExplorationCall ? "Reschedule or cancel your request" : "Reschedule or cancel your session"}
+                    {booking.isExplorationCall ? "Reschedule or cancel your request" : "My booking"}
                   </h1>
                   <p className="mt-4 max-w-2xl text-muted-foreground leading-8">
-                    “You showed up for yourself—that matters.”
+                    {booking.isExplorationCall
+                      ? "Review the request details below or adjust the timing if you need to."
+                      : "Your session is confirmed. Review the summary, payment reference, and calendar tools below."}
                   </p>
                 </div>
                 <div className="inline-flex rounded-full bg-primary/10 px-4 py-2 text-sm font-medium text-primary">
@@ -313,16 +376,38 @@ const ManageBookingPage = () => {
                       <p className="mt-2 text-lg font-semibold text-foreground">{booking.participantCount.toLocaleString()}</p>
                     </div>
                   ) : null}
+                  {!booking.isExplorationCall && booking.payment ? (
+                    <div className="wellness-panel rounded-[1.5rem] border border-border/60 p-5">
+                      <p className="text-xs uppercase tracking-[0.24em] text-primary/70">Payment</p>
+                      <p className="mt-2 text-lg font-semibold text-foreground">
+                        {formatCurrencyAmount(booking.payment.amount, booking.payment.currency)}
+                      </p>
+                      <div className="mt-3 space-y-1 text-sm leading-6 text-muted-foreground">
+                        <p>
+                          <span className="font-medium text-foreground">Method:</span> {booking.payment.paymentMethod}
+                        </p>
+                        <p>
+                          <span className="font-medium text-foreground">Status:</span> {booking.payment.statusLabel}
+                        </p>
+                        {booking.payment.transactionId ? (
+                          <p className="break-all">
+                            <span className="font-medium text-foreground">Transaction ID:</span> {booking.payment.transactionId}
+                          </p>
+                        ) : null}
+                      </div>
+                    </div>
+                  ) : null}
                   <div className="wellness-panel rounded-[1.5rem] border border-border/60 p-5">
                     <p className="text-xs uppercase tracking-[0.24em] text-primary/70">
                       {booking.isExplorationCall
                         ? "Next Step"
-                        : booking.sessionType === "virtual"
-                          ? "Virtual Session Link"
-                          : "Session Details"}
+                        : "Booking Tools"}
                     </p>
-                    {!booking.isExplorationCall && booking.sessionType === "virtual" && booking.joinUrl ? (
+                    {!booking.isExplorationCall ? (
                       <div className="mt-3 flex flex-wrap gap-2">
+                        {booking.sessionType === "physical" ? (
+                          <p className="w-full text-sm leading-7 text-muted-foreground">{booking.locationSummary}</p>
+                        ) : null}
                         {booking.addToCalendarUrl ? (
                           <a
                             href={booking.addToCalendarUrl}
@@ -334,17 +419,21 @@ const ManageBookingPage = () => {
                             <ExternalLink className="h-4 w-4" />
                           </a>
                         ) : null}
-                        <a
-                          href={booking.joinUrl}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="inline-flex items-center gap-2 rounded-full bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90"
-                        >
-                          Open virtual session
-                          <ExternalLink className="h-4 w-4" />
-                        </a>
+                        {booking.sessionType === "virtual" && booking.joinUrl ? (
+                          <a
+                            href={booking.joinUrl}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="inline-flex items-center gap-2 rounded-full bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90"
+                          >
+                            Open virtual session
+                            <ExternalLink className="h-4 w-4" />
+                          </a>
+                        ) : null}
                         <p className="w-full text-xs leading-6 text-muted-foreground">
-                          This is the same private session link sent by email and saved in the calendar event.
+                          {booking.sessionType === "virtual"
+                            ? "This is the same private session link sent by email and saved in the calendar event."
+                            : "Add this confirmed session to your calendar so your reserved time stays protected."}
                         </p>
                       </div>
                     ) : (

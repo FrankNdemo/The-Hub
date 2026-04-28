@@ -111,6 +111,34 @@ The backend also accepts raw special characters in the password segment of `DATA
 
 For this Django backend, `python manage.py migrate` is the correct schema push command. `supabase db push` is only needed if you are maintaining Supabase SQL migrations separately.
 
+## M-Pesa Daraja
+
+The booking flow supports Daraja STK Push for the refundable KES 200 booking fee.
+
+Add these values in `backend/.env`:
+
+```env
+BOOKING_PAYMENT_REQUIRED_FOR_SESSIONS=True
+BOOKING_FEE_AMOUNT=200
+BOOKING_FEE_CURRENCY=KES
+MPESA_ENVIRONMENT=sandbox
+MPESA_CONSUMER_KEY=your-daraja-consumer-key
+MPESA_CONSUMER_SECRET=your-daraja-consumer-secret
+MPESA_SHORTCODE=174379
+MPESA_PASSKEY=your-daraja-passkey
+MPESA_PARTYB=174379
+MPESA_CALLBACK_URL=https://your-backend-domain/api/v1/payments/mpesa/callback/
+MPESA_TRANSACTION_TYPE=CustomerPayBillOnline
+MPESA_ACCOUNT_REFERENCE=THE HUB
+MPESA_SIMULATE_PAYMENTS=False
+```
+
+Notes:
+
+- `MPESA_CALLBACK_URL` must be a public backend URL in hosted environments.
+- The frontend also polls Daraja status, so the user still sees `STK sent`, `processing`, `success`, and `failed` states in sequence.
+- The payment validator accepts Safaricom `07...` and `01...` mobile numbers.
+
 ## Notes
 
 - `manageUrl` is generated dynamically from `FRONTEND_BASE_URL` and the booking token.

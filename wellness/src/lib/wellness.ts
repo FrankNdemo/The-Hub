@@ -1,4 +1,4 @@
-import type { ServiceType } from "@/types/wellness";
+import type { PaymentStatus, ServiceType } from "@/types/wellness";
 
 export const BOOKING_OPEN_TIME = "10:00";
 export const BOOKING_LAST_START_TIME = "18:00";
@@ -45,6 +45,34 @@ export const formatServiceType = (value: ServiceType) => {
       return "Corporate Wellness";
     default:
       return "Individual Therapy";
+  }
+};
+
+export const formatCurrencyAmount = (amount: number, currency = "KES") => {
+  if (!Number.isFinite(amount)) {
+    return `${currency} 0`;
+  }
+
+  return new Intl.NumberFormat("en-KE", {
+    style: "currency",
+    currency,
+    maximumFractionDigits: amount % 1 === 0 ? 0 : 2,
+  }).format(amount);
+};
+
+export const formatPaymentStatus = (status: PaymentStatus) => {
+  switch (status) {
+    case "stk_push_sent":
+      return "STK push sent";
+    case "timed_out":
+      return "Timed out";
+    case "insufficient_funds":
+      return "Insufficient funds";
+    default:
+      return status
+        .split("_")
+        .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+        .join(" ");
   }
 };
 

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import os
 from datetime import timedelta
+from decimal import Decimal
 from email.utils import parseaddr
 from pathlib import Path
 from urllib.parse import parse_qs, unquote, urlparse
@@ -309,6 +310,10 @@ BOOKING_OPEN_HOUR = int(env("BOOKING_OPEN_HOUR", "10") or "10")
 BOOKING_CLOSE_HOUR = int(env("BOOKING_CLOSE_HOUR", "19") or "19")
 BOOKING_SLOT_INTERVAL_MINUTES = int(env("BOOKING_SLOT_INTERVAL_MINUTES", "5") or "5")
 BOOKING_REMINDER_LEAD_MINUTES = int(env("BOOKING_REMINDER_LEAD_MINUTES", "60") or "60")
+BOOKING_PAYMENT_REQUIRED_FOR_SESSIONS = env("BOOKING_PAYMENT_REQUIRED_FOR_SESSIONS", "True").lower() == "true"
+BOOKING_PAYMENT_HOLD_MINUTES = int(env("BOOKING_PAYMENT_HOLD_MINUTES", "15") or "15")
+BOOKING_FEE_AMOUNT = Decimal(env("BOOKING_FEE_AMOUNT", "200") or "200").quantize(Decimal("0.01"))
+BOOKING_FEE_CURRENCY = env("BOOKING_FEE_CURRENCY", "KES").upper()
 BOOKING_CALENDAR_UID_DOMAIN = env("BOOKING_CALENDAR_UID_DOMAIN", "wellnesshub.local")
 BOOKING_CALENDAR_ORGANIZER_NAME = env("BOOKING_CALENDAR_ORGANIZER_NAME", "The Wellness Hub")
 VIRTUAL_SESSION_BASE_URL = env("VIRTUAL_SESSION_BASE_URL", "https://meet.jit.si").rstrip("/")
@@ -317,6 +322,19 @@ CRON_SECRET = env("CRON_SECRET", "")
 BREVO_API_KEY = env("BREVO_API_KEY", "")
 BREVO_API_URL = env("BREVO_API_URL", "https://api.brevo.com/v3/smtp/email")
 BREVO_API_TIMEOUT = int(env("BREVO_API_TIMEOUT", "30") or "30")
+
+MPESA_ENVIRONMENT = env("MPESA_ENVIRONMENT", "sandbox").strip().lower()
+MPESA_BASE_URL = env("MPESA_BASE_URL", "").strip()
+MPESA_CONSUMER_KEY = env("MPESA_CONSUMER_KEY", "").strip()
+MPESA_CONSUMER_SECRET = env("MPESA_CONSUMER_SECRET", "").strip()
+MPESA_SHORTCODE = env("MPESA_SHORTCODE", "").strip()
+MPESA_PASSKEY = env("MPESA_PASSKEY", "").strip()
+MPESA_PARTYB = env("MPESA_PARTYB", "").strip()
+MPESA_CALLBACK_URL = env("MPESA_CALLBACK_URL", "").strip()
+MPESA_TRANSACTION_TYPE = env("MPESA_TRANSACTION_TYPE", "CustomerPayBillOnline").strip()
+MPESA_ACCOUNT_REFERENCE = env("MPESA_ACCOUNT_REFERENCE", "THE HUB").strip()
+MPESA_TIMEOUT_SECONDS = int(env("MPESA_TIMEOUT_SECONDS", "30") or "30")
+MPESA_SIMULATE_PAYMENTS = env("MPESA_SIMULATE_PAYMENTS", "True" if DEBUG else "False").lower() == "true"
 
 REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": (
