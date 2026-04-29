@@ -1290,11 +1290,6 @@ const BookingSection = () => {
                   <>
                     <div className="relative mx-auto max-w-[23rem] overflow-hidden rounded-[2rem] border border-border/60 bg-card p-4 shadow-card sm:hidden">
                       <MobileSheetLeaves />
-                      <div className="relative z-10 flex justify-center pb-2">
-                        <div className="origin-center scale-[0.94]">
-                          <WellnessLogo variant="navbar" />
-                        </div>
-                      </div>
                       <div className="relative z-10 flex items-start gap-3">
                         <Button variant="ghost" size="icon" className="h-9 w-9 rounded-full border border-border/60" onClick={() => setStep("details")}>
                           <ArrowLeft className="h-4 w-4" />
@@ -1403,11 +1398,6 @@ const BookingSection = () => {
                   <>
                     <div className="relative mx-auto max-w-[23rem] overflow-hidden rounded-[2rem] border border-border/60 bg-card p-4 shadow-card sm:hidden">
                       <MobileSheetLeaves />
-                      <div className="relative z-10 flex justify-center pb-2">
-                        <div className="origin-center scale-[0.94]">
-                          <WellnessLogo variant="navbar" />
-                        </div>
-                      </div>
                       <div className="relative z-10 flex items-start gap-3">
                         <Button variant="ghost" size="icon" className="h-9 w-9 rounded-full border border-border/60" onClick={() => setStep("summary")}>
                           <ArrowLeft className="h-4 w-4" />
