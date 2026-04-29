@@ -19,12 +19,14 @@ const quickLinkColumns = [
   ],
 ];
 
+const WELLNESS_HUB_MAP_URL = "https://maps.app.goo.gl/CzPK4ad5eeTAANLP6?g_st=aw";
+
 const Footer = () => {
   const { therapist, isTherapistAuthenticated } = useWellnessHub();
   const mapAddressLines = therapist.location.slice(1);
   const mapArea = therapist.location[0] ?? "Nairobi, Westlands";
   const mapQuery = [...mapAddressLines, mapArea].join(", ");
-  const mapHref = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(mapQuery)}`;
+  const mapHref = WELLNESS_HUB_MAP_URL;
   const mapEmbedSrc = `https://www.google.com/maps?q=${encodeURIComponent(mapQuery)}&z=16&output=embed`;
   const handleRouteLinkClick = () => {
     window.scrollTo({ top: 0, left: 0, behavior: "auto" });

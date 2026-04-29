@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { createPortal } from "react-dom";
 import {
   ArrowLeft,
+  X,
   Briefcase,
   CalendarDays,
   Check,
@@ -24,6 +25,7 @@ import { toast } from "sonner";
 import { useWellnessHub } from "@/context/WellnessHubContext";
 import { rememberBookingAccess } from "@/lib/bookingAccess";
 import {
+  ApiError,
   fetchBookingPaymentStatus,
   getApiErrorMessage,
   getSuggestedBookingSlot,
@@ -158,8 +160,8 @@ const CheckoutStageRail = ({ step }: { step: BookingStep }) => {
   const currentIndex = getCheckoutStageIndex(step);
 
   return (
-    <div className="mx-auto mt-6 flex w-full max-w-3xl items-center rounded-[1.75rem] border border-primary/10 bg-background/80 px-5 py-5 backdrop-blur">
-      <div className="mx-auto flex w-full max-w-xl items-center gap-3">
+    <div className="absolute left-1/2 top-0 z-20 flex w-[min(26rem,calc(100%-3rem))] -translate-x-1/2 -translate-y-1/2 items-center rounded-full border border-primary/10 bg-background/95 px-3 py-1.5 shadow-[0_14px_36px_-30px_rgba(33,49,40,0.5)] backdrop-blur">
+      <div className="mx-auto flex w-full items-center gap-2">
         {CHECKOUT_STAGE_COPY.map((stage, index) => {
           const isComplete = currentIndex > index || step === "success";
           const isActive = currentIndex === index && step !== "success";
@@ -168,7 +170,7 @@ const CheckoutStageRail = ({ step }: { step: BookingStep }) => {
             <Fragment key={stage.label}>
               <div
                 className={cn(
-                  "flex h-11 w-11 items-center justify-center rounded-full border text-sm font-semibold transition-colors",
+                  "flex h-7 w-7 items-center justify-center rounded-full border text-[11px] font-semibold transition-colors",
                   isComplete
                     ? "border-primary bg-primary text-primary-foreground"
                     : isActive
@@ -176,7 +178,7 @@ const CheckoutStageRail = ({ step }: { step: BookingStep }) => {
                       : "border-border/80 bg-background/90 text-muted-foreground",
                 )}
               >
-                {isComplete ? <Check className="h-4 w-4" /> : index + 1}
+                {isComplete ? <Check className="h-3 w-3" /> : index + 1}
               </div>
               {index < CHECKOUT_STAGE_COPY.length - 1 ? (
                 <div className={cn("h-px flex-1 rounded-full", currentIndex > index || step === "success" ? "bg-primary/45" : "bg-border/70")} />
@@ -261,6 +263,7 @@ const MobileStatusSheet = ({
   tone = "light",
   indicator,
   bareIndicator = false,
+  onClose,
   children,
 }: {
   step: BookingStep;
@@ -270,6 +273,7 @@ const MobileStatusSheet = ({
   tone?: "light" | "dark" | "destructive" | "success";
   indicator: ReactNode;
   bareIndicator?: boolean;
+  onClose?: () => void;
   children?: ReactNode;
 }) => {
   const isDark = tone === "dark";
@@ -292,10 +296,10 @@ const MobileStatusSheet = ({
   const modal = (
     <div className="sm:hidden">
       <div className="fixed inset-0 z-[140] bg-foreground/24 backdrop-blur-[3px]" aria-hidden="true" />
-      <div className="fixed inset-0 z-[141] flex items-center justify-center px-4 pb-6 pt-[5.85rem]">
+      <div className="fixed inset-0 z-[141] flex items-center justify-center overflow-y-auto px-4 pb-6 pt-[5.25rem]">
         <div
           className={cn(
-            "relative w-full max-w-[21.75rem] overflow-hidden rounded-[1.85rem] border px-4 pb-4 pt-3 shadow-[0_36px_80px_-34px_rgba(17,24,39,0.42)]",
+            "relative my-auto max-h-[calc(100vh-6.75rem)] w-full max-w-[21.75rem] overflow-y-auto overflow-x-hidden rounded-[1.85rem] border px-4 pb-4 pt-3 shadow-[0_36px_80px_-34px_rgba(17,24,39,0.42)]",
             isDark
               ? "border-white/10 bg-[linear-gradient(180deg,hsl(150_18%_16%),hsl(150_19%_12%))] text-white"
               : isSuccess
@@ -306,6 +310,20 @@ const MobileStatusSheet = ({
           )}
         >
           <MobileSheetLeaves inverted={isDark} />
+          {onClose ? (
+            <Button
+              variant="ghost"
+              size="icon"
+              className={cn(
+                "absolute right-3 top-3 z-20 h-7 w-7 rounded-full border",
+                isDark ? "border-white/10 bg-white/5 text-white hover:bg-white/10" : "border-border/60 bg-white/80 text-muted-foreground hover:bg-white",
+              )}
+              onClick={onClose}
+              aria-label="Close payment message"
+            >
+              <X className="h-3.5 w-3.5" />
+            </Button>
+          ) : null}
           <div className="relative z-10 flex flex-col items-center text-center">
             <div
               className={cn(
@@ -338,6 +356,23 @@ const MobileStatusSheet = ({
             {children ? <div className="mt-3.5 w-full">{children}</div> : null}
           </div>
         </div>
+      </div>
+    </div>
+  );
+
+  return createPortal(modal, document.body);
+};
+
+const DesktopStatusDialog = ({ children }: { children: ReactNode }) => {
+  if (typeof document === "undefined" || !document.body) {
+    return null;
+  }
+
+  const modal = (
+    <div className="hidden sm:block">
+      <div className="fixed inset-0 z-[130] bg-foreground/18 backdrop-blur-[2px]" aria-hidden="true" />
+      <div className="fixed inset-0 z-[131] flex items-center justify-center overflow-y-auto px-5 py-8">
+        <div className="my-auto w-full max-w-xl">{children}</div>
       </div>
     </div>
   );
@@ -504,6 +539,8 @@ const BookingSection = () => {
   const [isCheckingAvailability, setIsCheckingAvailability] = useState(false);
   const [bookingGuidance, setBookingGuidance] = useState("");
   const [paymentFeedback, setPaymentFeedback] = useState("");
+  const [retryFailureCount, setRetryFailureCount] = useState(0);
+  const [retryStartOverRequired, setRetryStartOverRequired] = useState(false);
   const [serviceDescriptionText, setServiceDescriptionText] = useState("");
   const [isDeletingServiceDescription, setIsDeletingServiceDescription] = useState(false);
   const [form, setForm] = useState({
@@ -521,7 +558,13 @@ const BookingSection = () => {
   const todayDate = getTodayDateInputValue();
 
   const activePayment = checkout?.payment ?? null;
-  const failureCopy = getFailureCopy(activePayment);
+  const failureCopy = retryStartOverRequired
+    ? {
+        title: "Start a fresh booking",
+        description:
+          "The second retry was forbidden by the payment service, so this payment attempt can no longer be reused. Please start a fresh booking to continue.",
+      }
+    : getFailureCopy(activePayment);
 
   const bookingAmount = useMemo(
     () => (checkout?.booking.bookingFeeAmount ? checkout.booking.bookingFeeAmount : 200),
@@ -532,6 +575,8 @@ const BookingSection = () => {
     setBookingGuidance("");
     setCheckout(null);
     setPaymentFeedback("");
+    setRetryFailureCount(0);
+    setRetryStartOverRequired(false);
     setForm((current) => ({ ...current, [field]: value }));
   };
 
@@ -677,6 +722,8 @@ const BookingSection = () => {
     setIsCheckingAvailability(true);
     setBookingGuidance("");
     setPaymentFeedback("");
+    setRetryFailureCount(0);
+    setRetryStartOverRequired(false);
 
     try {
       await precheckBooking({
@@ -716,6 +763,11 @@ const BookingSection = () => {
   };
 
   const handleStartPayment = async () => {
+    if (retryStartOverRequired) {
+      startFreshBooking();
+      return;
+    }
+
     const participantCount =
       serviceType === "corporate" && form.participantCount
         ? Number.parseInt(form.participantCount, 10)
@@ -723,10 +775,11 @@ const BookingSection = () => {
 
     setIsSubmitting(true);
     setPaymentFeedback("");
+    const isRetryAttempt = Boolean(checkout?.payment.canRetry && checkout.booking.token);
 
     try {
       const nextCheckout =
-        checkout?.payment.canRetry && checkout.booking.token
+        isRetryAttempt
           ? await retryBookingCheckout(checkout.booking.token, paymentPhone)
           : await startBookingCheckout({
               clientName: form.clientName,
@@ -743,11 +796,31 @@ const BookingSection = () => {
             });
 
       setCheckout(nextCheckout);
+      setRetryFailureCount(0);
+      setRetryStartOverRequired(false);
       setStep("stk_sent");
       toast.success("STK push sent. Check your phone to complete the payment.");
     } catch (error) {
       const message = getApiErrorMessage(error, "We could not start the M-Pesa payment right now.");
       const suggestion = getSuggestedBookingSlot(error);
+
+      if (isRetryAttempt && error instanceof ApiError && error.status === 403) {
+        const nextRetryFailureCount = retryFailureCount + 1;
+
+        setRetryFailureCount(nextRetryFailureCount);
+        setStep("failed");
+
+        if (nextRetryFailureCount >= 2) {
+          setRetryStartOverRequired(true);
+          setPaymentFeedback("This retry is forbidden now. Please start a fresh booking to continue.");
+          toast.error("This retry is forbidden now. Please start a fresh booking to continue.");
+        } else {
+          setPaymentFeedback("We could not reuse that payment attempt. Please try once more or change the phone number.");
+          toast.error("We could not reuse that payment attempt. Please try once more or change the phone number.");
+        }
+
+        return;
+      }
 
       if (suggestion) {
         setForm((current) => ({
@@ -770,7 +843,18 @@ const BookingSection = () => {
 
   const resetToPaymentStep = () => {
     setPaymentFeedback("");
+    setRetryFailureCount(0);
+    setRetryStartOverRequired(false);
     setStep("payment");
+  };
+
+  const startFreshBooking = () => {
+    setCheckout(null);
+    setPaymentFeedback("");
+    setBookingGuidance("Please review your session details, then continue to payment again.");
+    setRetryFailureCount(0);
+    setRetryStartOverRequired(false);
+    setStep("details");
   };
 
   const renderStatusStep = () => {
@@ -808,16 +892,17 @@ const BookingSection = () => {
             </div>
           </MobileStatusSheet>
 
-          <div className="hidden overflow-hidden rounded-[2rem] border border-border/60 bg-[linear-gradient(180deg,hsl(150_18%_16%),hsl(150_19%_12%))] px-6 py-10 text-center text-white shadow-card sm:mx-auto sm:block sm:max-w-xl sm:px-8">
+          <DesktopStatusDialog>
+          <div className="max-h-[calc(100vh-4rem)] overflow-y-auto rounded-[2rem] border border-border/60 bg-[linear-gradient(180deg,hsl(150_18%_16%),hsl(150_19%_12%))] px-6 py-8 text-center text-white shadow-card sm:px-8">
             <StatusHalo>
               <CheckCircle2 className="h-10 w-10" />
             </StatusHalo>
-            <p className="mt-8 text-sm font-semibold uppercase tracking-[0.22em] text-white/65">STK Push Sent</p>
+            <p className="mt-6 text-sm font-semibold uppercase tracking-[0.22em] text-white/65">STK Push Sent</p>
             <h3 className="mt-3 font-heading text-3xl font-semibold">STK Push Sent!</h3>
             <p className="mt-4 text-sm leading-8 text-white/78 sm:text-base">
               Enter your M-Pesa PIN on the prompt to finish the booking fee payment.
             </p>
-            <div className="mt-8 grid gap-3 text-left">
+            <div className="mt-6 grid gap-3 text-left">
               {STK_PROMPT_STEPS.map((instruction, index) => (
                 <div key={instruction} className="flex items-start gap-3 rounded-[1.25rem] border border-white/10 bg-white/5 px-4 py-4">
                   <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-white/10 text-sm font-semibold text-[hsl(136_60%_72%)]">
@@ -827,7 +912,7 @@ const BookingSection = () => {
                 </div>
               ))}
             </div>
-            <div className="mt-8 rounded-[1.4rem] border border-white/10 bg-white/5 px-5 py-4 text-left">
+            <div className="mt-6 rounded-[1.4rem] border border-white/10 bg-white/5 px-5 py-4 text-left">
               <p className="text-xs uppercase tracking-[0.18em] text-white/55">Payment details</p>
               <div className="mt-3 flex items-center justify-between gap-4">
                 <span className="text-white/72">To</span>
@@ -843,6 +928,7 @@ const BookingSection = () => {
               </div>
             </div>
           </div>
+          </DesktopStatusDialog>
         </>
       );
     }
@@ -869,16 +955,17 @@ const BookingSection = () => {
             ) : null}
           </MobileStatusSheet>
 
-          <div className="hidden rounded-[2rem] border border-border/60 bg-[linear-gradient(180deg,hsl(150_18%_16%),hsl(150_19%_12%))] px-6 py-10 text-center text-white shadow-card sm:mx-auto sm:block sm:max-w-xl sm:px-8">
+          <DesktopStatusDialog>
+          <div className="max-h-[calc(100vh-4rem)] overflow-y-auto rounded-[2rem] border border-border/60 bg-[linear-gradient(180deg,hsl(150_18%_16%),hsl(150_19%_12%))] px-6 py-8 text-center text-white shadow-card sm:px-8">
             <StatusHalo>
               <LoaderCircle className="h-10 w-10 animate-spin" />
             </StatusHalo>
-            <p className="mt-8 text-sm font-semibold uppercase tracking-[0.22em] text-white/65">Processing Payment</p>
+            <p className="mt-6 text-sm font-semibold uppercase tracking-[0.22em] text-white/65">Processing Payment</p>
             <h3 className="mt-3 font-heading text-3xl font-semibold">Confirming your payment</h3>
             <p className="mt-4 text-sm leading-8 text-white/78 sm:text-base">
               Please wait while we confirm your booking fee with M-Pesa.
             </p>
-            <div className="mt-8 rounded-[1.4rem] border border-white/10 bg-white/5 px-5 py-4 text-left text-sm leading-7 text-white/75">
+            <div className="mt-6 rounded-[1.4rem] border border-white/10 bg-white/5 px-5 py-4 text-left text-sm leading-7 text-white/75">
               <p className="font-medium text-white">What happens next</p>
               <p className="mt-2">We are checking the Safaricom response, updating your booking, and preparing the confirmation details.</p>
               <p className="mt-2 text-white/58">This usually takes a few seconds.</p>
@@ -889,6 +976,7 @@ const BookingSection = () => {
               </div>
             ) : null}
           </div>
+          </DesktopStatusDialog>
         </>
       );
     }
@@ -923,17 +1011,18 @@ const BookingSection = () => {
             </div>
           </MobileStatusSheet>
 
-          <div className="hidden rounded-[2rem] border border-border/60 bg-card px-6 py-10 text-center shadow-hover sm:mx-auto sm:block sm:max-w-xl sm:px-8">
+          <DesktopStatusDialog>
+          <div className="max-h-[calc(100vh-4rem)] overflow-y-auto rounded-[2rem] border border-border/60 bg-card px-6 py-8 text-center shadow-hover sm:px-8">
             <StatusHalo tone="success">
               <CheckCircle2 className="h-10 w-10" />
             </StatusHalo>
-            <p className="mt-8 text-sm font-semibold uppercase tracking-[0.22em] text-primary/75">Payment Successful</p>
+            <p className="mt-6 text-sm font-semibold uppercase tracking-[0.22em] text-primary/75">Payment Successful</p>
             <h3 className="mt-3 font-heading text-3xl font-semibold text-foreground">Your session is booked</h3>
             <p className="mt-4 text-sm leading-8 text-muted-foreground sm:text-base">
               Your deposit of {formatCurrencyAmount(bookingAmount, "KES")} has been received. A confirmation email has
               been sent for your session. Please check your mail.
             </p>
-            <div className="mt-8 grid gap-3 sm:grid-cols-2">
+            <div className="mt-6 grid gap-3 sm:grid-cols-2">
               <div className="rounded-[1.2rem] border border-border/60 bg-secondary/35 px-4 py-4 text-left">
                 <p className="text-xs font-semibold uppercase tracking-[0.18em] text-primary/65">Payment method</p>
                 <p className="mt-2 text-base font-semibold text-foreground">{activePayment?.paymentMethod ?? "M-Pesa STK Push"}</p>
@@ -943,7 +1032,7 @@ const BookingSection = () => {
                 <p className="mt-2 text-base font-semibold text-foreground">{activePayment?.transactionId ?? "Awaiting receipt"}</p>
               </div>
             </div>
-            <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:justify-center">
+            <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:justify-center">
               <Button variant="hero" className="rounded-full" onClick={() => checkout && navigate(`/manage/${checkout.booking.token}`)}>
                 View Booking
               </Button>
@@ -954,6 +1043,7 @@ const BookingSection = () => {
             </div>
             <p className="mt-4 text-xs uppercase tracking-[0.18em] text-primary/60">Opening your booking page automatically...</p>
           </div>
+          </DesktopStatusDialog>
         </>
       );
     }
@@ -967,10 +1057,16 @@ const BookingSection = () => {
             title={failureCopy.title}
             description={failureCopy.description}
             indicator={<CircleAlert className="h-10 w-10" />}
+            onClose={resetToPaymentStep}
           >
+          {paymentFeedback ? (
+            <div className="rounded-[1.1rem] border border-destructive/15 bg-destructive/10 px-4 py-3 text-sm leading-6 text-foreground">
+              {paymentFeedback}
+            </div>
+          ) : null}
           <div className="mt-4 grid gap-3">
             <Button variant="hero" className="w-full rounded-xl" onClick={handleStartPayment} disabled={isSubmitting}>
-              {isSubmitting ? "Trying Again..." : "Try Again"}
+              {retryStartOverRequired ? "Start Fresh Booking" : isSubmitting ? "Trying Again..." : "Try Again"}
             </Button>
             <Button variant="heroBorder" className="w-full rounded-xl" onClick={resetToPaymentStep}>
               Change Phone Number
@@ -978,22 +1074,38 @@ const BookingSection = () => {
           </div>
         </MobileStatusSheet>
 
-        <div className="hidden rounded-[2rem] border border-border/60 bg-card px-6 py-10 text-center shadow-card sm:mx-auto sm:block sm:max-w-xl sm:px-8">
+        <DesktopStatusDialog>
+        <div className="relative max-h-[calc(100vh-4rem)] overflow-y-auto rounded-[2rem] border border-border/60 bg-card px-6 py-8 text-center shadow-card sm:px-8">
+          <Button
+            variant="ghost"
+            size="icon"
+            className="absolute right-4 top-4 h-8 w-8 rounded-full border border-border/60 bg-white/80 text-muted-foreground hover:bg-white"
+            onClick={resetToPaymentStep}
+            aria-label="Close payment message"
+          >
+            <X className="h-4 w-4" />
+          </Button>
           <StatusHalo tone="destructive">
             <CircleAlert className="h-10 w-10" />
           </StatusHalo>
-          <p className="mt-8 text-sm font-semibold uppercase tracking-[0.22em] text-primary/75">Payment Failed</p>
+          <p className="mt-6 text-sm font-semibold uppercase tracking-[0.22em] text-primary/75">Payment Failed</p>
           <h3 className="mt-3 font-heading text-3xl font-semibold text-foreground">{failureCopy.title}</h3>
           <p className="mt-4 text-sm leading-8 text-muted-foreground sm:text-base">{failureCopy.description}</p>
+          {paymentFeedback ? (
+            <div className="mt-5 rounded-[1.1rem] border border-destructive/15 bg-destructive/10 px-4 py-3 text-sm leading-7 text-foreground">
+              {paymentFeedback}
+            </div>
+          ) : null}
           <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:justify-center">
             <Button variant="hero" className="rounded-full" onClick={handleStartPayment} disabled={isSubmitting}>
-              {isSubmitting ? "Trying Again..." : "Try Again"}
+              {retryStartOverRequired ? "Start Fresh Booking" : isSubmitting ? "Trying Again..." : "Try Again"}
             </Button>
             <Button variant="heroBorder" className="rounded-full" onClick={resetToPaymentStep}>
               Change Phone Number
             </Button>
           </div>
         </div>
+        </DesktopStatusDialog>
       </>
     );
   };
@@ -1065,13 +1177,11 @@ const BookingSection = () => {
             <ScrollReveal direction="right">
               <div className={step === "details" ? "" : "mx-auto w-full max-w-5xl"}>
                 {step !== "details" ? (
-                  <div className="mb-6 hidden text-center sm:block">
+                  <div className="mb-3 hidden text-center sm:block">
                     <p className="text-sm font-semibold uppercase tracking-[0.24em] text-primary/75">Secure Booking Checkout</p>
                     <h2 className="mt-2 font-heading text-3xl font-semibold text-foreground sm:text-4xl">
                       Confirm your session in a few guided steps
                     </h2>
-                   
-                    <CheckoutStageRail step={step} />
                   </div>
                 ) : null}
                 {step === "details" ? (
@@ -1378,12 +1488,13 @@ const BookingSection = () => {
                       </Button>
                     </div>
 
-                    <div className="hidden rounded-[2rem] border border-border/60 bg-card p-6 shadow-card sm:block sm:p-8">
-                      <div className="flex items-center justify-between gap-4">
-                        <div>
+                    <div className="relative mt-5 hidden rounded-[2rem] border border-border/60 bg-card p-6 pt-8 shadow-card sm:block sm:p-8 sm:pt-9">
+                      <CheckoutStageRail step={step} />
+                      <div className="relative flex min-h-11 items-center justify-center gap-4 px-40">
+                        <div className="text-center">
                           <h3 className="font-heading text-3xl font-semibold text-foreground">Review your session</h3>
                         </div>
-                        <Button variant="heroBorder" className="rounded-full" onClick={() => setStep("details")}>
+                        <Button variant="heroBorder" className="absolute right-0 top-1/2 -translate-y-1/2 rounded-full" onClick={() => setStep("details")}>
                           <ArrowLeft className="h-4 w-4" />
                           Edit Details
                         </Button>
@@ -1474,12 +1585,13 @@ const BookingSection = () => {
                       </div>
                     </div>
 
-                    <div className="hidden rounded-[2rem] border border-border/60 bg-card p-6 shadow-card sm:block sm:p-8">
-                      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                        <div>
+                    <div className="relative mt-5 hidden rounded-[2rem] border border-border/60 bg-card p-6 pt-8 shadow-card sm:block sm:p-8 sm:pt-9">
+                      <CheckoutStageRail step={step} />
+                      <div className="relative flex min-h-11 items-center justify-center gap-4 px-28">
+                        <div className="text-center">
                           <h3 className="font-heading text-3xl font-semibold text-foreground">Pay the booking fee</h3>
                         </div>
-                        <Button variant="heroBorder" className="rounded-full" onClick={() => setStep("summary")}>
+                        <Button variant="heroBorder" className="absolute right-0 top-1/2 -translate-y-1/2 rounded-full" onClick={() => setStep("summary")}>
                           <ArrowLeft className="h-4 w-4" />
                           Back
                         </Button>

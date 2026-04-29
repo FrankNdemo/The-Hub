@@ -11,6 +11,7 @@ import {
   Phone,
   Plus,
   RefreshCw,
+  Search,
   Trash2,
   X,
 } from "lucide-react";
@@ -335,6 +336,10 @@ const TherapistDashboardPage = () => {
   const [tagInput, setTagInput] = useState("");
   const [editingId, setEditingId] = useState<string | null>(null);
   const [expandedOverviewBookingId, setExpandedOverviewBookingId] = useState<string | null>(null);
+  const [expandedSessionBookingId, setExpandedSessionBookingId] = useState<string | null>(null);
+  const [expandedCallBookingId, setExpandedCallBookingId] = useState<string | null>(null);
+  const [sessionSearch, setSessionSearch] = useState("");
+  const [transactionSearch, setTransactionSearch] = useState("");
   const [profileDraft, setProfileDraft] = useState<TherapistProfileFormState>(() => makeProfileDraft(therapist));
   const [bookingToComplete, setBookingToComplete] = useState<BookingRecord | null>(null);
   const [isCompletingBooking, setIsCompletingBooking] = useState(false);
@@ -404,26 +409,11 @@ const TherapistDashboardPage = () => {
     [bookings],
   );
   const sortedTransactions = useMemo(
-    () => [...transactions].sort((left, right) => right.updatedAt.localeCompare(left.updatedAt)),
+    () =>
+      [...transactions]
+        .filter((transaction) => transaction.status === "success")
+        .sort((left, right) => right.updatedAt.localeCompare(left.updatedAt)),
     [transactions],
-  );
-  const transactionMetrics = useMemo(
-    () => ({
-      total: sortedTransactions.length,
-      paid: sortedTransactions.filter((transaction) => transaction.status === "success").length,
-      processing: sortedTransactions.filter((transaction) =>
-        transaction.status === "initiated" ||
-        transaction.status === "stk_push_sent" ||
-        transaction.status === "processing",
-      ).length,
-      failed: sortedTransactions.filter((transaction) =>
-        transaction.status === "failed" ||
-        transaction.status === "cancelled" ||
-        transaction.status === "timed_out" ||
-        transaction.status === "insufficient_funds",
-      ).length,
-    }),
-    [sortedTransactions],
   );
   const sessionBookings = useMemo(
     () => sortedBookings.filter((booking) => !booking.isExplorationCall),
@@ -437,6 +427,28 @@ const TherapistDashboardPage = () => {
     () => sessionBookings.filter((booking) => !isCompletedOrExpiredBooking(booking, currentTime)),
     [sessionBookings, currentTime],
   );
+  const filteredActiveBookings = useMemo(() => {
+    const query = sessionSearch.trim().toLowerCase();
+
+    if (!query) {
+      return activeBookings;
+    }
+
+    return activeBookings.filter((booking) =>
+      `${booking.clientName} ${booking.clientEmail} ${booking.clientPhone}`.toLowerCase().includes(query),
+    );
+  }, [activeBookings, sessionSearch]);
+  const filteredTransactions = useMemo(() => {
+    const query = transactionSearch.trim().toLowerCase();
+
+    if (!query) {
+      return sortedTransactions;
+    }
+
+    return sortedTransactions.filter((transaction) =>
+      `${transaction.clientName ?? ""} ${transaction.clientEmail ?? ""} ${transaction.phoneNumber}`.toLowerCase().includes(query),
+    );
+  }, [sortedTransactions, transactionSearch]);
   const completedBookings = useMemo(
     () => sessionBookings.filter((booking) => isCompletedOrExpiredBooking(booking, currentTime)),
     [sessionBookings, currentTime],
@@ -633,6 +645,14 @@ const TherapistDashboardPage = () => {
 
   const toggleOverviewBooking = (id: string) => {
     setExpandedOverviewBookingId((current) => (current === id ? null : id));
+  };
+
+  const toggleSessionBooking = (id: string) => {
+    setExpandedSessionBookingId((current) => (current === id ? null : id));
+  };
+
+  const toggleCallBooking = (id: string) => {
+    setExpandedCallBookingId((current) => (current === id ? null : id));
   };
 
   const openDeleteBookingDialog = (booking: BookingRecord) => {
@@ -1015,11 +1035,39 @@ const TherapistDashboardPage = () => {
                   </TabsContent>
 
                   <TabsContent value="sessions" className="mt-8">
+                    <div className="mb-4 flex flex-col gap-3 rounded-[1.35rem] border border-border/60 bg-card/80 p-3 shadow-card sm:flex-row sm:items-center sm:justify-between">
+                      <div>
+                        <h2 className="font-heading text-lg font-semibold text-foreground sm:text-xl">Booked Sessions</h2>
+                        <p className="text-xs leading-5 text-muted-foreground">Click a client to open full booking details.</p>
+                      </div>
+                      <div className="relative w-full sm:max-w-xs">
+                        <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                        <Input
+                          value={sessionSearch}
+                          onChange={(event) => setSessionSearch(event.target.value)}
+                          className="h-10 rounded-full pl-9"
+                          placeholder="Search email or phone"
+                        />
+                      </div>
+                    </div>
                     <div className="space-y-4 md:hidden">
-                      {activeBookings.map((booking) => (
+                      {filteredActiveBookings.map((booking) => {
+                        const isExpanded = expandedSessionBookingId === booking.id;
+
+                        return (
                         <div
                           key={booking.id}
-                          className="rounded-[1.5rem] border border-border/60 bg-secondary/25 p-4 shadow-card"
+                          role="button"
+                          tabIndex={0}
+                          aria-expanded={isExpanded}
+                          onClick={() => toggleSessionBooking(booking.id)}
+                          onKeyDown={(event) => {
+                            if (event.key === "Enter" || event.key === " ") {
+                              event.preventDefault();
+                              toggleSessionBooking(booking.id);
+                            }
+                          }}
+                          className="cursor-pointer rounded-[1.2rem] border border-border/60 bg-secondary/25 p-3 shadow-card transition-colors hover:bg-secondary/35 focus:outline-none focus:ring-2 focus:ring-primary/20"
                         >
                           <div className="flex items-start justify-between gap-3">
                             <div className="min-w-0">
@@ -1036,7 +1084,7 @@ const TherapistDashboardPage = () => {
                             </Badge>
                           </div>
 
-                          <div className="mt-4 space-y-2 text-sm leading-6 text-muted-foreground">
+                          <div className={isExpanded ? "mt-4 space-y-2 text-sm leading-6 text-muted-foreground" : "hidden"}>
                             <p>
                               <span className="font-medium text-foreground">Date:</span> {formatDisplayDate(booking.date)}
                             </p>
@@ -1066,7 +1114,10 @@ const TherapistDashboardPage = () => {
                               variant="heroBorder"
                               size="sm"
                               className="w-full rounded-full"
-                              onClick={() => openCompleteBookingDialog(booking)}
+                              onClick={(event) => {
+                                event.stopPropagation();
+                                openCompleteBookingDialog(booking);
+                              }}
                               disabled={isCompletedOrExpiredBooking(booking, currentTime) || booking.status === "cancelled"}
                             >
                               Mark Completed
@@ -1076,7 +1127,10 @@ const TherapistDashboardPage = () => {
                               variant="heroBorder"
                               size="icon"
                               className="h-9 w-9 rounded-full"
-                              onClick={() => openDeleteBookingDialog(booking)}
+                              onClick={(event) => {
+                                event.stopPropagation();
+                                openDeleteBookingDialog(booking);
+                              }}
                               aria-label={`Delete ${booking.clientName}'s session`}
                             >
                               <Trash2 className="h-4 w-4" />
@@ -1087,12 +1141,13 @@ const TherapistDashboardPage = () => {
                               <p className="mb-2 text-xs font-semibold uppercase tracking-[0.18em] text-primary/70">
                                 Session Links
                               </p>
-                              <BookingDashboardLinks booking={booking} compact />
+                              <BookingDashboardLinks booking={booking} compact stopPropagation />
                             </div>
                           ) : null}
                         </div>
-                      ))}
-                      {activeBookings.length === 0 ? (
+                        );
+                      })}
+                      {filteredActiveBookings.length === 0 ? (
                         <div className="rounded-[1.5rem] bg-secondary/50 p-5 text-sm text-muted-foreground">
                           No bookings to display yet.
                         </div>
@@ -1113,9 +1168,24 @@ const TherapistDashboardPage = () => {
                           </TableRow>
                         </TableHeader>
                         <TableBody>
-                          {activeBookings.map((booking) => (
+                          {filteredActiveBookings.map((booking) => {
+                            const isExpanded = expandedSessionBookingId === booking.id;
+
+                            return (
                             <Fragment key={booking.id}>
-                            <TableRow>
+                            <TableRow
+                              role="button"
+                              tabIndex={0}
+                              aria-expanded={isExpanded}
+                              onClick={() => toggleSessionBooking(booking.id)}
+                              onKeyDown={(event) => {
+                                if (event.key === "Enter" || event.key === " ") {
+                                  event.preventDefault();
+                                  toggleSessionBooking(booking.id);
+                                }
+                              }}
+                              className="cursor-pointer"
+                            >
                               <TableCell>
                                 <div className="space-y-1">
                                   <p className="font-medium text-foreground">{booking.clientName}</p>
@@ -1148,7 +1218,10 @@ const TherapistDashboardPage = () => {
                                     variant="heroBorder"
                                     size="sm"
                                     className="rounded-full"
-                                    onClick={() => openCompleteBookingDialog(booking)}
+                                    onClick={(event) => {
+                                      event.stopPropagation();
+                                      openCompleteBookingDialog(booking);
+                                    }}
                                     disabled={isCompletedOrExpiredBooking(booking, currentTime) || booking.status === "cancelled"}
                                   >
                                     Mark Completed
@@ -1158,7 +1231,10 @@ const TherapistDashboardPage = () => {
                                     variant="heroBorder"
                                     size="icon"
                                     className="rounded-full"
-                                    onClick={() => openDeleteBookingDialog(booking)}
+                                    onClick={(event) => {
+                                      event.stopPropagation();
+                                      openDeleteBookingDialog(booking);
+                                    }}
                                     aria-label={`Delete ${booking.clientName}'s session`}
                                   >
                                     <Trash2 className="h-4 w-4" />
@@ -1166,21 +1242,36 @@ const TherapistDashboardPage = () => {
                                 </div>
                               </TableCell>
                             </TableRow>
-                            {hasBookingDashboardLinks(booking) ? (
+                            {isExpanded ? (
                               <TableRow>
                                 <TableCell colSpan={7} className="pt-0">
-                                  <div className="flex flex-wrap items-center gap-x-4 gap-y-2 border-t border-border/40 pt-3">
-                                    <span className="text-xs font-semibold uppercase tracking-[0.18em] text-primary/70">
-                                      Session Links
-                                    </span>
-                                    <BookingDashboardLinks booking={booking} compact />
+                                  <div className="grid gap-3 border-t border-border/40 pt-3 text-sm md:grid-cols-3">
+                                    <div>
+                                      <p className="text-xs font-semibold uppercase tracking-[0.18em] text-primary/70">Email</p>
+                                      <p className="mt-1 break-all text-muted-foreground">{booking.clientEmail}</p>
+                                    </div>
+                                    <div>
+                                      <p className="text-xs font-semibold uppercase tracking-[0.18em] text-primary/70">Phone</p>
+                                      <p className="mt-1 text-muted-foreground">{booking.clientPhone}</p>
+                                    </div>
+                                    <div>
+                                      <p className="text-xs font-semibold uppercase tracking-[0.18em] text-primary/70">Session Links</p>
+                                      {hasBookingDashboardLinks(booking) ? (
+                                        <div className="mt-1">
+                                          <BookingDashboardLinks booking={booking} compact stopPropagation />
+                                        </div>
+                                      ) : (
+                                        <p className="mt-1 text-muted-foreground">No links available.</p>
+                                      )}
+                                    </div>
                                   </div>
                                 </TableCell>
                               </TableRow>
                             ) : null}
                             </Fragment>
-                          ))}
-                          {activeBookings.length === 0 ? (
+                            );
+                          })}
+                          {filteredActiveBookings.length === 0 ? (
                             <TableRow>
                               <TableCell colSpan={7} className="text-center text-muted-foreground">
                                 No bookings to display yet.
@@ -1197,26 +1288,24 @@ const TherapistDashboardPage = () => {
                       <div>
                         <h2 className="font-heading text-xl font-semibold text-foreground sm:text-2xl">Transaction Review</h2>
                         <p className="mt-2 text-sm leading-7 text-muted-foreground">
-                          Review booking fee payments, transaction IDs, methods, and failed attempts in one place.
+                          Review successful booking fee payments, transaction IDs, and methods in one place.
                         </p>
                       </div>
 
-                      <div className="mt-6 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-                        {[
-                          { label: "Total Attempts", value: transactionMetrics.total },
-                          { label: "Paid", value: transactionMetrics.paid },
-                          { label: "In Progress", value: transactionMetrics.processing },
-                          { label: "Needs Follow-up", value: transactionMetrics.failed },
-                        ].map((metric) => (
-                          <div key={metric.label} className="rounded-[1.3rem] border border-border/60 bg-secondary/25 px-4 py-4">
-                            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-primary/70">{metric.label}</p>
-                            <p className="mt-2 font-heading text-3xl font-semibold text-foreground">{metric.value}</p>
-                          </div>
-                        ))}
+                      <div className="mt-5 flex justify-end">
+                        <div className="relative w-full sm:max-w-xs">
+                          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                          <Input
+                            value={transactionSearch}
+                            onChange={(event) => setTransactionSearch(event.target.value)}
+                            className="h-10 rounded-full pl-9"
+                            placeholder="Search email or phone"
+                          />
+                        </div>
                       </div>
 
                       <div className="mt-6 space-y-4 md:hidden">
-                        {sortedTransactions.map((transaction) => (
+                        {filteredTransactions.map((transaction) => (
                           <div key={transaction.id} className="rounded-[1.5rem] border border-border/60 bg-secondary/25 p-4 shadow-card">
                             <div className="flex items-start justify-between gap-3">
                               <div className="min-w-0">
@@ -1256,9 +1345,9 @@ const TherapistDashboardPage = () => {
                             </div>
                           </div>
                         ))}
-                        {sortedTransactions.length === 0 ? (
+                        {filteredTransactions.length === 0 ? (
                           <div className="rounded-[1.5rem] bg-secondary/45 p-4 text-sm text-muted-foreground">
-                            Payment attempts will appear here as soon as clients begin paying the booking fee.
+                            Successful payments will appear here after clients complete the booking fee.
                           </div>
                         ) : null}
                       </div>
@@ -1276,7 +1365,7 @@ const TherapistDashboardPage = () => {
                             </TableRow>
                           </TableHeader>
                           <TableBody>
-                            {sortedTransactions.map((transaction) => (
+                            {filteredTransactions.map((transaction) => (
                               <Fragment key={transaction.id}>
                                 <TableRow>
                                   <TableCell>
@@ -1332,10 +1421,10 @@ const TherapistDashboardPage = () => {
                                 </TableRow>
                               </Fragment>
                             ))}
-                            {sortedTransactions.length === 0 ? (
+                            {filteredTransactions.length === 0 ? (
                               <TableRow>
                                 <TableCell colSpan={6} className="text-center text-muted-foreground">
-                                  Payment attempts will appear here as soon as clients begin paying the booking fee.
+                                  Successful payments will appear here after clients complete the booking fee.
                                 </TableCell>
                               </TableRow>
                             ) : null}
@@ -1360,7 +1449,64 @@ const TherapistDashboardPage = () => {
                         </Badge>
                       </div>
 
-                      <div className="mt-6 space-y-4 md:hidden">
+                      <div className="mt-5 flex flex-wrap gap-2">
+                        {callRequests.map((booking) => {
+                          const isExpanded = expandedCallBookingId === booking.id;
+
+                          return (
+                            <button
+                              key={booking.id}
+                              type="button"
+                              onClick={() => toggleCallBooking(booking.id)}
+                              className={`rounded-full border px-3 py-2 text-sm font-medium transition-colors ${
+                                isExpanded
+                                  ? "border-primary bg-primary text-primary-foreground"
+                                  : "border-border/70 bg-secondary/30 text-foreground hover:border-primary/40 hover:bg-primary/5"
+                              }`}
+                            >
+                              {booking.clientName}
+                            </button>
+                          );
+                        })}
+                      </div>
+
+                      {callRequests.map((booking) =>
+                        expandedCallBookingId === booking.id ? (
+                          <div key={`${booking.id}-details`} className="mt-4 rounded-[1.25rem] border border-border/60 bg-secondary/25 p-4 text-sm shadow-card">
+                            <div className="grid gap-3 md:grid-cols-4">
+                              <div>
+                                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-primary/70">Preferred</p>
+                                <p className="mt-1 text-foreground">{formatDisplayDate(booking.date)} at {formatDisplayTime(booking.time)}</p>
+                              </div>
+                              <div>
+                                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-primary/70">Email</p>
+                                <a href={`mailto:${booking.clientEmail}`} className="mt-1 block break-all text-muted-foreground hover:text-primary">{booking.clientEmail}</a>
+                              </div>
+                              <div>
+                                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-primary/70">Phone</p>
+                                <a href={`tel:${booking.clientPhone}`} className="mt-1 block text-muted-foreground hover:text-primary">{booking.clientPhone}</a>
+                              </div>
+                              <div>
+                                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-primary/70">Status</p>
+                                <p className="mt-1 capitalize text-muted-foreground">{getCallRequestStatusLabel(booking)}</p>
+                              </div>
+                            </div>
+                            {booking.notes ? (
+                              <p className="mt-3 border-t border-border/50 pt-3 leading-7 text-muted-foreground">
+                                <span className="font-medium text-foreground">Notes:</span> {booking.notes}
+                              </p>
+                            ) : null}
+                          </div>
+                        ) : null,
+                      )}
+
+                      {callRequests.length === 0 ? (
+                        <div className="mt-5 rounded-[1.5rem] bg-secondary/45 p-4 text-sm text-muted-foreground">
+                          Exploration call requests will appear here as soon as clients submit them.
+                        </div>
+                      ) : null}
+
+                      <div className="mt-6 hidden">
                         {callRequests.map((booking) => (
                           <div key={booking.id} className="rounded-[1.5rem] border border-border/60 bg-secondary/25 p-4 shadow-card">
                             <div className="flex items-start justify-between gap-3">
@@ -1425,7 +1571,7 @@ const TherapistDashboardPage = () => {
                         ) : null}
                       </div>
 
-                      <div className="mt-6 hidden overflow-x-auto md:block">
+                      <div className="mt-6 hidden overflow-x-auto">
                         <Table>
                           <TableHeader>
                             <TableRow>

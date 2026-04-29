@@ -26,6 +26,8 @@ import leafDecor from "@/assets/leaf-decoration.png";
 import { Button } from "@/components/ui/button";
 import WellnessLogo from "./WellnessLogo";
 
+const WELLNESS_HUB_MAP_URL = "https://maps.app.goo.gl/CzPK4ad5eeTAANLP6?g_st=aw";
+
 const navLinks = [
   { label: "Home", href: "/", icon: Home },
   { label: "About", href: "/about", icon: UserRound },
@@ -75,9 +77,7 @@ const Navbar = () => {
   const isInverseTone = navTone === "inverse";
   const menuWhatsAppNumber = therapist.phone.replace(/\D/g, "");
   const menuLocationQuery = therapist.location.filter(Boolean).join(", ");
-  const menuMapHref = menuLocationQuery
-    ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(menuLocationQuery)}`
-    : "";
+  const menuMapHref = menuLocationQuery ? WELLNESS_HUB_MAP_URL : "";
   const menuQuickActions = [
     { label: "Exploration Call", to: "/exploration-call#book-exploration-call", icon: Phone },
     { label: "Email", href: `mailto:${therapist.email}`, icon: Mail },

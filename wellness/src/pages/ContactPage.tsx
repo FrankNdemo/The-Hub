@@ -13,13 +13,14 @@ import { Textarea } from "@/components/ui/textarea";
 import { useWellnessHub } from "@/context/WellnessHubContext";
 import { pageHeaderBackgrounds, softPageBackgroundStyle } from "@/lib/pageBackground";
 
+const WELLNESS_HUB_MAP_URL = "https://maps.app.goo.gl/CzPK4ad5eeTAANLP6?g_st=aw";
+
 const ContactPage = () => {
   const { therapist } = useWellnessHub();
   const [sent, setSent] = useState(false);
   const mapArea = therapist.location[0] ?? "Nairobi, Westlands";
   const locationLines = [...therapist.location.slice(1), mapArea];
-  const mapQuery = [...therapist.location.slice(1), mapArea].join(", ");
-  const mapHref = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(mapQuery)}`;
+  const mapHref = WELLNESS_HUB_MAP_URL;
   const phoneHref = `tel:${therapist.phone.replace(/[^\d+]/g, "")}`;
   const emailHref = `mailto:${therapist.email}`;
   const contactItems = [
