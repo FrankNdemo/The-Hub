@@ -244,6 +244,14 @@ const MobileSheetLeaves = ({ inverted = false }: { inverted?: boolean }) => (
   </>
 );
 
+const ProcessingRing = () => (
+  <div className="relative mx-auto h-20 w-20 sm:h-24 sm:w-24">
+    <div className="absolute inset-0 rounded-full border border-white/12" />
+    <div className="absolute inset-[7px] rounded-full border-[3px] border-white/18 border-t-white animate-spin sm:inset-[8px]" />
+    <div className="absolute inset-[20px] rounded-full bg-white/6 backdrop-blur-sm sm:inset-[24px]" />
+  </div>
+);
+
 const MobileStatusSheet = ({
   step,
   eyebrow,
@@ -251,6 +259,7 @@ const MobileStatusSheet = ({
   description,
   tone = "light",
   indicator,
+  bareIndicator = false,
   children,
 }: {
   step: BookingStep;
@@ -259,6 +268,7 @@ const MobileStatusSheet = ({
   description: string;
   tone?: "light" | "dark" | "destructive" | "success";
   indicator: ReactNode;
+  bareIndicator?: boolean;
   children?: ReactNode;
 }) => {
   const isDark = tone === "dark";
@@ -268,10 +278,10 @@ const MobileStatusSheet = ({
   return (
     <div className="sm:hidden">
       <div className="fixed inset-0 z-[80] bg-foreground/18 backdrop-blur-[2px]" aria-hidden="true" />
-      <div className="fixed inset-0 z-[81] flex items-center justify-center px-4 pb-6 pt-24">
+      <div className="fixed inset-x-4 bottom-6 top-[5.85rem] z-[81] flex items-center justify-center">
         <div
           className={cn(
-            "relative w-full max-w-[22.75rem] overflow-hidden rounded-[1.9rem] border px-4 pb-5 pt-3 shadow-[0_30px_70px_-34px_rgba(17,24,39,0.38)]",
+            "relative w-full max-w-[21.9rem] overflow-hidden rounded-[1.85rem] border px-4 pb-4 pt-3 shadow-[0_30px_70px_-34px_rgba(17,24,39,0.38)]",
             isDark
               ? "border-white/10 bg-[linear-gradient(180deg,hsl(150_18%_16%),hsl(150_19%_12%))] text-white"
               : isSuccess
@@ -282,36 +292,36 @@ const MobileStatusSheet = ({
           )}
         >
           <MobileSheetLeaves inverted={isDark} />
-          <div className="relative z-10">
+          <div className="relative z-10 flex flex-col items-center text-center">
             <div
               className={cn(
-                "-mx-4 mb-3 px-4 pb-2 pt-1",
+                "-mx-4 mb-2.5 w-[calc(100%+2rem)] px-4 pb-1 pt-1",
                 isDark ? "bg-[linear-gradient(180deg,rgba(31,49,41,0.96),rgba(31,49,41,0.72),transparent)]" : "bg-[linear-gradient(180deg,rgba(255,255,255,0.96),rgba(255,255,255,0.72),transparent)]",
               )}
             >
               <div className="flex justify-center">
-                <div className="origin-center scale-[0.9]">
+                <div className="origin-center scale-[0.88]">
                   <WellnessLogo variant="navbar" tone={isDark ? "inverse" : "default"} />
                 </div>
               </div>
             </div>
-            <p className={cn("text-[11px] font-semibold uppercase tracking-[0.2em]", isDark ? "text-white/68" : "text-primary/72")}>
+            <p className={cn("text-[10px] font-semibold uppercase tracking-[0.2em]", isDark ? "text-white/68" : "text-primary/72")}>
               Step 3 of 3
             </p>
-            <div className="mt-2.5">
+            <div className="mt-2 w-full">
               <MobileStageDots step={step} />
             </div>
-            <div className="mt-4">
-              <StatusHalo tone={isSuccess ? "success" : isDestructive ? "destructive" : "primary"}>{indicator}</StatusHalo>
+            <div className="mt-3.5">
+              {bareIndicator ? indicator : <StatusHalo tone={isSuccess ? "success" : isDestructive ? "destructive" : "primary"}>{indicator}</StatusHalo>}
             </div>
-            <p className={cn("mt-4 text-xs font-semibold uppercase tracking-[0.18em]", isDark ? "text-white/68" : "text-primary/72")}>
+            <p className={cn("mt-3.5 text-[11px] font-semibold uppercase tracking-[0.18em]", isDark ? "text-white/68" : "text-primary/72")}>
               {eyebrow}
             </p>
-            <h3 className={cn("mt-2.5 font-heading text-[1.72rem] font-semibold leading-tight", isDark ? "text-white" : "text-foreground")}>
+            <h3 className={cn("mt-2 font-heading text-[1.56rem] font-semibold leading-tight", isDark ? "text-white" : "text-foreground")}>
               {title}
             </h3>
-            <p className={cn("mt-3 text-sm leading-6", isDark ? "text-white/78" : "text-muted-foreground")}>{description}</p>
-            {children ? <div className="mt-4">{children}</div> : null}
+            <p className={cn("mt-2.5 text-sm leading-6", isDark ? "text-white/78" : "text-muted-foreground")}>{description}</p>
+            {children ? <div className="mt-3.5 w-full">{children}</div> : null}
           </div>
         </div>
       </div>
@@ -437,7 +447,7 @@ const getFailureCopy = (payment?: BookingPaymentRecord | null) => {
   switch (payment?.status) {
     case "cancelled":
       return {
-        title: "Payment cancelled",
+        title: "Payment Cancelled",
         description: "You cancelled the M-Pesa prompt before the booking fee was confirmed. Your session is not booked yet.",
       };
     case "timed_out":
@@ -829,16 +839,15 @@ const BookingSection = () => {
             tone="dark"
             eyebrow="Processing Payment"
             title="Confirming your payment"
-            description="Please wait while we check the Safaricom response, update your booking, and prepare your confirmation email."
-            indicator={<LoaderCircle className="h-10 w-10 animate-spin" />}
+            description="Please wait while we confirm your payment."
+            indicator={<ProcessingRing />}
+            bareIndicator
           >
-            <div className="rounded-[1.2rem] border border-white/10 bg-white/5 px-4 py-4 text-left text-sm leading-6 text-white/78">
-              <p className="font-medium text-white">What happens next</p>
-              <p className="mt-2">We only move you to the final booking step after the payment outcome is confirmed.</p>
-              <p className="mt-2 text-white/58">This usually takes a few seconds.</p>
+            <div className="rounded-[1.2rem] border border-white/10 bg-white/5 px-4 py-4 text-center text-sm leading-6 text-white/78">
+              <p>This usually takes a few seconds.</p>
             </div>
             {paymentFeedback ? (
-              <div className="mt-4 rounded-[1.1rem] border border-white/10 bg-white/5 px-4 py-3 text-sm leading-6 text-white/72">
+              <div className="mt-3 rounded-[1.1rem] border border-white/10 bg-white/5 px-4 py-3 text-sm leading-6 text-white/72">
                 {paymentFeedback}
               </div>
             ) : null}
@@ -935,20 +944,14 @@ const BookingSection = () => {
 
     return (
       <>
-        <MobileStatusSheet
-          step={step}
-          tone="destructive"
-          eyebrow="Payment Not Complete"
-          title={failureCopy.title}
-          description={failureCopy.description}
-          indicator={<CircleAlert className="h-10 w-10" />}
-        >
-          {activePayment?.resultDescription ? (
-            <div className="rounded-[1.1rem] border border-destructive/12 bg-white/75 px-4 py-3 text-left text-sm leading-6 text-muted-foreground">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-primary/70">Reason</p>
-              <p className="mt-2 text-foreground">{activePayment.resultDescription}</p>
-            </div>
-          ) : null}
+          <MobileStatusSheet
+            step={step}
+            tone="destructive"
+            eyebrow="Payment Not Complete"
+            title={failureCopy.title}
+            description={failureCopy.description}
+            indicator={<CircleAlert className="h-10 w-10" />}
+          >
           <div className="mt-4 grid gap-3">
             <Button variant="hero" className="w-full rounded-xl" onClick={handleStartPayment} disabled={isSubmitting}>
               {isSubmitting ? "Trying Again..." : "Try Again"}
@@ -966,12 +969,6 @@ const BookingSection = () => {
           <p className="mt-8 text-sm font-semibold uppercase tracking-[0.22em] text-primary/75">Payment Failed</p>
           <h3 className="mt-3 font-heading text-3xl font-semibold text-foreground">{failureCopy.title}</h3>
           <p className="mt-4 text-sm leading-8 text-muted-foreground sm:text-base">{failureCopy.description}</p>
-          {activePayment?.resultDescription ? (
-            <div className="mt-6 rounded-[1.2rem] border border-border/60 bg-secondary/35 px-4 py-4 text-left text-sm leading-7 text-muted-foreground">
-              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-primary/70">Reason</p>
-              <p className="mt-2 text-foreground">{activePayment.resultDescription}</p>
-            </div>
-          ) : null}
           <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:justify-center">
             <Button variant="hero" className="rounded-full" onClick={handleStartPayment} disabled={isSubmitting}>
               {isSubmitting ? "Trying Again..." : "Try Again"}
@@ -1299,7 +1296,7 @@ const BookingSection = () => {
                   </form>
                 ) : step === "summary" ? (
                   <>
-                    <div className="relative mx-auto max-w-[23rem] overflow-hidden rounded-[2rem] border border-border/60 bg-card p-4 shadow-card sm:hidden">
+                    <div className="relative mx-auto max-w-[21.9rem] overflow-hidden rounded-[1.85rem] border border-border/60 bg-card p-3.5 shadow-card sm:hidden">
                       <MobileSheetLeaves />
                       <div className="relative z-10 flex items-start gap-3">
                         <Button variant="ghost" size="icon" className="h-9 w-9 rounded-full border border-border/60" onClick={() => setStep("details")}>
@@ -1313,9 +1310,9 @@ const BookingSection = () => {
                         </div>
                       </div>
 
-                      <div className="relative z-10 mt-5 rounded-[1.6rem] border border-border/60 bg-background/95 p-5 shadow-soft">
-                        <h4 className="text-lg font-semibold text-foreground">Session Summary</h4>
-                        <div className="mt-4 space-y-4 border-t border-border/60 pt-4">
+                      <div className="relative z-10 mt-4 rounded-[1.45rem] border border-border/60 bg-background/95 p-4 shadow-soft">
+                        <h4 className="text-base font-semibold text-foreground">Session Summary</h4>
+                        <div className="mt-3 space-y-3 border-t border-border/60 pt-3">
                           {[
                             {
                               icon: Users,
@@ -1338,27 +1335,27 @@ const BookingSection = () => {
                               value: formatCurrencyAmount(bookingAmount, "KES"),
                             },
                           ].map((item) => (
-                            <div key={item.label} className="flex items-start gap-3">
-                              <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-primary/8 text-primary">
-                                <item.icon className="h-4 w-4" />
+                            <div key={item.label} className="flex items-start gap-2.5">
+                              <div className="flex h-9 w-9 items-center justify-center rounded-[1rem] bg-primary/8 text-primary">
+                                <item.icon className="h-3.5 w-3.5" />
                               </div>
                               <div className="min-w-0">
                                 <p className="text-xs font-semibold uppercase tracking-[0.16em] text-primary/65">{item.label}</p>
-                                <p className="mt-1 text-sm font-medium leading-6 text-foreground">{item.value}</p>
+                                <p className="mt-0.5 text-sm font-medium leading-5 text-foreground">{item.value}</p>
                               </div>
                             </div>
                           ))}
                         </div>
                       </div>
 
-                      <div className="relative z-10 mt-4 rounded-[1.25rem] bg-primary/10 px-4 py-4 text-sm leading-7 text-foreground/85">
+                      <div className="relative z-10 mt-3.5 rounded-[1.15rem] bg-primary/10 px-4 py-3 text-sm leading-6 text-foreground/85">
                         To confirm your session, a refundable booking fee is required.
                       </div>
 
                       <Button
                         variant="hero"
                         size="lg"
-                        className="relative z-10 mt-5 w-full rounded-xl"
+                        className="relative z-10 mt-4 w-full rounded-xl"
                         onClick={() => {
                           setPaymentPhone(form.clientPhone);
                           setStep("payment");
@@ -1407,7 +1404,7 @@ const BookingSection = () => {
                   </>
                 ) : step === "payment" ? (
                   <>
-                    <div className="relative mx-auto max-w-[23rem] overflow-hidden rounded-[2rem] border border-border/60 bg-card p-4 shadow-card sm:hidden">
+                    <div className="relative mx-auto max-w-[21.9rem] overflow-hidden rounded-[1.85rem] border border-border/60 bg-card p-4 shadow-card sm:hidden">
                       <MobileSheetLeaves />
                       <div className="relative z-10 flex items-start gap-3">
                         <Button variant="ghost" size="icon" className="h-9 w-9 rounded-full border border-border/60" onClick={() => setStep("summary")}>
