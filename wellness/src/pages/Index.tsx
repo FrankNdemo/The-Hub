@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { ArrowRight, CalendarClock, Eye, Leaf, Lock, Quote, ShieldCheck, Sun, Video } from "lucide-react";
+import { ArrowLeft, ArrowRight, CalendarClock, Eye, Leaf, Lock, Quote, ShieldCheck, Sun, Video } from "lucide-react";
 
 import aboutImg from "@/assets/about-therapy.jpg";
 import leafDecor from "@/assets/leaf-decoration.png";
@@ -122,7 +122,17 @@ const Index = () => {
   const { therapists } = useWellnessHub();
   const [typedCtaText, setTypedCtaText] = useState("");
   const [isDeletingCtaText, setIsDeletingCtaText] = useState(false);
+  const [testimonialIndex, setTestimonialIndex] = useState(0);
   const featuredTherapists = therapists;
+  const activeTestimonial = testimonials[testimonialIndex];
+
+  const showPreviousTestimonial = () => {
+    setTestimonialIndex((current) => (current === 0 ? testimonials.length - 1 : current - 1));
+  };
+
+  const showNextTestimonial = () => {
+    setTestimonialIndex((current) => (current + 1) % testimonials.length);
+  };
 
   useEffect(() => {
     if (!isDeletingCtaText && typedCtaText === ctaTypedPhrase) {
@@ -327,7 +337,7 @@ const Index = () => {
                         src={profile.image}
                         alt={profile.name}
                         loading="lazy"
-                        className="h-full w-full object-cover object-center"
+                        className="h-full w-full object-contain object-top"
                       />
                     </div>
                   </div>
@@ -336,9 +346,13 @@ const Index = () => {
                       {profile.name}
                     </h3>
                     <p className="mt-4 text-sm leading-7 text-muted-foreground">{profile.bio}</p>
-                    <Button variant="ghost" className="mx-auto mt-5 h-11 w-fit rounded-full px-5 text-sm font-semibold text-primary hover:bg-primary/8 hover:text-primary sm:mx-0" asChild>
+                    <Button
+                      variant="ghost"
+                      className="mx-auto mt-5 h-auto min-h-11 max-w-full whitespace-normal rounded-full px-0 text-left text-sm font-semibold leading-5 text-primary hover:bg-transparent hover:text-primary sm:mx-0"
+                      asChild
+                    >
                       <Link to={`/team#${profile.id}`}>
-                        Learn more about {profile.name.split(" ")[0]}
+                        <span>Learn more about {profile.name.split(" ")[0]}</span>
                         <ArrowRight className="h-4 w-4" />
                       </Link>
                     </Button>
@@ -417,7 +431,60 @@ const Index = () => {
             </h2>
           </div>
 
-          <div className="pause-marquee relative mt-10 overflow-hidden">
+          <div className="mt-8 flex items-center justify-center gap-4 md:hidden">
+            <button
+              type="button"
+              onClick={showPreviousTestimonial}
+              className="flex h-10 w-10 items-center justify-center rounded-full border border-primary/15 bg-background text-primary shadow-soft transition-colors hover:bg-primary/8"
+              aria-label="Previous client story"
+            >
+              <ArrowLeft className="h-4 w-4" />
+            </button>
+            <button
+              type="button"
+              onClick={showNextTestimonial}
+              className="flex h-11 w-11 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-soft transition-colors hover:bg-primary/90"
+              aria-label="Next client story"
+            >
+              <ArrowRight className="h-4 w-4" />
+            </button>
+            <div className="ml-2 flex items-center gap-3">
+              {testimonials.map((testimonial, index) => (
+                <button
+                  key={testimonial.name}
+                  type="button"
+                  onClick={() => setTestimonialIndex(index)}
+                  className={`h-2 rounded-full transition-all ${
+                    testimonialIndex === index ? "w-2 bg-primary" : "w-2 border border-primary/20 bg-transparent"
+                  }`}
+                  aria-label={`Show story ${index + 1}`}
+                />
+              ))}
+            </div>
+          </div>
+
+          <div className="mt-6 md:hidden">
+            <div className="wellness-panel overflow-hidden rounded-[2rem] border border-border/60 p-7 shadow-[0_26px_48px_-28px_rgba(16,24,20,0.34)]">
+              <Quote className="h-8 w-8 text-primary/30" />
+              <p className="mt-4 italic leading-8 text-muted-foreground">{activeTestimonial.text}</p>
+              <div className="mt-6 flex items-center gap-4 border-t border-border/60 pt-4">
+                <div className="h-12 w-12 overflow-hidden rounded-full border border-border/60 bg-background shadow-soft">
+                  <img
+                    src={activeTestimonial.image}
+                    alt={activeTestimonial.name}
+                    loading="lazy"
+                    className="h-full w-full object-cover"
+                  />
+                </div>
+                <div>
+                  <p className="font-medium text-foreground">{activeTestimonial.name}</p>
+                  <p className="text-sm text-muted-foreground">{activeTestimonial.role}</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="pause-marquee relative mt-10 hidden overflow-hidden md:block">
             <div className="pointer-events-none absolute inset-y-0 left-0 z-10 w-14 bg-gradient-to-r from-background to-transparent" />
             <div className="pointer-events-none absolute inset-y-0 right-0 z-10 w-14 bg-gradient-to-l from-background to-transparent" />
             <div className="flex w-max gap-6 animate-testimonial-marquee">
