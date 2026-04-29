@@ -19,7 +19,7 @@ const ContactPage = () => {
   const { therapist } = useWellnessHub();
   const [sent, setSent] = useState(false);
   const mapArea = therapist.location[0] ?? "Nairobi, Westlands";
-  const locationLines = [...therapist.location.slice(1), mapArea];
+  const locationLines = [mapArea, ...therapist.location.slice(1)];
   const mapHref = WELLNESS_HUB_MAP_URL;
   const phoneHref = `tel:${therapist.phone.replace(/[^\d+]/g, "")}`;
   const emailHref = `mailto:${therapist.email}`;

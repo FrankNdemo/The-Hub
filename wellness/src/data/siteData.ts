@@ -29,9 +29,8 @@ export const primaryTherapist: TherapistProfile = {
   email: "likentnerg@gmail.com",
   phone: "+254 726 759 850",
   location: [
+    "Reallite by Broadcom",
     "Nairobi, Westlands",
-    "1st Floor Realite Building",
-    "Crescent Lane off Parklands Road",
   ],
   image: therapistImage,
 };

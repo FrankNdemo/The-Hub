@@ -1,4 +1,4 @@
-import { Fragment, type MouseEvent, useEffect, useMemo, useState } from "react";
+import { Fragment, type MouseEvent, useEffect, useMemo, useRef, useState } from "react";
 import { Link, Navigate, useSearchParams } from "react-router-dom";
 import {
   BellRing,
@@ -338,6 +338,7 @@ const TherapistDashboardPage = () => {
   const [expandedOverviewBookingId, setExpandedOverviewBookingId] = useState<string | null>(null);
   const [expandedSessionBookingId, setExpandedSessionBookingId] = useState<string | null>(null);
   const [expandedCallBookingId, setExpandedCallBookingId] = useState<string | null>(null);
+  const [expandedTransactionId, setExpandedTransactionId] = useState<string | null>(null);
   const [sessionSearch, setSessionSearch] = useState("");
   const [transactionSearch, setTransactionSearch] = useState("");
   const [profileDraft, setProfileDraft] = useState<TherapistProfileFormState>(() => makeProfileDraft(therapist));
@@ -346,6 +347,7 @@ const TherapistDashboardPage = () => {
   const [bookingToDelete, setBookingToDelete] = useState<BookingRecord | null>(null);
   const [isDeletingBooking, setIsDeletingBooking] = useState(false);
   const [loaderProgress, setLoaderProgress] = useState(12);
+  const dashboardTabsRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     setProfileDraft(makeProfileDraft(therapist));
@@ -359,6 +361,18 @@ const TherapistDashboardPage = () => {
   useEffect(() => {
     setActiveTab((current) => (current === requestedTab ? current : requestedTab));
   }, [requestedTab]);
+
+  useEffect(() => {
+    if (isInitializing || !isTherapistAuthenticated) {
+      return;
+    }
+
+    const frameId = window.requestAnimationFrame(() => {
+      dashboardTabsRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    });
+
+    return () => window.cancelAnimationFrame(frameId);
+  }, [activeTab, isInitializing, isTherapistAuthenticated]);
 
   useEffect(() => {
     if (!isInitializing) {
@@ -415,13 +429,27 @@ const TherapistDashboardPage = () => {
         .sort((left, right) => right.updatedAt.localeCompare(left.updatedAt)),
     [transactions],
   );
-  const sessionBookings = useMemo(
-    () => sortedBookings.filter((booking) => !booking.isExplorationCall),
+  const visibleBookings = useMemo(
+    () =>
+      sortedBookings.filter((booking) => {
+        const rawBooking = booking as BookingRecord & {
+          deleted?: boolean;
+          isDeleted?: boolean;
+          deletedAt?: string | null;
+          status?: BookingRecord["status"] | "deleted";
+        };
+
+        return rawBooking.status !== "deleted" && !rawBooking.deleted && !rawBooking.isDeleted && !rawBooking.deletedAt;
+      }),
     [sortedBookings],
   );
+  const sessionBookings = useMemo(
+    () => visibleBookings.filter((booking) => !booking.isExplorationCall),
+    [visibleBookings],
+  );
   const callRequests = useMemo(
-    () => sortedBookings.filter((booking) => booking.isExplorationCall),
-    [sortedBookings],
+    () => visibleBookings.filter((booking) => booking.isExplorationCall),
+    [visibleBookings],
   );
   const activeBookings = useMemo(
     () => sessionBookings.filter((booking) => !isCompletedOrExpiredBooking(booking, currentTime)),
@@ -873,7 +901,7 @@ const TherapistDashboardPage = () => {
                   }}
                   className="-mx-2 rounded-[1.6rem] border border-border/60 bg-card p-3 shadow-card sm:mx-0 sm:rounded-[2rem] sm:p-6"
                 >
-                  <TabsList className="no-scrollbar flex h-auto w-full flex-nowrap items-center justify-start gap-2 overflow-x-auto rounded-[1.25rem] bg-secondary/60 p-1.5 whitespace-nowrap">
+                  <TabsList ref={dashboardTabsRef} className="no-scrollbar scroll-mt-24 flex h-auto w-full flex-nowrap items-center justify-start gap-2 overflow-x-auto rounded-[1.25rem] bg-secondary/60 p-1.5 whitespace-nowrap">
                     <TabsTrigger value="overview" className="h-auto shrink-0 rounded-full px-3 py-2 text-[11px] sm:px-4 sm:text-sm lg:px-5">
                       Overview
                     </TabsTrigger>
@@ -1072,7 +1100,7 @@ const TherapistDashboardPage = () => {
                           <div className="flex items-start justify-between gap-3">
                             <div className="min-w-0">
                               <p className="font-medium text-foreground">{booking.clientName}</p>
-                              <p className="mt-1 text-xs uppercase tracking-[0.18em] text-primary/65">
+                              <p className="mt-0.5 text-[11px] leading-4 text-primary/70">
                                 {formatServiceType(booking.serviceType)} · {booking.sessionType} session
                               </p>
                             </div>
@@ -1189,7 +1217,7 @@ const TherapistDashboardPage = () => {
                               <TableCell>
                                 <div className="space-y-1">
                                   <p className="font-medium text-foreground">{booking.clientName}</p>
-                                  <p className="text-xs uppercase tracking-[0.18em] text-primary/65">
+                                  <p className="text-[11px] leading-4 text-primary/70">
                                     {formatServiceType(booking.serviceType)} · {booking.sessionType} session
                                   </p>
                                 </div>
@@ -1305,8 +1333,25 @@ const TherapistDashboardPage = () => {
                       </div>
 
                       <div className="mt-6 space-y-4 md:hidden">
-                        {filteredTransactions.map((transaction) => (
-                          <div key={transaction.id} className="rounded-[1.5rem] border border-border/60 bg-secondary/25 p-4 shadow-card">
+                        {filteredTransactions.map((transaction) => {
+                          const isExpanded = expandedTransactionId === transaction.id;
+
+                          return (
+                          <div
+                            key={transaction.id}
+                            role="button"
+                            tabIndex={0}
+                            aria-expanded={isExpanded}
+                            onClick={() => setExpandedTransactionId((current) => (current === transaction.id ? null : transaction.id))}
+                            onMouseLeave={() => setExpandedTransactionId(null)}
+                            onKeyDown={(event) => {
+                              if (event.key === "Enter" || event.key === " ") {
+                                event.preventDefault();
+                                setExpandedTransactionId((current) => (current === transaction.id ? null : transaction.id));
+                              }
+                            }}
+                            className="cursor-pointer rounded-[1.5rem] border border-border/60 bg-secondary/25 p-4 shadow-card transition-colors hover:bg-secondary/35 focus:outline-none focus:ring-2 focus:ring-primary/20"
+                          >
                             <div className="flex items-start justify-between gap-3">
                               <div className="min-w-0">
                                 <p className="font-medium text-foreground">{transaction.clientName ?? "Booking payment"}</p>
@@ -1322,7 +1367,7 @@ const TherapistDashboardPage = () => {
                                 {transaction.statusLabel}
                               </Badge>
                             </div>
-                            <div className="mt-4 space-y-2 text-sm leading-6 text-muted-foreground">
+                            <div className={isExpanded ? "mt-4 space-y-2 text-sm leading-6 text-muted-foreground" : "hidden"}>
                               <p>
                                 <span className="font-medium text-foreground">Amount:</span>{" "}
                                 {formatCurrencyAmount(transaction.amount, transaction.currency)}
@@ -1344,7 +1389,8 @@ const TherapistDashboardPage = () => {
                               ) : null}
                             </div>
                           </div>
-                        ))}
+                          );
+                        })}
                         {filteredTransactions.length === 0 ? (
                           <div className="rounded-[1.5rem] bg-secondary/45 p-4 text-sm text-muted-foreground">
                             Successful payments will appear here after clients complete the booking fee.
@@ -1352,7 +1398,7 @@ const TherapistDashboardPage = () => {
                         ) : null}
                       </div>
 
-                      <div className="mt-6 hidden overflow-x-auto md:block">
+                      <div className="mt-6 hidden overflow-x-auto md:block" onMouseLeave={() => setExpandedTransactionId(null)}>
                         <Table>
                           <TableHeader>
                             <TableRow>
@@ -1365,9 +1411,24 @@ const TherapistDashboardPage = () => {
                             </TableRow>
                           </TableHeader>
                           <TableBody>
-                            {filteredTransactions.map((transaction) => (
+                            {filteredTransactions.map((transaction) => {
+                              const isExpanded = expandedTransactionId === transaction.id;
+
+                              return (
                               <Fragment key={transaction.id}>
-                                <TableRow>
+                                <TableRow
+                                  role="button"
+                                  tabIndex={0}
+                                  aria-expanded={isExpanded}
+                                  onClick={() => setExpandedTransactionId((current) => (current === transaction.id ? null : transaction.id))}
+                                  onKeyDown={(event) => {
+                                    if (event.key === "Enter" || event.key === " ") {
+                                      event.preventDefault();
+                                      setExpandedTransactionId((current) => (current === transaction.id ? null : transaction.id));
+                                    }
+                                  }}
+                                  className="cursor-pointer"
+                                >
                                   <TableCell>
                                     <div className="space-y-1">
                                       <p className="font-medium text-foreground">{transaction.clientName ?? "Booking payment"}</p>
@@ -1397,6 +1458,7 @@ const TherapistDashboardPage = () => {
                                     </Badge>
                                   </TableCell>
                                 </TableRow>
+                                {isExpanded ? (
                                 <TableRow>
                                   <TableCell colSpan={6} className="pt-0">
                                     <div className="grid gap-4 border-t border-border/40 pt-3 text-sm md:grid-cols-3">
@@ -1419,8 +1481,10 @@ const TherapistDashboardPage = () => {
                                     </div>
                                   </TableCell>
                                 </TableRow>
+                                ) : null}
                               </Fragment>
-                            ))}
+                              );
+                            })}
                             {filteredTransactions.length === 0 ? (
                               <TableRow>
                                 <TableCell colSpan={6} className="text-center text-muted-foreground">
@@ -1975,7 +2039,7 @@ const TherapistDashboardPage = () => {
                               onChange={(event) => setProfileField("location", event.target.value)}
                               className="mt-2 min-h-[120px]"
                               placeholder={
-                                "Nairobi, Westlands\n1st Floor Realite Building\nCrescent Lane off Parklands Road"
+                                "Reallite by Broadcom\nNairobi, Westlands"
                               }
                               required
                             />
@@ -2075,8 +2139,8 @@ const TherapistDashboardPage = () => {
                               <div className="flex items-start justify-between gap-3">
                                 <div className="min-w-0">
                                   <p className="font-medium text-foreground">{booking.clientName}</p>
-                                  <p className="mt-1 text-xs uppercase tracking-[0.18em] text-primary/65">
-                                    {formatServiceType(booking.serviceType)} Â· {booking.sessionType} session
+                              <p className="mt-0.5 text-[11px] leading-4 text-primary/70">
+                                {formatServiceType(booking.serviceType)} · <span className="capitalize">{booking.sessionType}</span> session
                                   </p>
                                 </div>
                                 <Badge
@@ -2140,8 +2204,8 @@ const TherapistDashboardPage = () => {
                                     <TableCell>
                                       <div className="space-y-1">
                                         <p className="font-medium text-foreground">{booking.clientName}</p>
-                                        <p className="text-xs uppercase tracking-[0.18em] text-primary/65">
-                                          {formatServiceType(booking.serviceType)} Â· {booking.sessionType} session
+                                  <p className="text-[11px] leading-4 text-primary/70">
+                                    {formatServiceType(booking.serviceType)} · <span className="capitalize">{booking.sessionType}</span> session
                                         </p>
                                       </div>
                                     </TableCell>

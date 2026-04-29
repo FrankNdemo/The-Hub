@@ -25,7 +25,7 @@ const Footer = () => {
   const { therapist, isTherapistAuthenticated } = useWellnessHub();
   const mapAddressLines = therapist.location.slice(1);
   const mapArea = therapist.location[0] ?? "Nairobi, Westlands";
-  const mapQuery = [...mapAddressLines, mapArea].join(", ");
+  const mapQuery = "Reallite by Broadcom";
   const mapHref = WELLNESS_HUB_MAP_URL;
   const mapEmbedSrc = `https://www.google.com/maps?q=${encodeURIComponent(mapQuery)}&z=16&output=embed`;
   const handleRouteLinkClick = () => {
