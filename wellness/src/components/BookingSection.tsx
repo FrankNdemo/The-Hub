@@ -61,6 +61,9 @@ import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
 import leafDecor from "@/assets/leaf-decoration.png";
 
+const REVIEW_GARDEN_IMAGE_URL =
+  "https://images.unsplash.com/photo-1501004318641-b39e6451bec6?auto=format&fit=crop&w=900&q=88";
+
 type BookingStep = "details" | "summary" | "payment" | "stk_sent" | "processing" | "success" | "failed";
 
 const STK_SENT_PROMOTE_DELAY_MS = 900;
@@ -1521,6 +1524,14 @@ const BookingSection = () => {
                           >
                             Continue to Payment
                           </Button>
+                          <div className="overflow-hidden border border-border/60 bg-secondary/20 shadow-[0_18px_40px_-34px_rgba(33,49,40,0.5)]">
+                            <img
+                              src={REVIEW_GARDEN_IMAGE_URL}
+                              alt="Calm green garden path"
+                              className="h-56 w-full object-cover object-center"
+                              loading="lazy"
+                            />
+                          </div>
                         </div>
                       </div>
                     </div>
