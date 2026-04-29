@@ -32,3 +32,7 @@ C:\Users\CCS\Desktop\The-Hub\backend\apps\bookings\services.py changed, reloadin
 Watching for file changes with StatReloader
 C:\Users\CCS\Desktop\The-Hub\backend\apps\bookings\services.py changed, reloading.
 Watching for file changes with StatReloader
+C:\Users\CCS\Desktop\The-Hub\backend\apps\bookings\services.py changed, reloading.
+Watching for file changes with StatReloader
+[29/Apr/2026 03:57:47,935] - Broken pipe from ('127.0.0.1', 59742)
+[29/Apr/2026 03:57:56,238] - Broken pipe from ('127.0.0.1', 59743)

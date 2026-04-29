@@ -1070,9 +1070,7 @@ const BookingSection = () => {
                     <h2 className="mt-2 font-heading text-3xl font-semibold text-foreground sm:text-4xl">
                       Confirm your session in a few guided steps
                     </h2>
-                    <p className="mx-auto mt-3 max-w-2xl text-sm leading-7 text-muted-foreground sm:text-base">
-                      Review the summary, confirm the M-Pesa number, and complete the booking fee to reserve your time.
-                    </p>
+                   
                     <CheckoutStageRail step={step} />
                   </div>
                 ) : null}
