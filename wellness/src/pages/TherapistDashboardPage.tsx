@@ -2039,7 +2039,7 @@ const TherapistDashboardPage = () => {
                               onChange={(event) => setProfileField("location", event.target.value)}
                               className="mt-2 min-h-[120px]"
                               placeholder={
-                                "Reallite by Broadcom\nNairobi, Westlands"
+                                "Real Lite by Broadcom\nNairobi, Westlands"
                               }
                               required
                             />

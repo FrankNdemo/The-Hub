@@ -29,7 +29,7 @@ export const primaryTherapist: TherapistProfile = {
   email: "likentnerg@gmail.com",
   phone: "+254 726 759 850",
   location: [
-    "Reallite by Broadcom",
+    "Real Lite by Broadcom",
     "Nairobi, Westlands",
   ],
   image: therapistImage,

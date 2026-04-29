@@ -8,7 +8,7 @@ const ContactSection = () => (
 
       <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6 mt-12 max-w-4xl mx-auto">
         {[
-          { icon: MapPin, title: "Location", lines: ["Reallite by Broadcom", "Nairobi, Westlands"] },
+          { icon: MapPin, title: "Location", lines: ["Real Lite by Broadcom", "Nairobi, Westlands"] },
           { icon: Phone, title: "Phone", lines: ["+254 726 759 850"] },
           { icon: Mail, title: "Email", lines: ["likentnerg@gmail.com"] },
           { icon: Clock, title: "Hours", lines: ["Tue – Sat", "10:00 AM – 7:00 PM"] },

@@ -25,9 +25,9 @@ const Footer = () => {
   const { therapist, isTherapistAuthenticated } = useWellnessHub();
   const mapAddressLines = therapist.location.slice(1);
   const mapArea = therapist.location[0] ?? "Nairobi, Westlands";
-  const mapQuery = "Reallite by Broadcom";
+  const mapQuery = "Real Lite by Broadcom, The Crescent, Nairobi";
   const mapHref = WELLNESS_HUB_MAP_URL;
-  const mapEmbedSrc = `https://www.google.com/maps?q=${encodeURIComponent(mapQuery)}&z=16&output=embed`;
+  const mapEmbedSrc = `https://www.google.com/maps?q=${encodeURIComponent(mapQuery)}&z=18&hl=en&output=embed`;
   const handleRouteLinkClick = () => {
     window.scrollTo({ top: 0, left: 0, behavior: "auto" });
   };
@@ -97,10 +97,10 @@ const Footer = () => {
             href={mapHref}
             target="_blank"
             rel="noreferrer"
-            className="group mx-auto block w-[13.5rem] max-w-full overflow-hidden border border-white/12 bg-white/5 transition-all duration-300 hover:border-white/20 hover:shadow-[0_24px_48px_-32px_rgba(6,12,10,0.55)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/45 focus-visible:ring-offset-2 focus-visible:ring-offset-foreground md:w-3/4 md:max-w-4xl md:mx-auto"
+            className="group mx-auto block w-[18rem] max-w-full overflow-hidden border border-white/12 bg-white/5 transition-all duration-300 hover:border-white/20 hover:shadow-[0_24px_48px_-32px_rgba(6,12,10,0.55)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/45 focus-visible:ring-offset-2 focus-visible:ring-offset-foreground md:mx-auto md:w-3/4 md:max-w-3xl"
             aria-label={`Open map for ${mapQuery}`}
           >
-            <div className="relative aspect-square md:aspect-[2.7/1]">
+            <div className="relative aspect-[1.36/1]">
               <iframe
                 title="The Wellness Hub location map"
                 src={mapEmbedSrc}
@@ -108,11 +108,6 @@ const Footer = () => {
                 referrerPolicy="no-referrer-when-downgrade"
                 className="pointer-events-none h-full w-full border-0"
               />
-              <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(14,25,21,0.03),rgba(14,25,21,0.18))]" />
-              <div className="absolute left-2 top-2 max-w-[10.2rem] bg-background/95 px-2.5 py-2 shadow-card">
-                <p className="text-xs font-semibold text-foreground">{mapAddressLines[0] ?? "The Wellness Hub"}</p>
-                <p className="mt-1 text-[11px] leading-4 text-muted-foreground">{mapArea}</p>
-              </div>
             </div>
           </a>
         </div>
