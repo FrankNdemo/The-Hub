@@ -40,9 +40,9 @@ const TeamPage = () => {
                   </div>
                   <div className="wellness-panel p-6 text-center lg:text-left">
                     <p className="text-sm font-semibold uppercase tracking-[0.24em] text-primary/75">Specialties</p>
-                    <div className="mt-4 grid gap-2 sm:grid-cols-2">
+                    <div className="mt-4 grid grid-cols-2 gap-2">
                       {member.specialties.map((specialty) => (
-                        <span key={specialty} className="flex min-h-12 items-center border-l-2 border-primary/35 bg-primary/6 px-3 py-2 text-sm font-medium leading-5 text-primary">
+                        <span key={specialty} className="flex min-h-10 items-center border-l-2 border-primary/35 bg-primary/6 px-3 py-2 text-sm font-medium leading-5 text-primary">
                           {specialty}
                         </span>
                       ))}
