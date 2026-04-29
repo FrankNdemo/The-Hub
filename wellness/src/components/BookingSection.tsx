@@ -53,11 +53,15 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import LeafBannerHeading from "@/components/LeafBannerHeading";
 import ScrollReveal from "@/components/ScrollReveal";
+import WellnessLogo from "@/components/WellnessLogo";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
 import leafDecor from "@/assets/leaf-decoration.png";
 
 type BookingStep = "details" | "summary" | "payment" | "stk_sent" | "processing" | "success" | "failed";
+
+const STK_SENT_PROMOTE_DELAY_MS = 1300;
+const PAYMENT_STATUS_POLL_INTERVAL_MS = 1200;
 
 const FINAL_PAYMENT_STATUSES: BookingPaymentRecord["status"][] = [
   "success",
@@ -311,6 +315,16 @@ const MobileStatusSheet = ({
         >
           <MobileSheetLeaves inverted={isDark} />
           <div className="relative z-10 max-h-[calc(100vh-8.75rem)] overflow-y-auto pr-1">
+            <div
+              className={cn(
+                "sticky top-0 z-20 -mx-5 mb-4 px-5 pb-4 pt-1 backdrop-blur-sm",
+                isDark ? "bg-[linear-gradient(180deg,rgba(31,49,41,0.96),rgba(31,49,41,0.75),transparent)]" : "bg-[linear-gradient(180deg,rgba(255,255,255,0.96),rgba(255,255,255,0.72),transparent)]",
+              )}
+            >
+              <div className="flex justify-center">
+                <WellnessLogo variant="navbar" tone={isDark ? "inverse" : "default"} />
+              </div>
+            </div>
             <p className={cn("text-[11px] font-semibold uppercase tracking-[0.2em]", isDark ? "text-white/68" : "text-primary/72")}>
               Step 3 of 3
             </p>
@@ -565,7 +579,7 @@ const BookingSection = () => {
       if (isActive) {
         setStep((current) => (current === "stk_sent" ? "processing" : current));
       }
-    }, 2200);
+    }, STK_SENT_PROMOTE_DELAY_MS);
 
     const pollPayment = async () => {
       try {
@@ -607,7 +621,7 @@ const BookingSection = () => {
     void pollPayment();
     const intervalId = window.setInterval(() => {
       void pollPayment();
-    }, 4000);
+    }, PAYMENT_STATUS_POLL_INTERVAL_MS);
 
     return () => {
       isActive = false;
@@ -882,19 +896,26 @@ const BookingSection = () => {
             step={step}
             tone="success"
             eyebrow="Payment Successful"
-            title="Your session is booked"
-            description={`Your deposit of ${formatCurrencyAmount(bookingAmount, "KES")} has been received. Your confirmation email is ready, and we are taking you to the final booking step now.`}
+            title="Payment Successful!"
+            description="Your deposit has been received. Your session is now booked."
             indicator={<CheckCircle2 className="h-10 w-10" />}
           >
-            <div className="grid gap-3">
-              <div className="rounded-[1.1rem] border border-border/60 bg-background/85 px-4 py-3 text-left">
-                <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-primary/65">Payment method</p>
-                <p className="mt-2 text-sm font-semibold text-foreground">{activePayment?.paymentMethod ?? "M-Pesa STK Push"}</p>
-              </div>
-              <div className="rounded-[1.1rem] border border-border/60 bg-background/85 px-4 py-3 text-left">
-                <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-primary/65">Transaction ID</p>
-                <p className="mt-2 text-sm font-semibold text-foreground">{activePayment?.transactionId ?? "Awaiting receipt"}</p>
-              </div>
+            <div className="rounded-[1.1rem] bg-primary/8 px-4 py-4 text-center">
+              <p className="text-sm text-muted-foreground">Your deposit of</p>
+              <p className="mt-2 text-4xl font-semibold tracking-tight text-primary">{formatCurrencyAmount(bookingAmount, "KES")}</p>
+              <p className="mt-3 text-sm text-muted-foreground">has been received.</p>
+            </div>
+            <div className="mt-4 grid gap-3">
+              <Button
+                variant="hero"
+                className="w-full rounded-xl"
+                onClick={() => checkout && navigate(`/manage/${checkout.booking.token}`)}
+              >
+                View Booking
+              </Button>
+              <Button variant="heroBorder" className="w-full rounded-xl" onClick={() => navigate("/")}>
+                Back to Home
+              </Button>
             </div>
           </MobileStatusSheet>
 
@@ -1301,6 +1322,11 @@ const BookingSection = () => {
                   <>
                     <div className="relative mx-auto max-w-[23rem] overflow-hidden rounded-[2rem] border border-border/60 bg-card p-4 shadow-card sm:hidden">
                       <MobileSheetLeaves />
+                      <div className="relative z-10 flex justify-center pb-2">
+                        <div className="origin-center scale-[0.94]">
+                          <WellnessLogo variant="navbar" />
+                        </div>
+                      </div>
                       <div className="relative z-10 flex items-start gap-3">
                         <Button variant="ghost" size="icon" className="h-9 w-9 rounded-full border border-border/60" onClick={() => setStep("details")}>
                           <ArrowLeft className="h-4 w-4" />
@@ -1310,7 +1336,6 @@ const BookingSection = () => {
                           <div className="mt-3">
                             <MobileStageDots step={step} />
                           </div>
-                          <h3 className="mt-4 font-heading text-[1.95rem] font-semibold text-foreground">Review your session</h3>
                         </div>
                       </div>
 
@@ -1410,6 +1435,11 @@ const BookingSection = () => {
                   <>
                     <div className="relative mx-auto max-w-[23rem] overflow-hidden rounded-[2rem] border border-border/60 bg-card p-4 shadow-card sm:hidden">
                       <MobileSheetLeaves />
+                      <div className="relative z-10 flex justify-center pb-2">
+                        <div className="origin-center scale-[0.94]">
+                          <WellnessLogo variant="navbar" />
+                        </div>
+                      </div>
                       <div className="relative z-10 flex items-start gap-3">
                         <Button variant="ghost" size="icon" className="h-9 w-9 rounded-full border border-border/60" onClick={() => setStep("summary")}>
                           <ArrowLeft className="h-4 w-4" />
@@ -1419,7 +1449,6 @@ const BookingSection = () => {
                           <div className="mt-3">
                             <MobileStageDots step={step} />
                           </div>
-                          <h3 className="mt-4 font-heading text-[1.95rem] font-semibold text-foreground">Complete payment</h3>
                         </div>
                       </div>
 

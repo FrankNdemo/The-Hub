@@ -834,14 +834,14 @@ class PaidBookingCheckoutApiTests(APITestCase):
         )
         query_stk_push_status_mock.return_value = MpesaQueryResponse(
             is_final=True,
-            result_code="1032",
-            result_description="Request cancelled by user.",
+            result_code="2001",
+            result_description="Status confirmation is still pending final M-Pesa settlement.",
             raw={
                 "ResponseCode": "0",
                 "ResponseDescription": "The transaction status has been received.",
                 "CheckoutRequestID": "ws_live_wait",
-                "ResultCode": "1032",
-                "ResultDesc": "Request cancelled by user.",
+                "ResultCode": "2001",
+                "ResultDesc": "Status confirmation is still pending final M-Pesa settlement.",
             },
             metadata={},
         )

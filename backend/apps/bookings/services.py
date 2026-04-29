@@ -414,6 +414,14 @@ def should_defer_query_failure_outcome(*, booking: Booking, payment: BookingPaym
     if not result_code or result_code == "0":
         return False
 
+    payment_status, _ = get_payment_failure_message(result_code, "")
+    if payment_status in {
+        BookingPayment.Status.CANCELLED,
+        BookingPayment.Status.TIMED_OUT,
+        BookingPayment.Status.INSUFFICIENT_FUNDS,
+    }:
+        return False
+
     if booking.confirmed_at or payment.callback_received_at:
         return False
 

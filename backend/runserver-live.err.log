@@ -30,3 +30,5 @@ Bad Request: /api/v1/bookings/checkout/
 [29/Apr/2026 00:35:46] "POST /api/v1/bookings/checkout/ HTTP/1.1" 400 114
 C:\Users\CCS\Desktop\The-Hub\backend\apps\bookings\services.py changed, reloading.
 Watching for file changes with StatReloader
+C:\Users\CCS\Desktop\The-Hub\backend\apps\bookings\services.py changed, reloading.
+Watching for file changes with StatReloader
