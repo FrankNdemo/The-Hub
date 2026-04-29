@@ -590,6 +590,7 @@ class PaidBookingCheckoutApiTests(APITestCase):
         session_type: str = "virtual",
         notes: str = "Needs a first session",
         mpesa_phone_number: str = "0712345555",
+        therapist_id: str = "caroline-gichia",
     ) -> tuple[Booking, BookingPayment]:
         checkout_response = self.client.post(
             "/api/v1/bookings/checkout/",
@@ -597,7 +598,7 @@ class PaidBookingCheckoutApiTests(APITestCase):
                 "clientName": client_name,
                 "clientEmail": client_email,
                 "clientPhone": client_phone,
-                "therapistId": "caroline-gichia",
+                "therapistId": therapist_id,
                 "date": date,
                 "time": time,
                 "serviceType": "individual",
@@ -644,6 +645,42 @@ class PaidBookingCheckoutApiTests(APITestCase):
         self.assertEqual(dashboard_response.status_code, status.HTTP_200_OK)
         self.assertEqual(dashboard_response.data["transactions"][0]["transactionId"], payment.transaction_id)
         self.assertEqual(dashboard_response.data["bookings"][0]["payment"]["transactionId"], payment.transaction_id)
+        self.client.force_authenticate(user=None)
+
+    def test_selected_therapist_receives_email_and_dashboard_scope(self):
+        booking, payment = self.confirm_paid_booking(
+            client_name="Kelvin Client",
+            client_email="kelvin-client@example.com",
+            client_phone="+254700555666",
+            date="2026-07-03",
+            time="10:00",
+            mpesa_phone_number="0712345666",
+            therapist_id="kelvin-kagiri",
+        )
+        self.assertEqual(booking.therapist.public_id, "kelvin-kagiri")
+        self.assertEqual(booking.therapist_name_snapshot, "Kelvin Kagiri")
+        self.assertEqual(len(mail.outbox), 2)
+        self.assertEqual(mail.outbox[0].to, ["kelvin-client@example.com"])
+        self.assertIn("Kelvin Kagiri", mail.outbox[0].body)
+        self.assertEqual(mail.outbox[1].to, ["ndemojnrr@gmail.com"])
+
+        caroline = TherapistProfile.objects.select_related("user").get(public_id="caroline-gichia")
+        kelvin = TherapistProfile.objects.select_related("user").get(public_id="kelvin-kagiri")
+        self.assertEqual(Notification.objects.filter(therapist=kelvin).count(), 1)
+        self.assertEqual(Notification.objects.filter(therapist=caroline).count(), 0)
+
+        self.client.force_authenticate(user=caroline.user)
+        caroline_dashboard = self.client.get("/api/v1/dashboard/")
+        self.assertEqual(caroline_dashboard.status_code, status.HTTP_200_OK)
+        self.assertEqual(caroline_dashboard.data["bookings"], [])
+        self.assertEqual(caroline_dashboard.data["transactions"], [])
+
+        self.client.force_authenticate(user=kelvin.user)
+        kelvin_dashboard = self.client.get("/api/v1/dashboard/")
+        self.assertEqual(kelvin_dashboard.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(kelvin_dashboard.data["bookings"]), 1)
+        self.assertEqual(kelvin_dashboard.data["bookings"][0]["therapistId"], "kelvin-kagiri")
+        self.assertEqual(kelvin_dashboard.data["transactions"][0]["id"], str(payment.id))
         self.client.force_authenticate(user=None)
 
     def test_precheck_reports_active_session_before_payment_step(self):

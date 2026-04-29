@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { Clock3, Mail, MapPin, Phone, Send } from "lucide-react";
+import { type FormEvent, useState } from "react";
+import { Clock3, MapPin, MessageCircle, Phone, Send } from "lucide-react";
 import { toast } from "sonner";
 
 import Footer from "@/components/Footer";
@@ -11,18 +11,23 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useWellnessHub } from "@/context/WellnessHubContext";
+import { getApiErrorMessage, sendContactInquiry } from "@/lib/api";
 import { pageHeaderBackgrounds, softPageBackgroundStyle } from "@/lib/pageBackground";
 
 const WELLNESS_HUB_MAP_URL = "https://maps.app.goo.gl/CzPK4ad5eeTAANLP6?g_st=aw";
 
+const getFormValue = (formData: FormData, key: string) => String(formData.get(key) ?? "").trim();
+
 const ContactPage = () => {
   const { therapist } = useWellnessHub();
   const [sent, setSent] = useState(false);
+  const [isSending, setIsSending] = useState(false);
   const mapArea = therapist.location[0] ?? "Nairobi, Westlands";
   const locationLines = [mapArea, ...therapist.location.slice(1)];
   const mapHref = WELLNESS_HUB_MAP_URL;
   const phoneHref = `tel:${therapist.phone.replace(/[^\d+]/g, "")}`;
-  const emailHref = `mailto:${therapist.email}`;
+  const whatsappNumber = therapist.phone.replace(/\D/g, "");
+  const whatsappHref = `https://wa.me/${whatsappNumber}`;
   const contactItems = [
     {
       icon: MapPin,
@@ -35,19 +40,35 @@ const ContactPage = () => {
     },
     { icon: Phone, title: "Phone", lines: [therapist.phone], href: phoneHref, actionLabel: "Tap to call" },
     {
-      icon: Mail,
-      title: "Email",
-      lines: [therapist.email],
-      href: emailHref,
-      actionLabel: "Open email app",
+      icon: MessageCircle,
+      title: "WhatsApp",
+      lines: [therapist.phone],
+      href: whatsappHref,
+      target: "_blank",
+      rel: "noreferrer",
+      actionLabel: "Open WhatsApp",
     },
     { icon: Clock3, title: "Hours", lines: ["Tuesday to Saturday", "10:00 AM to 7:00 PM"] },
   ];
 
-  const handleSubmit = (event: React.FormEvent) => {
+  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    setSent(true);
-    toast.success("Your message has been sent.");
+    const formData = new FormData(event.currentTarget);
+    const name = getFormValue(formData, "name");
+    const mobile = getFormValue(formData, "whatsappMobile");
+    const subject = getFormValue(formData, "subject") || "General enquiry";
+    const message = getFormValue(formData, "message");
+
+    setIsSending(true);
+    try {
+      await sendContactInquiry({ name, whatsappMobile: mobile, subject, message });
+      setSent(true);
+      toast.success("Your inquiry has been sent. We will get back to you soon.");
+    } catch (error) {
+      toast.error(getApiErrorMessage(error, "Your inquiry could not be sent right now."));
+    } finally {
+      setIsSending(false);
+    }
   };
 
   return (
@@ -59,7 +80,7 @@ const ContactPage = () => {
         description="We don't just talk healing, we live it."
         detailLabel="Ways to connect"
         detailItems={[
-          "Call, email, or send a message whenever you feel ready.",
+          "Call, WhatsApp, or send a message whenever you feel ready.",
           "Visit the practice in Westlands or book support online.",
           "We keep the first step simple, private, and clear.",
         ]}
@@ -80,7 +101,7 @@ const ContactPage = () => {
                   titleClassName="text-4xl"
                 />
                 <p className="mt-4 text-muted-foreground leading-8">
-                  Prefer a direct route? Call, email, or visit the centre. We keep the process calm and clear from the
+                  Prefer a direct route? Call, WhatsApp, or visit the centre. We keep the process calm and clear from the
                   first contact.
                 </p>
               </div>
@@ -157,9 +178,9 @@ const ContactPage = () => {
                   <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-3xl bg-primary/12 text-primary">
                     <Send className="h-8 w-8" />
                   </div>
-                  <h3 className="mt-5 font-heading text-3xl font-semibold text-foreground">Message sent</h3>
+                  <h3 className="mt-5 font-heading text-3xl font-semibold text-foreground">Inquiry sent</h3>
                   <p className="mt-3 text-muted-foreground leading-8">
-                    Thank you for reaching out. We will get back to you as soon as possible.
+                    Your message has been sent to the practice. We will get back to you as soon as possible.
                   </p>
                 </div>
               ) : (
@@ -167,28 +188,36 @@ const ContactPage = () => {
                   <div className="grid gap-5 sm:grid-cols-2">
                     <div>
                       <Label htmlFor="contact-name" className="text-primary">Your name</Label>
-                      <Input id="contact-name" className="mt-2" placeholder="Full name" required />
+                      <Input id="contact-name" name="name" className="mt-2" placeholder="Full name" required />
                     </div>
                     <div>
-                      <Label htmlFor="contact-email" className="text-primary">Email address</Label>
-                      <Input id="contact-email" type="email" className="mt-2" placeholder="you@example.com" required />
+                      <Label htmlFor="contact-mobile" className="text-primary">WhatsApp mobile number</Label>
+                      <Input
+                        id="contact-mobile"
+                        name="whatsappMobile"
+                        type="tel"
+                        className="mt-2"
+                        placeholder="+254 7XX XXX XXX"
+                        required
+                      />
                     </div>
                   </div>
                   <div>
                     <Label htmlFor="contact-subject" className="text-primary">Subject</Label>
-                    <Input id="contact-subject" className="mt-2" placeholder="How can we help?" />
+                    <Input id="contact-subject" name="subject" className="mt-2" placeholder="How can we help?" />
                   </div>
                   <div>
                     <Label htmlFor="contact-message" className="text-primary">Message</Label>
                     <Textarea
                       id="contact-message"
+                      name="message"
                       className="mt-2 min-h-[170px]"
                       placeholder="Tell us a little about what you are looking for."
                       required
                     />
                   </div>
-                  <Button variant="hero" size="lg" className="w-full rounded-full" type="submit">
-                    Send Message
+                  <Button variant="hero" size="lg" className="w-full rounded-full" type="submit" disabled={isSending}>
+                    {isSending ? "Sending..." : "Send Inquiry"}
                   </Button>
                 </form>
               )}

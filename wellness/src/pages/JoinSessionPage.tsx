@@ -150,7 +150,7 @@ const JoinSessionPage = () => {
         <div className="container mx-auto px-4">
           <div className="mx-auto grid max-w-6xl gap-8 lg:grid-cols-[0.9fr_1.1fr] lg:items-start">
             <div className="overflow-hidden rounded-lg border border-border/60 bg-card shadow-card">
-              <img src={sessionImage} alt="" aria-hidden="true" className="h-72 w-full object-cover object-top lg:h-[34rem]" />
+              <img src={sessionImage} alt="" aria-hidden="true" className="h-72 w-full object-cover object-top lg:h-[17rem]" />
             </div>
 
             <div className="rounded-lg border border-border/60 bg-card p-6 shadow-card sm:p-8">

@@ -186,6 +186,7 @@ export interface WellnessHubState {
   transactions: BookingPaymentRecord[];
   notifications: NotificationItem[];
   therapist: TherapistProfile;
+  therapists: TherapistProfile[];
   therapistSession: TherapistSession | null;
 }
 

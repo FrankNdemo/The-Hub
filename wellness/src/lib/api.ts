@@ -151,11 +151,24 @@ export interface DashboardOverviewResponse {
   transactions: BookingPaymentRecord[];
   notifications: NotificationItem[];
   therapist: TherapistProfile;
+  therapists?: TherapistProfile[];
   therapistSession: TherapistSession;
 }
 
 interface SuccessResponse {
   success: boolean;
+}
+
+export interface ContactInquiryInput {
+  name: string;
+  whatsappMobile: string;
+  subject: string;
+  message: string;
+}
+
+export interface ContactInquiryResponse {
+  success: boolean;
+  whatsappSent: boolean;
 }
 
 export interface BookingSuggestion {
@@ -473,8 +486,21 @@ export const clearStoredAuthTokens = () => {
 export const fetchPublicTherapist = () =>
   request<TherapistProfile>("/public/therapist/", { method: "GET" }, { auth: false });
 
+export const fetchPublicTherapists = () =>
+  request<TherapistProfile[]>("/public/therapists/", { method: "GET" }, { auth: false });
+
 export const fetchPublicBlogPosts = () =>
   request<BlogPost[]>("/blog/posts/", { method: "GET" }, { auth: false });
+
+export const sendContactInquiry = (input: ContactInquiryInput) =>
+  request<ContactInquiryResponse>(
+    "/contact/inquiry/",
+    {
+      method: "POST",
+      body: JSON.stringify(input),
+    },
+    { auth: false },
+  );
 
 export const createBooking = (input: BookingInput) =>
   request<BookingRecord>(

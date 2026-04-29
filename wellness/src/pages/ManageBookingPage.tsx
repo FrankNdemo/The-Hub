@@ -1,11 +1,12 @@
 import { useEffect, useMemo, useState } from "react";
-import { Link, useParams } from "react-router-dom";
+import { Link, useParams, useSearchParams } from "react-router-dom";
 import { CalendarDays, Clock3, ExternalLink, MapPin, RefreshCw, ShieldCheck, Trash2, Users, Video } from "lucide-react";
 import { toast } from "sonner";
 
 import Footer from "@/components/Footer";
 import ScrollReveal from "@/components/ScrollReveal";
 import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useWellnessHub } from "@/context/WellnessHubContext";
@@ -27,6 +28,7 @@ import type { BookingRecord } from "@/types/wellness";
 
 const ManageBookingPage = () => {
   const { token } = useParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { getBookingByToken, rescheduleBooking, cancelBooking } = useWellnessHub();
   const [booking, setBooking] = useState<BookingRecord | null>(null);
   const [accessEmail, setAccessEmail] = useState("");
@@ -36,6 +38,7 @@ const ManageBookingPage = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [isUpdating, setIsUpdating] = useState(false);
   const [bookingGuidance, setBookingGuidance] = useState("");
+  const [showEmailReminder, setShowEmailReminder] = useState(false);
   const todayDate = getTodayDateInputValue();
 
   useEffect(() => {
@@ -91,6 +94,19 @@ const ManageBookingPage = () => {
       isActive = false;
     };
   }, [booking, getBookingByToken, token]);
+
+  useEffect(() => {
+    if (!booking || searchParams.get("booking") !== "success") {
+      return;
+    }
+
+    setShowEmailReminder(true);
+    toast.success("Please check your email for more session details.");
+
+    const nextParams = new URLSearchParams(searchParams);
+    nextParams.delete("booking");
+    setSearchParams(nextParams, { replace: true });
+  }, [booking, searchParams, setSearchParams]);
 
   const statusLabel = useMemo(() => {
     if (!booking) {
@@ -315,7 +331,7 @@ const ManageBookingPage = () => {
               <ScrollReveal direction="left">
               <div className="rounded-[2rem] border border-border/60 bg-card p-7 shadow-card">
                 <h2 className="font-heading text-3xl font-semibold text-foreground">
-                  {booking.isExplorationCall ? "Request details" : "Booking details"}
+                  {booking.isExplorationCall ? "Your request details" : "You booked this session"}
                 </h2>
                 <div className="mt-7 grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
                   <div className="wellness-panel rounded-[1.5rem] border border-border/60 p-5">
@@ -400,8 +416,8 @@ const ManageBookingPage = () => {
                   <div className="wellness-panel rounded-[1.5rem] border border-border/60 p-5">
                     <p className="text-xs uppercase tracking-[0.24em] text-primary/70">
                       {booking.isExplorationCall
-                        ? "Next Step"
-                        : "Booking Tools"}
+                        ? "Your next step"
+                        : "Your booking tools"}
                     </p>
                     {!booking.isExplorationCall ? (
                       <div className="mt-3 flex flex-wrap gap-2">
@@ -432,8 +448,8 @@ const ManageBookingPage = () => {
                         ) : null}
                         <p className="w-full text-xs leading-6 text-muted-foreground">
                           {booking.sessionType === "virtual"
-                            ? "This is the same private session link sent by email and saved in the calendar event."
-                            : "Add this confirmed session to your calendar so your reserved time stays protected."}
+                            ? "Use the same private session link sent by email and saved in your calendar event."
+                            : "Add your confirmed session to your calendar so your reserved time stays protected."}
                         </p>
                       </div>
                     ) : (
@@ -459,27 +475,13 @@ const ManageBookingPage = () => {
                   </div>
                 </div>
 
-                <div className="mt-8">
-                  <h3 className="font-heading text-2xl font-semibold text-foreground">Session activity</h3>
-                  <div className="mt-5 space-y-4">
-                    {booking.history.map((event) => (
-                      <div key={event.id} className="rounded-[1.5rem] border border-border/60 bg-background/90 p-5">
-                        <p className="font-medium text-foreground">{event.title}</p>
-                        <p className="mt-2 text-sm leading-7 text-muted-foreground">{event.description}</p>
-                        <p className="mt-2 text-xs uppercase tracking-[0.2em] text-primary/65">
-                          {new Date(event.createdAt).toLocaleString()}
-                        </p>
-                      </div>
-                    ))}
-                  </div>
-                </div>
               </div>
               </ScrollReveal>
 
               <ScrollReveal direction="right">
               <div className="rounded-[2rem] border border-border/60 bg-card p-7 shadow-card">
                 <h2 className="font-heading text-3xl font-semibold text-foreground">
-                  {booking.isExplorationCall ? "Manage this request" : "Manage this booking"}
+                  {booking.isExplorationCall ? "Manage your request" : "Manage your booking"}
                 </h2>
                 <p className="mt-3 text-muted-foreground leading-8">
                   {booking.isExplorationCall
@@ -489,7 +491,7 @@ const ManageBookingPage = () => {
 
                 {booking.status === "cancelled" ? (
                   <div className="mt-8 rounded-[1.75rem] bg-destructive/10 p-6">
-                    <p className="text-lg font-semibold text-foreground">This booking has already been cancelled.</p>
+                    <p className="text-lg font-semibold text-foreground">You cancelled this booking.</p>
                     <p className="mt-2 text-sm leading-7 text-muted-foreground">
                       If you still need support, you can create a new booking at any time.
                     </p>
@@ -564,6 +566,22 @@ const ManageBookingPage = () => {
           </div>
         </div>
       </section>
+      <Dialog open={showEmailReminder} onOpenChange={setShowEmailReminder}>
+        <DialogContent className="max-w-md rounded-[1.75rem] border-border/60">
+          <DialogHeader>
+            <DialogTitle className="font-heading text-2xl text-foreground">Check your email</DialogTitle>
+            <DialogDescription className="leading-7">
+              You booked this session successfully. Please check your email for the confirmation package and more
+              session details.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button type="button" variant="hero" className="rounded-full" onClick={() => setShowEmailReminder(false)}>
+              Got it
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
       <Footer />
     </div>
   );

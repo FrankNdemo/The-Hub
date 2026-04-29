@@ -39,6 +39,15 @@ class PublicTherapistProfileView(APIView):
         return Response(TherapistProfilePublicSerializer(therapist).data)
 
 
+class PublicTherapistListView(APIView):
+    permission_classes = []
+    authentication_classes = []
+
+    def get(self, request):
+        therapists = TherapistProfile.objects.select_related("user").all()
+        return Response(TherapistProfilePublicSerializer(therapists, many=True).data)
+
+
 class TherapistLoginView(APIView):
     permission_classes = []
     authentication_classes = []
@@ -94,10 +103,12 @@ class VerifyPassphraseView(APIView):
         serializer.is_valid(raise_exception=True)
 
         therapist = get_primary_therapist()
-        if not therapist or not therapist.check_secret_passphrase(serializer.validated_data["passphrase"]):
+        passphrase = serializer.validated_data["passphrase"]
+        secret_matches = TherapistProfile.objects.filter(secret_passphrase_hash__gt="").iterator()
+        if not any(profile.check_secret_passphrase(passphrase) for profile in secret_matches):
             return Response({"detail": "Passphrase not recognized."}, status=status.HTTP_400_BAD_REQUEST)
 
-        return Response({"success": True, "email": therapist.email})
+        return Response({"success": True, "email": therapist.email if therapist else ""})
 
 
 class ResetPasswordView(APIView):
@@ -168,6 +179,7 @@ class DashboardOverviewView(APIView):
         transactions = BookingPayment.objects.filter(booking__therapist=therapist, booking__deleted_at__isnull=True).select_related("booking")
         blog_posts = BlogPost.objects.select_related("author").all()
         notifications = Notification.objects.filter(therapist=therapist)
+        therapists = TherapistProfile.objects.select_related("user").all()
 
         return Response(
             {
@@ -184,6 +196,7 @@ class DashboardOverviewView(APIView):
                 "transactions": BookingPaymentSerializer(transactions, many=True).data,
                 "notifications": NotificationSerializer(notifications, many=True).data,
                 "therapist": TherapistProfilePublicSerializer(therapist).data,
+                "therapists": TherapistProfilePublicSerializer(therapists, many=True).data,
                 "therapistSession": TherapistSessionSerializer(build_therapist_session(request.user)).data,
             }
         )

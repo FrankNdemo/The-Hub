@@ -1,5 +1,5 @@
 import { Fragment, type ReactNode, useEffect, useMemo, useRef, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { createPortal } from "react-dom";
 import {
   ArrowLeft,
@@ -531,8 +531,15 @@ const getFailureCopy = (payment?: BookingPaymentRecord | null) => {
 };
 
 const BookingSection = () => {
-  const { therapist } = useWellnessHub();
+  const { therapist, therapists } = useWellnessHub();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const requestedTherapistId = searchParams.get("therapist");
+  const availableTherapists = useMemo(() => (therapists.length ? therapists : [therapist]), [therapist, therapists]);
+  const initialTherapistId =
+    (requestedTherapistId && availableTherapists.some((item) => item.id === requestedTherapistId)
+      ? requestedTherapistId
+      : availableTherapists[0]?.id) ?? therapist.id;
   const sectionRef = useRef<HTMLElement | null>(null);
   const [serviceType, setServiceType] = useState<ServiceType>("individual");
   const [sessionType, setSessionType] = useState<SessionType>("virtual");
@@ -550,7 +557,7 @@ const BookingSection = () => {
     clientName: "",
     clientEmail: "",
     clientPhone: "",
-    therapistId: therapist.id,
+    therapistId: initialTherapistId,
     date: "",
     time: "",
     participantCount: "",
@@ -558,6 +565,9 @@ const BookingSection = () => {
   });
   const [paymentPhone, setPaymentPhone] = useState("");
   const activeServiceCard = serviceCards.find((item) => item.type === serviceType) ?? serviceCards[0];
+  const selectedTherapist =
+    availableTherapists.find((item) => item.id === form.therapistId) ?? availableTherapists[0] ?? therapist;
+  const availableTherapistIds = useMemo(() => availableTherapists.map((item) => item.id).join("|"), [availableTherapists]);
   const todayDate = getTodayDateInputValue();
 
   const activePayment = checkout?.payment ?? null;
@@ -582,6 +592,20 @@ const BookingSection = () => {
     setRetryStartOverRequired(false);
     setForm((current) => ({ ...current, [field]: value }));
   };
+
+  useEffect(() => {
+    setForm((current) => {
+      const requestedId =
+        requestedTherapistId && availableTherapists.some((item) => item.id === requestedTherapistId)
+          ? requestedTherapistId
+          : "";
+      const fallbackId = availableTherapists[0]?.id ?? therapist.id;
+      const nextTherapistId =
+        requestedId || (availableTherapists.some((item) => item.id === current.therapistId) ? current.therapistId : fallbackId);
+
+      return current.therapistId === nextTherapistId ? current : { ...current, therapistId: nextTherapistId };
+    });
+  }, [availableTherapistIds, availableTherapists, requestedTherapistId, therapist.id]);
 
   useEffect(() => {
     setServiceDescriptionText("");
@@ -689,7 +713,7 @@ const BookingSection = () => {
     }
 
     const timeoutId = window.setTimeout(() => {
-      navigate(`/manage/${checkout.booking.token}`);
+      navigate(`/manage/${checkout.booking.token}?booking=success`);
     }, 2800);
 
     return () => window.clearTimeout(timeoutId);
@@ -992,19 +1016,19 @@ const BookingSection = () => {
             tone="success"
             eyebrow="Payment Successful"
             title="Payment Successful!"
-            description="Your deposit has been received. Your session is now booked."
+            description="Your deposit has been received. You booked your session successfully."
             indicator={<CheckCircle2 className="h-10 w-10" />}
           >
             <div className="rounded-[1.1rem] bg-primary/8 px-4 py-4 text-center">
-              <p className="text-sm text-muted-foreground">Your deposit of</p>
+              <p className="text-sm text-muted-foreground">You paid</p>
               <p className="mt-2 text-4xl font-semibold tracking-tight text-primary">{formatCurrencyAmount(bookingAmount, "KES")}</p>
-              <p className="mt-3 text-sm text-muted-foreground">has been received.</p>
+              <p className="mt-3 text-sm text-muted-foreground">for your booked session.</p>
             </div>
             <div className="mt-4 grid gap-3">
               <Button
                 variant="hero"
                 className="w-full rounded-xl"
-                onClick={() => checkout && navigate(`/manage/${checkout.booking.token}`)}
+                onClick={() => checkout && navigate(`/manage/${checkout.booking.token}?booking=success`)}
               >
                 View Booking
               </Button>
@@ -1020,10 +1044,10 @@ const BookingSection = () => {
               <CheckCircle2 className="h-10 w-10" />
             </StatusHalo>
             <p className="mt-6 text-sm font-semibold uppercase tracking-[0.22em] text-primary/75">Payment Successful</p>
-            <h3 className="mt-3 font-heading text-3xl font-semibold text-foreground">Your session is booked</h3>
+            <h3 className="mt-3 font-heading text-3xl font-semibold text-foreground">You booked your session</h3>
             <p className="mt-4 text-sm leading-8 text-muted-foreground sm:text-base">
-              Your deposit of {formatCurrencyAmount(bookingAmount, "KES")} has been received. A confirmation email has
-              been sent for your session. Please check your mail.
+              You paid a deposit of {formatCurrencyAmount(bookingAmount, "KES")}. We have sent your confirmation email
+              with more session details, so please check your mail.
             </p>
             <div className="mt-6 grid gap-3 sm:grid-cols-2">
               <div className="rounded-[1.2rem] border border-border/60 bg-secondary/35 px-4 py-4 text-left">
@@ -1036,7 +1060,7 @@ const BookingSection = () => {
               </div>
             </div>
             <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:justify-center">
-              <Button variant="hero" className="rounded-full" onClick={() => checkout && navigate(`/manage/${checkout.booking.token}`)}>
+              <Button variant="hero" className="rounded-full" onClick={() => checkout && navigate(`/manage/${checkout.booking.token}?booking=success`)}>
                 View Booking
               </Button>
               <Button variant="heroBorder" className="rounded-full" onClick={() => navigate("/")}>
@@ -1353,10 +1377,29 @@ const BookingSection = () => {
                         value={form.therapistId}
                         onChange={(event) => updateField("therapistId", event.target.value)}
                       >
-                        <option value={therapist.id}>
-                          {therapist.name} - {therapist.title}
-                        </option>
+                        {availableTherapists.map((item) => (
+                          <option key={item.id} value={item.id}>
+                            {item.name} - {item.title}
+                          </option>
+                        ))}
                       </select>
+                      <div className="mt-3 flex items-center gap-3 rounded-[1.25rem] border border-border/60 bg-secondary/25 p-3">
+                        <img
+                          src={selectedTherapist.image}
+                          alt={selectedTherapist.name}
+                          loading="lazy"
+                          className="h-14 w-14 rounded-2xl object-cover object-top"
+                        />
+                        <div className="min-w-0">
+                          <p className="font-heading text-base font-semibold leading-tight text-foreground">
+                            {selectedTherapist.name}
+                          </p>
+                          <p className="mt-1 text-xs font-medium text-primary">{selectedTherapist.title}</p>
+                          <p className="mt-1 line-clamp-2 text-xs leading-5 text-muted-foreground">
+                            {selectedTherapist.focusAreas}
+                          </p>
+                        </div>
+                      </div>
                     </div>
 
                     <div className="mt-6">
@@ -1460,6 +1503,11 @@ const BookingSection = () => {
                               label: "Booking Fee",
                               value: formatCurrencyAmount(bookingAmount, "KES"),
                             },
+                            {
+                              icon: User,
+                              label: "Therapist",
+                              value: selectedTherapist.name,
+                            },
                           ].map((item) => (
                             <div key={item.label} className="flex items-start gap-2.5">
                               <div className="flex h-9 w-9 items-center justify-center rounded-[1rem] bg-primary/8 text-primary">
@@ -1509,7 +1557,7 @@ const BookingSection = () => {
                           sessionType={sessionType}
                           date={form.date}
                           time={form.time}
-                          therapistName={therapist.name}
+                          therapistName={selectedTherapist.name}
                         />
                         <div className="space-y-5">
                           <WhyPayCard />
@@ -1528,7 +1576,7 @@ const BookingSection = () => {
                             <img
                               src={REVIEW_GARDEN_IMAGE_URL}
                               alt="Calm green garden path"
-                              className="h-56 w-full object-cover object-center"
+                              className="h-28 w-full object-cover object-center"
                               loading="lazy"
                             />
                           </div>
@@ -1615,7 +1663,7 @@ const BookingSection = () => {
                             sessionType={sessionType}
                             date={form.date}
                             time={form.time}
-                            therapistName={therapist.name}
+                            therapistName={selectedTherapist.name}
                           />
                         </div>
                         <div className="order-1 space-y-5 lg:order-2">
@@ -1660,23 +1708,6 @@ const BookingSection = () => {
                                 <p className="mt-3 text-xs leading-6 text-muted-foreground">
                                   Use the Safaricom number that should receive the payment prompt.
                                 </p>
-                              </div>
-
-                              <div className="grid gap-3 sm:grid-cols-2">
-                                <div className="rounded-[1.2rem] border border-border/60 bg-background/90 px-4 py-4">
-                                  <p className="text-xs font-semibold uppercase tracking-[0.18em] text-primary/65">Session slot</p>
-                                  <p className="mt-2 text-sm font-medium leading-7 text-foreground">
-                                    {form.date && form.time
-                                      ? `${formatDisplayDate(form.date)} at ${formatDisplayTime(form.time)}`
-                                      : "Select a session time"}
-                                  </p>
-                                </div>
-                                <div className="rounded-[1.2rem] border border-border/60 bg-background/90 px-4 py-4">
-                                  <p className="text-xs font-semibold uppercase tracking-[0.18em] text-primary/65">Confirmation</p>
-                                  <p className="mt-2 text-sm font-medium leading-7 text-foreground">
-                                    Booking email and receipt send immediately after successful payment.
-                                  </p>
-                                </div>
                               </div>
 
                               <div className="flex items-start gap-2 rounded-[1.2rem] bg-secondary/35 px-4 py-3 text-xs leading-6 text-muted-foreground">

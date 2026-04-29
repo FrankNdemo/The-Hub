@@ -31,6 +31,24 @@ class TherapistAuthApiTests(APITestCase):
         self.assertIn("refresh", login_response.data)
         self.assertEqual(login_response.data["therapist"]["id"], "caroline-gichia")
 
+        kelvin_login_response = self.client.post(
+            "/api/v1/auth/login/",
+            {
+                "email": "ndemojnrr@gmail.com",
+                "password": "Wellness254!",
+            },
+            format="json",
+        )
+        self.assertEqual(kelvin_login_response.status_code, status.HTTP_200_OK)
+        self.assertEqual(kelvin_login_response.data["therapist"]["id"], "kelvin-kagiri")
+
+        list_response = self.client.get("/api/v1/public/therapists/")
+        self.assertEqual(list_response.status_code, status.HTTP_200_OK)
+        self.assertEqual(
+            [profile["id"] for profile in list_response.data],
+            ["caroline-gichia", "kelvin-kagiri"],
+        )
+
     def test_reset_password_with_secret_passphrase(self):
         response = self.client.post(
             "/api/v1/auth/reset-password/",

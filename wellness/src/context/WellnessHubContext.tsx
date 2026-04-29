@@ -1,7 +1,7 @@
 import { createContext, useContext, useEffect, useState } from "react";
 
 import { seedBlogPosts } from "@/data/blogPosts";
-import { primaryTherapist } from "@/data/siteData";
+import { primaryTherapist, publicTherapists } from "@/data/siteData";
 import {
   ApiError,
   clearStoredAuthTokens,
@@ -13,6 +13,7 @@ import {
   fetchManageBooking,
   fetchPublicBlogPosts,
   fetchPublicTherapist,
+  fetchPublicTherapists,
   getApiErrorMessage,
   getStoredAuthTokens,
   loginTherapistRequest,
@@ -81,6 +82,7 @@ const defaultState: WellnessHubState = {
   transactions: [],
   notifications: [],
   therapist: primaryTherapist,
+  therapists: publicTherapists,
   therapistSession: null,
 };
 
@@ -97,6 +99,18 @@ const normalizeTherapistProfile = (profile?: Partial<TherapistProfile> | null): 
     Array.isArray(profile?.location) && profile.location.length ? profile.location : primaryTherapist.location,
   image: typeof profile?.image === "string" && profile.image ? profile.image : primaryTherapist.image,
 });
+
+const normalizeTherapistList = (profiles?: Partial<TherapistProfile>[] | null): TherapistProfile[] => {
+  if (!Array.isArray(profiles) || profiles.length === 0) {
+    return publicTherapists;
+  }
+
+  const normalized = profiles
+    .map((profile) => normalizeTherapistProfile(profile))
+    .filter((profile, index, list) => list.findIndex((item) => item.id === profile.id) === index);
+
+  return normalized.length ? normalized : publicTherapists;
+};
 
 const normalizeNotification = (notification?: Partial<NotificationItem> | null): NotificationItem | null => {
   if (
@@ -337,6 +351,7 @@ const applyDashboardSnapshot = (snapshot: DashboardOverviewResponse): WellnessHu
     .map((notification) => normalizeNotification(notification))
     .filter((notification): notification is NotificationItem => Boolean(notification)),
   therapist: normalizeTherapistProfile(snapshot.therapist),
+  therapists: normalizeTherapistList(snapshot.therapists),
   therapistSession: snapshot.therapistSession ?? null,
 });
 
@@ -356,14 +371,17 @@ export const WellnessHubProvider = ({ children }: { children: React.ReactNode })
 
   const setPublicContent = ({
     therapist,
+    therapists,
     blogPosts,
   }: {
     therapist?: TherapistProfile;
+    therapists?: TherapistProfile[];
     blogPosts?: BlogPost[];
   }) => {
     setState((current) => ({
       ...current,
       therapist: therapist ?? current.therapist,
+      therapists: therapists ?? current.therapists,
       blogPosts: blogPosts ?? current.blogPosts,
     }));
   };
@@ -379,14 +397,19 @@ export const WellnessHubProvider = ({ children }: { children: React.ReactNode })
   };
 
   const refreshPublicContent = async () => {
-    const [therapistResult, blogPostsResult] = await Promise.allSettled([
+    const [therapistResult, therapistsResult, blogPostsResult] = await Promise.allSettled([
       fetchPublicTherapist(),
+      fetchPublicTherapists(),
       fetchPublicBlogPosts(),
     ]);
 
     const therapist =
       therapistResult.status === "fulfilled"
         ? normalizeTherapistProfile(therapistResult.value)
+        : undefined;
+    const therapists =
+      therapistsResult.status === "fulfilled"
+        ? normalizeTherapistList(therapistsResult.value)
         : undefined;
     const blogPosts =
       blogPostsResult.status === "fulfilled"
@@ -397,8 +420,8 @@ export const WellnessHubProvider = ({ children }: { children: React.ReactNode })
 
     const nextBlogPosts = blogPosts && blogPosts.length > 0 ? blogPosts : undefined;
 
-    if (therapist || nextBlogPosts) {
-      setPublicContent({ therapist, blogPosts: nextBlogPosts });
+    if (therapist || therapists || nextBlogPosts) {
+      setPublicContent({ therapist, therapists, blogPosts: nextBlogPosts });
     }
   };
 
@@ -608,6 +631,9 @@ export const WellnessHubProvider = ({ children }: { children: React.ReactNode })
     setState((current) => ({
       ...current,
       therapist,
+      therapists: current.therapists.some((item) => item.id === therapist.id)
+        ? current.therapists.map((item) => (item.id === therapist.id ? therapist : item))
+        : [therapist, ...current.therapists],
       therapistSession: current.therapistSession
         ? {
             ...current.therapistSession,

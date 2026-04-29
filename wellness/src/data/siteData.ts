@@ -27,13 +27,43 @@ export const primaryTherapist: TherapistProfile = {
     "Trauma and CBT",
   ],
   email: "likentnerg@gmail.com",
-  phone: "+254 726 759 850",
+  phone: "+254114470441",
   location: [
     "Real Lite by Broadcom",
     "Nairobi, Westlands",
   ],
   image: therapistImage,
 };
+
+export const kelvinTherapist: TherapistProfile = {
+  id: "kelvin-kagiri",
+  name: "Kelvin Kagiri",
+  title: "Psychologist",
+  bio:
+    "Kelvin supports teenagers, young adults, individuals, and groups with practical DBT-informed care for emotional challenges, substance abuse recovery, and healthier coping skills.",
+  qualifications: "Psychologist",
+  approach: "DBT-informed youth and substance abuse therapy",
+  experience: "Early teenage and youth therapy, group sessions, substance abuse support, and employee wellness",
+  focusAreas:
+    "Youth mentorship, drug and substance abuse support, suicide prevention, employee wellness, and team building",
+  specialties: [
+    "Detection of mental health issues",
+    "Drug and substance abuse support",
+    "Suicide prevention",
+    "Teenage and youth mentorship",
+    "Employee wellness training",
+    "Team building",
+  ],
+  email: "ndemojnrr@gmail.com",
+  phone: "+254114470441",
+  location: [
+    "Real Lite by Broadcom",
+    "Nairobi, Westlands",
+  ],
+  image: "/kelvin.png",
+};
+
+export const publicTherapists = [primaryTherapist, kelvinTherapist];
 
 export const contactCards = [
   {

@@ -23,8 +23,6 @@ const WELLNESS_HUB_MAP_URL = "https://maps.app.goo.gl/CzPK4ad5eeTAANLP6?g_st=aw"
 
 const Footer = () => {
   const { therapist, isTherapistAuthenticated } = useWellnessHub();
-  const mapAddressLines = therapist.location.slice(1);
-  const mapArea = therapist.location[0] ?? "Nairobi, Westlands";
   const mapQuery = "Real Lite by Broadcom, The Crescent, Nairobi";
   const mapHref = WELLNESS_HUB_MAP_URL;
   const mapEmbedSrc = `https://www.google.com/maps?q=${encodeURIComponent(mapQuery)}&z=18&hl=en&output=embed`;
@@ -90,7 +88,7 @@ const Footer = () => {
         <div className="mt-12">
           <div className="mb-4 text-center">
             <h4 className="font-heading text-lg font-medium text-primary-foreground">Find us</h4>
-            <p className="mt-2 text-sm text-primary-foreground/65">Your path to care starts here—tap for directions.</p>
+            <p className="mt-2 text-sm text-primary-foreground/65">Your path to care starts here. Tap for directions.</p>
           </div>
 
           <a
@@ -100,7 +98,7 @@ const Footer = () => {
             className="group mx-auto block w-[18rem] max-w-full overflow-hidden border border-white/12 bg-white/5 transition-all duration-300 hover:border-white/20 hover:shadow-[0_24px_48px_-32px_rgba(6,12,10,0.55)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/45 focus-visible:ring-offset-2 focus-visible:ring-offset-foreground md:mx-auto md:w-3/4 md:max-w-3xl"
             aria-label={`Open map for ${mapQuery}`}
           >
-            <div className="relative aspect-[1.36/1]">
+            <div className="relative h-32 sm:h-40 md:h-64">
               <iframe
                 title="The Wellness Hub location map"
                 src={mapEmbedSrc}

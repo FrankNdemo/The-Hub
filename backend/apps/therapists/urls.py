@@ -5,6 +5,7 @@ from .views import (
     ChangeSecretPassphraseView,
     DashboardOverviewView,
     PublicTherapistProfileView,
+    PublicTherapistListView,
     ResetPasswordView,
     TherapistLoginView,
     TherapistLogoutView,
@@ -18,6 +19,7 @@ from .views import (
 
 urlpatterns = [
     path("public/therapist/", PublicTherapistProfileView.as_view(), name="public-therapist-profile"),
+    path("public/therapists/", PublicTherapistListView.as_view(), name="public-therapist-list"),
     path("auth/login/", TherapistLoginView.as_view(), name="therapist-login"),
     path("auth/logout/", TherapistLogoutView.as_view(), name="therapist-logout"),
     path("auth/refresh/", TherapistTokenRefreshView.as_view(), name="therapist-token-refresh"),

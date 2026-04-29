@@ -17,14 +17,14 @@ import { Label } from "@/components/ui/label";
 
 const TherapistPortalAccess = () => {
   const navigate = useNavigate();
-  const { therapist, isTherapistAuthenticated, loginTherapist, verifyTherapistPassphrase, resetTherapistPassword } =
+  const { isTherapistAuthenticated, loginTherapist, verifyTherapistPassphrase, resetTherapistPassword } =
     useWellnessHub();
   const [showPassphrase, setShowPassphrase] = useState(false);
   const [passphrase, setPassphrase] = useState("");
   const [passphraseError, setPassphraseError] = useState("");
   const [loginOpen, setLoginOpen] = useState(false);
   const [mode, setMode] = useState<"login" | "forgot">("login");
-  const [email, setEmail] = useState(therapist.email);
+  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loginError, setLoginError] = useState("");
   const [forgotSecret, setForgotSecret] = useState("");
@@ -46,10 +46,6 @@ const TherapistPortalAccess = () => {
 
     return message;
   };
-
-  useEffect(() => {
-    setEmail(therapist.email);
-  }, [therapist.email]);
 
   useEffect(() => {
     if (!showPassphrase || loginOpen) {
@@ -77,7 +73,7 @@ const TherapistPortalAccess = () => {
 
   const resetDialogState = () => {
     setMode("login");
-    setEmail(therapist.email);
+    setEmail("");
     setPassword("");
     setLoginError("");
     setForgotSecret("");
@@ -235,8 +231,8 @@ const TherapistPortalAccess = () => {
               </DialogTitle>
               <DialogDescription className="leading-6">
                 {mode === "login"
-                  ? "Secure access to bookings, notifications, and blog publishing tools."
-                  : "Use the saved therapist email and secret passphrase to create a new password."}
+                  ? "Enter your therapist account email and password after the shared secret is accepted."
+                  : "Use your therapist email and shared secret passphrase to create a new password."}
               </DialogDescription>
             </DialogHeader>
 
@@ -329,7 +325,7 @@ const TherapistPortalAccess = () => {
                 </div>
                 {resetError ? <p className="text-sm text-destructive">{resetError}</p> : null}
                 <p className="text-sm leading-6 text-muted-foreground">
-                  The email here matches the therapist profile. If you need to change the secret passphrase itself,
+                  The email must match your therapist profile. If you need to change the secret passphrase itself,
                   sign in and update it from the dashboard security section.
                 </p>
                 <Button type="submit" variant="hero" className="w-full rounded-full" disabled={isResettingPassword}>
