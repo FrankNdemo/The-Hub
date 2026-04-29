@@ -117,26 +117,7 @@ const sessionCards: {
   },
 ];
 
-const CHECKOUT_STAGE_COPY = [
-  { label: "Review", description: "Session summary" },
-  { label: "Pay", description: "M-Pesa checkout" },
-  { label: "Confirm", description: "Booking confirmed" },
-];
-
-const PAYMENT_FLOW_STEPS = [
-  {
-    label: "Use a Safaricom line",
-    description: "Enter the number that should receive the STK prompt.",
-  },
-  {
-    label: "Approve on your phone",
-    description: "Enter your M-Pesa PIN when Safaricom prompts you.",
-  },
-  {
-    label: "Session confirms after payment",
-    description: "We only reserve the slot once M-Pesa confirms success.",
-  },
-];
+const CHECKOUT_STAGE_COPY = [{ label: "Review" }, { label: "Pay" }, { label: "Confirm" }];
 
 const STK_PROMPT_STEPS = [
   "Open the Safaricom prompt on your phone.",
@@ -176,43 +157,30 @@ const CheckoutStageRail = ({ step }: { step: BookingStep }) => {
   const currentIndex = getCheckoutStageIndex(step);
 
   return (
-    <div className="mx-auto mt-6 flex w-full max-w-3xl flex-col gap-4 rounded-[1.75rem] border border-primary/10 bg-background/80 px-4 py-4 backdrop-blur sm:px-6">
-      <div className="grid gap-3 sm:grid-cols-3">
+    <div className="mx-auto mt-6 flex w-full max-w-3xl items-center rounded-[1.75rem] border border-primary/10 bg-background/80 px-5 py-5 backdrop-blur">
+      <div className="mx-auto flex w-full max-w-xl items-center gap-3">
         {CHECKOUT_STAGE_COPY.map((stage, index) => {
           const isComplete = currentIndex > index || step === "success";
           const isActive = currentIndex === index && step !== "success";
 
           return (
-            <div
-              key={stage.label}
-              className={cn(
-                "rounded-[1.2rem] border px-4 py-3 text-left transition-all duration-200",
-                isComplete
-                  ? "border-primary/20 bg-primary/10"
-                  : isActive
-                    ? "border-primary/30 bg-card shadow-soft"
-                    : "border-border/60 bg-card/75",
-              )}
-            >
-              <div className="flex items-center gap-3">
-                <div
-                  className={cn(
-                    "flex h-8 w-8 items-center justify-center rounded-full text-xs font-semibold",
-                    isComplete
-                      ? "bg-primary text-primary-foreground"
-                      : isActive
-                        ? "bg-primary/12 text-primary"
-                        : "bg-secondary text-muted-foreground",
-                  )}
-                >
-                  {isComplete ? <Check className="h-4 w-4" /> : index + 1}
-                </div>
-                <div className="min-w-0">
-                  <p className="text-sm font-semibold text-foreground">{stage.label}</p>
-                  <p className="text-xs leading-5 text-muted-foreground">{stage.description}</p>
-                </div>
+            <Fragment key={stage.label}>
+              <div
+                className={cn(
+                  "flex h-11 w-11 items-center justify-center rounded-full border text-sm font-semibold transition-colors",
+                  isComplete
+                    ? "border-primary bg-primary text-primary-foreground"
+                    : isActive
+                      ? "border-primary/50 bg-primary/10 text-primary"
+                      : "border-border/80 bg-background/90 text-muted-foreground",
+                )}
+              >
+                {isComplete ? <Check className="h-4 w-4" /> : index + 1}
               </div>
-            </div>
+              {index < CHECKOUT_STAGE_COPY.length - 1 ? (
+                <div className={cn("h-px flex-1 rounded-full", currentIndex > index || step === "success" ? "bg-primary/45" : "bg-border/70")} />
+              ) : null}
+            </Fragment>
           );
         })}
       </div>
@@ -1445,7 +1413,6 @@ const BookingSection = () => {
                           <ArrowLeft className="h-4 w-4" />
                         </Button>
                         <div className="min-w-0 flex-1">
-                          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-primary/70">Step 2 of 3</p>
                           <div className="mt-3">
                             <MobileStageDots step={step} />
                           </div>
@@ -1500,8 +1467,7 @@ const BookingSection = () => {
                     <div className="hidden rounded-[2rem] border border-border/60 bg-card p-6 shadow-card sm:block sm:p-8">
                       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                         <div>
-                          <p className="text-sm font-semibold uppercase tracking-[0.22em] text-primary/75">Step 2 of 3</p>
-                          <h3 className="mt-2 font-heading text-3xl font-semibold text-foreground">Pay the booking fee</h3>
+                          <h3 className="font-heading text-3xl font-semibold text-foreground">Pay the booking fee</h3>
                         </div>
                         <Button variant="heroBorder" className="rounded-full" onClick={() => setStep("summary")}>
                           <ArrowLeft className="h-4 w-4" />
@@ -1545,18 +1511,6 @@ const BookingSection = () => {
                             </div>
 
                             <div className="space-y-5 p-5 sm:p-7">
-                              <div className="grid gap-3 sm:grid-cols-3">
-                                {PAYMENT_FLOW_STEPS.map((item, index) => (
-                                  <div key={item.label} className="rounded-[1.2rem] border border-border/60 bg-background/85 px-4 py-4 text-left shadow-[0_12px_30px_-26px_rgba(17,24,39,0.35)]">
-                                    <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10 text-sm font-semibold text-primary">
-                                      {index + 1}
-                                    </div>
-                                    <p className="mt-3 text-sm font-semibold text-foreground">{item.label}</p>
-                                    <p className="mt-2 text-xs leading-6 text-muted-foreground">{item.description}</p>
-                                  </div>
-                                ))}
-                              </div>
-
                               <div className="rounded-[1.4rem] border border-primary/12 bg-secondary/20 p-4 sm:p-5">
                                 <Label htmlFor="payment-phone" className="text-sm font-semibold text-foreground">
                                   M-Pesa phone number
