@@ -60,8 +60,8 @@ import leafDecor from "@/assets/leaf-decoration.png";
 
 type BookingStep = "details" | "summary" | "payment" | "stk_sent" | "processing" | "success" | "failed";
 
-const STK_SENT_PROMOTE_DELAY_MS = 1300;
-const PAYMENT_STATUS_POLL_INTERVAL_MS = 1200;
+const STK_SENT_PROMOTE_DELAY_MS = 900;
+const PAYMENT_STATUS_POLL_INTERVAL_MS = 500;
 
 const FINAL_PAYMENT_STATUSES: BookingPaymentRecord["status"][] = [
   "success",
@@ -267,11 +267,11 @@ const MobileStatusSheet = ({
 
   return (
     <div className="sm:hidden">
-      <div className="fixed inset-0 z-30 bg-foreground/14 backdrop-blur-[1px]" aria-hidden="true" />
-      <div className="fixed inset-x-4 bottom-5 top-24 z-40 flex items-start">
+      <div className="fixed inset-0 z-[80] bg-foreground/18 backdrop-blur-[2px]" aria-hidden="true" />
+      <div className="fixed inset-0 z-[81] flex items-center justify-center px-4 pb-6 pt-24">
         <div
           className={cn(
-            "relative max-h-full w-full overflow-hidden rounded-[2rem] border px-5 pb-5 pt-4 shadow-[0_30px_70px_-34px_rgba(17,24,39,0.38)]",
+            "relative w-full max-w-[22.75rem] overflow-hidden rounded-[1.9rem] border px-4 pb-5 pt-3 shadow-[0_30px_70px_-34px_rgba(17,24,39,0.38)]",
             isDark
               ? "border-white/10 bg-[linear-gradient(180deg,hsl(150_18%_16%),hsl(150_19%_12%))] text-white"
               : isSuccess
@@ -282,34 +282,36 @@ const MobileStatusSheet = ({
           )}
         >
           <MobileSheetLeaves inverted={isDark} />
-          <div className="relative z-10 max-h-[calc(100vh-8.75rem)] overflow-y-auto pr-1">
+          <div className="relative z-10">
             <div
               className={cn(
-                "sticky top-0 z-20 -mx-5 mb-4 px-5 pb-4 pt-1 backdrop-blur-sm",
-                isDark ? "bg-[linear-gradient(180deg,rgba(31,49,41,0.96),rgba(31,49,41,0.75),transparent)]" : "bg-[linear-gradient(180deg,rgba(255,255,255,0.96),rgba(255,255,255,0.72),transparent)]",
+                "-mx-4 mb-3 px-4 pb-2 pt-1",
+                isDark ? "bg-[linear-gradient(180deg,rgba(31,49,41,0.96),rgba(31,49,41,0.72),transparent)]" : "bg-[linear-gradient(180deg,rgba(255,255,255,0.96),rgba(255,255,255,0.72),transparent)]",
               )}
             >
               <div className="flex justify-center">
-                <WellnessLogo variant="navbar" tone={isDark ? "inverse" : "default"} />
+                <div className="origin-center scale-[0.9]">
+                  <WellnessLogo variant="navbar" tone={isDark ? "inverse" : "default"} />
+                </div>
               </div>
             </div>
             <p className={cn("text-[11px] font-semibold uppercase tracking-[0.2em]", isDark ? "text-white/68" : "text-primary/72")}>
               Step 3 of 3
             </p>
-            <div className="mt-3">
+            <div className="mt-2.5">
               <MobileStageDots step={step} />
             </div>
-            <div className="mt-6">
+            <div className="mt-4">
               <StatusHalo tone={isSuccess ? "success" : isDestructive ? "destructive" : "primary"}>{indicator}</StatusHalo>
             </div>
-            <p className={cn("mt-6 text-xs font-semibold uppercase tracking-[0.18em]", isDark ? "text-white/68" : "text-primary/72")}>
+            <p className={cn("mt-4 text-xs font-semibold uppercase tracking-[0.18em]", isDark ? "text-white/68" : "text-primary/72")}>
               {eyebrow}
             </p>
-            <h3 className={cn("mt-3 font-heading text-[2rem] font-semibold leading-tight", isDark ? "text-white" : "text-foreground")}>
+            <h3 className={cn("mt-2.5 font-heading text-[1.72rem] font-semibold leading-tight", isDark ? "text-white" : "text-foreground")}>
               {title}
             </h3>
-            <p className={cn("mt-4 text-sm leading-7", isDark ? "text-white/78" : "text-muted-foreground")}>{description}</p>
-            {children ? <div className="mt-6">{children}</div> : null}
+            <p className={cn("mt-3 text-sm leading-6", isDark ? "text-white/78" : "text-muted-foreground")}>{description}</p>
+            {children ? <div className="mt-4">{children}</div> : null}
           </div>
         </div>
       </div>
@@ -332,10 +334,10 @@ const StatusHalo = ({
         : "border-white/12 bg-white/5 text-[hsl(136_52%_74%)]";
 
   return (
-    <div className="relative mx-auto h-28 w-28">
+    <div className="relative mx-auto h-24 w-24 sm:h-28 sm:w-28">
       <div className={cn("absolute inset-0 rounded-full border border-dashed", toneClassName)} />
-      <div className="absolute inset-[10px] rounded-full bg-black/10" />
-      <div className={cn("absolute inset-[18px] flex items-center justify-center rounded-full border", toneClassName)}>
+      <div className="absolute inset-[8px] rounded-full bg-black/10 sm:inset-[10px]" />
+      <div className={cn("absolute inset-[14px] flex items-center justify-center rounded-full border sm:inset-[18px]", toneClassName)}>
         {children}
       </div>
     </div>
@@ -430,10 +432,12 @@ const WhyPayCard = () => (
 );
 
 const getFailureCopy = (payment?: BookingPaymentRecord | null) => {
+  const resultDescription = payment?.resultDescription?.toLowerCase() ?? "";
+
   switch (payment?.status) {
     case "cancelled":
       return {
-        title: "Payment not complete",
+        title: "Payment cancelled",
         description: "You cancelled the M-Pesa prompt before the booking fee was confirmed. Your session is not booked yet.",
       };
     case "timed_out":
@@ -447,6 +451,13 @@ const getFailureCopy = (payment?: BookingPaymentRecord | null) => {
         description: "Your M-Pesa balance was not enough for the booking fee. Your session is not booked yet.",
       };
     default:
+      if (resultDescription.includes("pin") || resultDescription.includes("credential") || resultDescription.includes("initiator")) {
+        return {
+          title: "Incorrect M-Pesa PIN",
+          description: payment?.resultDescription || "The M-Pesa PIN entered on your phone was not accepted. Your session is not booked yet.",
+        };
+      }
+
       return {
         title: "Payment not complete",
         description:

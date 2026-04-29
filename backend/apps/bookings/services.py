@@ -201,8 +201,11 @@ def normalize_payment_result_description(result_description: str) -> str:
     description = result_description.strip() or "The payment did not complete."
     lowered_description = description.lower()
 
+    if "wrong pin" in lowered_description or "incorrect pin" in lowered_description:
+        return "The M-Pesa PIN entered on your phone was not accepted. Please try again."
+
     if "initiator" in lowered_description or "credential" in lowered_description:
-        return "We could not confirm the M-Pesa request from your phone. Please try again and approve the prompt carefully."
+        return "The M-Pesa PIN or approval on your phone was not accepted. Please try again carefully."
 
     if "invalid access token" in lowered_description:
         return "We could not finish confirming your M-Pesa request right now. Please try again in a moment."

@@ -13,6 +13,7 @@ from rest_framework.test import APITestCase
 from apps.bookings.models import Booking, BookingPayment
 from apps.bookings.delivery import REMINDER_EMAIL_KIND
 from apps.bookings.payments import MpesaQueryResponse, MpesaStkPushResponse
+from apps.bookings.services import normalize_payment_result_description
 from apps.notifications.models import Notification
 from apps.therapists.models import TherapistProfile
 
@@ -805,6 +806,11 @@ class PaidBookingCheckoutApiTests(APITestCase):
         self.assertEqual(retry_response.status_code, status.HTTP_200_OK)
         self.assertEqual(retry_response.data["booking"]["status"], Booking.Status.PAYMENT_PENDING)
         self.assertEqual(retry_response.data["payment"]["status"], BookingPayment.Status.STK_PUSH_SENT)
+
+    def test_normalizes_wrong_pin_style_mpesa_message_for_client_feedback(self):
+        message = normalize_payment_result_description("The initiator information is invalid.")
+        self.assertIn("PIN", message)
+        self.assertIn("not accepted", message)
 
     @override_settings(
         MPESA_SIMULATE_PAYMENTS=False,
