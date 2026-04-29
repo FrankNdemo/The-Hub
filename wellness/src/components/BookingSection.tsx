@@ -1,5 +1,6 @@
 import { Fragment, type ReactNode, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { createPortal } from "react-dom";
 import {
   ArrowLeft,
   Briefcase,
@@ -275,13 +276,26 @@ const MobileStatusSheet = ({
   const isSuccess = tone === "success";
   const isDestructive = tone === "destructive";
 
-  return (
+  useEffect(() => {
+    const originalOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+
+    return () => {
+      document.body.style.overflow = originalOverflow;
+    };
+  }, []);
+
+  if (typeof document === "undefined" || !document.body) {
+    return null;
+  }
+
+  const modal = (
     <div className="sm:hidden">
-      <div className="fixed inset-0 z-[80] bg-foreground/18 backdrop-blur-[2px]" aria-hidden="true" />
-      <div className="fixed inset-x-4 bottom-6 top-[5.85rem] z-[81] flex items-center justify-center">
+      <div className="fixed inset-0 z-[140] bg-foreground/24 backdrop-blur-[3px]" aria-hidden="true" />
+      <div className="fixed inset-0 z-[141] flex items-center justify-center px-4 pb-6 pt-[5.85rem]">
         <div
           className={cn(
-            "relative w-full max-w-[21.9rem] overflow-hidden rounded-[1.85rem] border px-4 pb-4 pt-3 shadow-[0_30px_70px_-34px_rgba(17,24,39,0.38)]",
+            "relative w-full max-w-[21.75rem] overflow-hidden rounded-[1.85rem] border px-4 pb-4 pt-3 shadow-[0_36px_80px_-34px_rgba(17,24,39,0.42)]",
             isDark
               ? "border-white/10 bg-[linear-gradient(180deg,hsl(150_18%_16%),hsl(150_19%_12%))] text-white"
               : isSuccess
@@ -300,7 +314,7 @@ const MobileStatusSheet = ({
               )}
             >
               <div className="flex justify-center">
-                <div className="origin-center scale-[0.88]">
+                <div className="origin-center scale-[0.78]">
                   <WellnessLogo variant="navbar" tone={isDark ? "inverse" : "default"} />
                 </div>
               </div>
@@ -327,6 +341,8 @@ const MobileStatusSheet = ({
       </div>
     </div>
   );
+
+  return createPortal(modal, document.body);
 };
 
 const StatusHalo = ({
@@ -1303,7 +1319,6 @@ const BookingSection = () => {
                           <ArrowLeft className="h-4 w-4" />
                         </Button>
                         <div className="min-w-0 flex-1">
-                          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-primary/70">Step 1 of 3</p>
                           <div className="mt-3">
                             <MobileStageDots step={step} />
                           </div>
@@ -1368,8 +1383,7 @@ const BookingSection = () => {
                     <div className="hidden rounded-[2rem] border border-border/60 bg-card p-6 shadow-card sm:block sm:p-8">
                       <div className="flex items-center justify-between gap-4">
                         <div>
-                          <p className="text-sm font-semibold uppercase tracking-[0.22em] text-primary/75">Step 1 of 3</p>
-                          <h3 className="mt-2 font-heading text-3xl font-semibold text-foreground">Review your session</h3>
+                          <h3 className="font-heading text-3xl font-semibold text-foreground">Review your session</h3>
                         </div>
                         <Button variant="heroBorder" className="rounded-full" onClick={() => setStep("details")}>
                           <ArrowLeft className="h-4 w-4" />
