@@ -87,6 +87,7 @@ const defaultState: WellnessHubState = {
 };
 
 const seedBlogPostsBySlug = new Map(seedBlogPosts.map((post) => [post.slug, post]));
+const PUBLIC_THERAPISTS_STORAGE_KEY = "wellness-public-therapists-v1";
 
 const normalizeTherapistProfile = (profile?: Partial<TherapistProfile> | null): TherapistProfile => ({
   ...primaryTherapist,
@@ -110,6 +111,50 @@ const normalizeTherapistList = (profiles?: Partial<TherapistProfile>[] | null): 
     .filter((profile, index, list) => list.findIndex((item) => item.id === profile.id) === index);
 
   return normalized.length ? normalized : publicTherapists;
+};
+
+const readCachedTherapists = (): TherapistProfile[] | null => {
+  if (typeof window === "undefined") {
+    return null;
+  }
+
+  try {
+    const raw = window.localStorage.getItem(PUBLIC_THERAPISTS_STORAGE_KEY);
+    if (!raw) {
+      return null;
+    }
+
+    const parsed = JSON.parse(raw) as unknown;
+    return Array.isArray(parsed) && parsed.length ? normalizeTherapistList(parsed) : null;
+  } catch {
+    return null;
+  }
+};
+
+const cacheTherapists = (profiles: TherapistProfile[]) => {
+  if (typeof window === "undefined" || profiles.length === 0) {
+    return;
+  }
+
+  try {
+    window.localStorage.setItem(PUBLIC_THERAPISTS_STORAGE_KEY, JSON.stringify(profiles));
+  } catch {
+    // Keep runtime state even if localStorage is unavailable.
+  }
+};
+
+const getInitialState = (): WellnessHubState => {
+  const cachedTherapists = readCachedTherapists();
+
+  if (!cachedTherapists) {
+    return defaultState;
+  }
+
+  return {
+    ...defaultState,
+    therapist: cachedTherapists.find((profile) => profile.id === primaryTherapist.id) ?? cachedTherapists[0],
+    therapists: cachedTherapists,
+  };
 };
 
 const normalizeNotification = (notification?: Partial<NotificationItem> | null): NotificationItem | null => {
@@ -366,7 +411,7 @@ const upsertById = <T extends { id: string }>(items: T[], nextItem: T) => {
 };
 
 export const WellnessHubProvider = ({ children }: { children: React.ReactNode }) => {
-  const [state, setState] = useState<WellnessHubState>(defaultState);
+  const [state, setState] = useState<WellnessHubState>(() => getInitialState());
   const [isInitializing, setIsInitializing] = useState(true);
 
   const setPublicContent = ({
@@ -378,12 +423,21 @@ export const WellnessHubProvider = ({ children }: { children: React.ReactNode })
     therapists?: TherapistProfile[];
     blogPosts?: BlogPost[];
   }) => {
-    setState((current) => ({
-      ...current,
-      therapist: therapist ?? current.therapist,
-      therapists: therapists ?? current.therapists,
-      blogPosts: blogPosts ?? current.blogPosts,
-    }));
+    setState((current) => {
+      const nextTherapists =
+        therapists ?? (therapist ? [therapist, ...current.therapists.filter((item) => item.id !== therapist.id)] : undefined);
+
+      if (nextTherapists) {
+        cacheTherapists(nextTherapists);
+      }
+
+      return {
+        ...current,
+        therapist: therapist ?? current.therapist,
+        therapists: nextTherapists ?? current.therapists,
+        blogPosts: blogPosts ?? current.blogPosts,
+      };
+    });
   };
 
   const resetAuthenticatedState = () => {
@@ -427,7 +481,9 @@ export const WellnessHubProvider = ({ children }: { children: React.ReactNode })
 
   const refreshDashboard = async () => {
     const snapshot = await fetchDashboardOverview();
-    setState(applyDashboardSnapshot(snapshot));
+    const nextState = applyDashboardSnapshot(snapshot);
+    cacheTherapists(nextState.therapists);
+    setState(nextState);
   };
 
   useEffect(() => {
@@ -628,20 +684,26 @@ export const WellnessHubProvider = ({ children }: { children: React.ReactNode })
   const updateTherapistProfile = async (profile: TherapistProfile) => {
     const therapist = normalizeTherapistProfile(await updateTherapistProfileRequest(profile));
 
-    setState((current) => ({
-      ...current,
-      therapist,
-      therapists: current.therapists.some((item) => item.id === therapist.id)
+    setState((current) => {
+      const therapists = current.therapists.some((item) => item.id === therapist.id)
         ? current.therapists.map((item) => (item.id === therapist.id ? therapist : item))
-        : [therapist, ...current.therapists],
-      therapistSession: current.therapistSession
-        ? {
-            ...current.therapistSession,
-            email: therapist.email,
-            name: therapist.name,
-          }
-        : null,
-    }));
+        : [therapist, ...current.therapists];
+
+      cacheTherapists(therapists);
+
+      return {
+        ...current,
+        therapist,
+        therapists,
+        therapistSession: current.therapistSession
+          ? {
+              ...current.therapistSession,
+              email: therapist.email,
+              name: therapist.name,
+            }
+          : null,
+      };
+    });
 
     void refreshDashboard().catch(() => undefined);
 

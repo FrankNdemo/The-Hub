@@ -1,5 +1,5 @@
 import { type FormEvent, useState } from "react";
-import { Clock3, MapPin, MessageCircle, Phone, Send } from "lucide-react";
+import { Clock3, Mail, MapPin, MessageCircle, Send } from "lucide-react";
 import { toast } from "sonner";
 
 import Footer from "@/components/Footer";
@@ -15,6 +15,8 @@ import { getApiErrorMessage, sendContactInquiry } from "@/lib/api";
 import { pageHeaderBackgrounds, softPageBackgroundStyle } from "@/lib/pageBackground";
 
 const WELLNESS_HUB_MAP_URL = "https://maps.app.goo.gl/CzPK4ad5eeTAANLP6?g_st=aw";
+const contactGardenImage =
+  "https://images.pexels.com/photos/8121670/pexels-photo-8121670.jpeg?auto=compress&cs=tinysrgb&w=1400&h=650&fit=crop";
 
 const getFormValue = (formData: FormData, key: string) => String(formData.get(key) ?? "").trim();
 
@@ -25,7 +27,7 @@ const ContactPage = () => {
   const mapArea = therapist.location[0] ?? "Nairobi, Westlands";
   const locationLines = [mapArea, ...therapist.location.slice(1)];
   const mapHref = WELLNESS_HUB_MAP_URL;
-  const phoneHref = `tel:${therapist.phone.replace(/[^\d+]/g, "")}`;
+  const emailHref = `mailto:${therapist.email}`;
   const whatsappNumber = therapist.phone.replace(/\D/g, "");
   const whatsappHref = `https://wa.me/${whatsappNumber}`;
   const contactItems = [
@@ -38,7 +40,7 @@ const ContactPage = () => {
       rel: "noreferrer",
       actionLabel: "Open in Google Maps",
     },
-    { icon: Phone, title: "Phone", lines: [therapist.phone], href: phoneHref, actionLabel: "Tap to call" },
+    { icon: Mail, title: "Email", lines: [therapist.email], href: emailHref, actionLabel: "Tap to email" },
     {
       icon: MessageCircle,
       title: "WhatsApp",
@@ -88,7 +90,7 @@ const ContactPage = () => {
         backgroundPosition={pageHeaderBackgrounds.contact.position}
       />
 
-      <section className="pb-24">
+      <section className="pb-8">
         <div className="container mx-auto px-4">
           <div className="mx-auto grid max-w-6xl gap-8 lg:grid-cols-[0.9fr_1.1fr]">
             <div className="space-y-5">
@@ -219,9 +221,25 @@ const ContactPage = () => {
                   <Button variant="hero" size="lg" className="w-full rounded-full" type="submit" disabled={isSending}>
                     {isSending ? "Sending..." : "Send Inquiry"}
                   </Button>
+                  <div className="hidden overflow-hidden lg:block">
+                    <img
+                      src={contactGardenImage}
+                      alt="People sitting together in a green park"
+                      loading="lazy"
+                      className="h-40 w-full object-cover object-center"
+                    />
+                  </div>
                 </form>
               )}
             </div>
+          </div>
+          <div className="mx-auto mt-10 max-w-6xl overflow-hidden lg:hidden">
+            <img
+              src={contactGardenImage}
+              alt="People sitting together in a green park"
+              loading="lazy"
+              className="h-36 w-full object-cover object-center sm:h-40 lg:h-44"
+            />
           </div>
         </div>
       </section>

@@ -165,24 +165,24 @@ const Index = () => {
       <div className="container mx-auto px-4">
         <ScrollReveal direction="left">
           <div className="grid items-center gap-12 md:grid-cols-2">
-            <div className="text-center md:text-left">
-              <p className="font-body text-sm uppercase tracking-[0.2em] text-primary">About Us</p>
+            <div className="text-center md:pl-8 md:text-left lg:pl-14 xl:pl-20">
+              <p className="text-center font-body text-sm uppercase tracking-[0.2em] text-primary">About Us</p>
               <h2 className="mt-2 font-heading text-4xl font-semibold text-foreground md:text-5xl">
                 Empowering Your Mind and Heart
               </h2>
-              <div className="mx-auto mb-6 mt-4 h-0.5 w-16 bg-primary/40 md:mx-0" />
+              <div className="mx-auto mb-6 mt-4 h-0.5 w-16 bg-primary/40" />
               <p className="mb-4 leading-relaxed text-muted-foreground">
                 At The Wellness Hub, our mission is to improve mental health in Africa by offering compassionate
                 therapy and professional guidance. We envision a world where everyone discovers their best self.
               </p>
 
-              <div className="my-6 grid gap-3">
+              <div className="mx-auto my-6 grid max-w-[19rem] gap-3 sm:max-w-sm md:mx-0">
                 {[
                   "Authenticity - Be your true self.",
                   "Integrity - Ethical, compassionate care.",
                   "Purpose - A meaningful, fulfilling life.",
                 ].map((value) => (
-                  <div key={value} className="flex items-start justify-center gap-3 md:justify-start">
+                  <div key={value} className="flex items-start gap-3 text-left">
                     <div className="mt-2 h-2 w-2 shrink-0 rounded-full bg-primary" />
                     <p className="text-muted-foreground">{value}</p>
                   </div>
@@ -310,7 +310,7 @@ const Index = () => {
       <div className="container mx-auto px-4">
         <ScrollReveal direction="up">
           <div className="mx-auto max-w-3xl text-center">
-            <p className="text-xs font-semibold uppercase tracking-[0.32em] text-primary/60">Meet your therapist</p>
+            <p className="text-xs font-semibold uppercase tracking-[0.32em] text-primary/60">Meet your therapists</p>
             <h2 className="mx-auto mt-5 max-w-2xl font-heading text-4xl font-semibold leading-tight text-foreground md:text-5xl">
                 Care that understands you. Guidance you can trust.
             </h2>
@@ -431,42 +431,18 @@ const Index = () => {
             </h2>
           </div>
 
-          <div className="mt-8 flex items-center justify-center gap-4 md:hidden">
-            <button
-              type="button"
-              onClick={showPreviousTestimonial}
-              className="flex h-10 w-10 items-center justify-center rounded-full border border-primary/15 bg-background text-primary shadow-soft transition-colors hover:bg-primary/8"
-              aria-label="Previous client story"
-            >
-              <ArrowLeft className="h-4 w-4" />
-            </button>
-            <button
-              type="button"
-              onClick={showNextTestimonial}
-              className="flex h-11 w-11 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-soft transition-colors hover:bg-primary/90"
-              aria-label="Next client story"
-            >
-              <ArrowRight className="h-4 w-4" />
-            </button>
-            <div className="ml-2 flex items-center gap-3">
-              {testimonials.map((testimonial, index) => (
-                <button
-                  key={testimonial.name}
-                  type="button"
-                  onClick={() => setTestimonialIndex(index)}
-                  className={`h-2 rounded-full transition-all ${
-                    testimonialIndex === index ? "w-2 bg-primary" : "w-2 border border-primary/20 bg-transparent"
-                  }`}
-                  aria-label={`Show story ${index + 1}`}
-                />
-              ))}
-            </div>
-          </div>
-
           <div className="mt-6 md:hidden">
-            <div className="wellness-panel overflow-hidden rounded-[2rem] border border-border/60 p-7 shadow-[0_26px_48px_-28px_rgba(16,24,20,0.34)]">
-              <Quote className="h-8 w-8 text-primary/30" />
-              <p className="mt-4 italic leading-8 text-muted-foreground">{activeTestimonial.text}</p>
+            <div className="wellness-panel relative mx-auto min-h-[18rem] max-w-[21.5rem] overflow-hidden rounded-[1.75rem] border border-border/60 px-8 py-7 text-left shadow-[0_28px_55px_-32px_rgba(16,24,20,0.42)]">
+              <img
+                src={leafDecor}
+                alt=""
+                aria-hidden="true"
+                className="pointer-events-none absolute -right-2 top-0 w-28 rotate-180 opacity-12"
+              />
+              <Quote className="h-8 w-8 text-primary/28" />
+              <p className="mt-5 text-[1.02rem] font-medium italic leading-8 text-foreground/75">
+                {activeTestimonial.text}
+              </p>
               <div className="mt-6 flex items-center gap-4 border-t border-border/60 pt-4">
                 <div className="h-12 w-12 overflow-hidden rounded-full border border-border/60 bg-background shadow-soft">
                   <img
@@ -481,6 +457,38 @@ const Index = () => {
                   <p className="text-sm text-muted-foreground">{activeTestimonial.role}</p>
                 </div>
               </div>
+            </div>
+
+            <div className="mx-auto mt-5 grid max-w-[16rem] grid-cols-[3rem_1fr_3rem] items-center gap-4">
+              <button
+                type="button"
+                onClick={showPreviousTestimonial}
+                className="flex h-11 w-11 items-center justify-center rounded-full border border-primary/12 bg-background text-primary shadow-soft transition-colors hover:bg-primary/8"
+                aria-label="Previous client story"
+              >
+                <ArrowLeft className="h-4 w-4" />
+              </button>
+              <div className="flex items-center justify-center gap-3">
+                {testimonials.map((testimonial, index) => (
+                  <button
+                    key={testimonial.name}
+                    type="button"
+                    onClick={() => setTestimonialIndex(index)}
+                    className={`h-2 rounded-full transition-all ${
+                      testimonialIndex === index ? "w-2 bg-primary" : "w-2 border border-primary/28 bg-transparent"
+                    }`}
+                    aria-label={`Show story ${index + 1}`}
+                  />
+                ))}
+              </div>
+              <button
+                type="button"
+                onClick={showNextTestimonial}
+                className="flex h-12 w-12 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-soft transition-colors hover:bg-primary/90"
+                aria-label="Next client story"
+              >
+                <ArrowRight className="h-5 w-5" />
+              </button>
             </div>
           </div>
 

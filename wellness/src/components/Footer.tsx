@@ -1,4 +1,5 @@
 import { Link } from "react-router-dom";
+import { ExternalLink, MapPin } from "lucide-react";
 
 import { useWellnessHub } from "@/context/WellnessHubContext";
 import TherapistPortalAccess from "./TherapistPortalAccess";
@@ -23,7 +24,8 @@ const WELLNESS_HUB_MAP_URL = "https://maps.app.goo.gl/CzPK4ad5eeTAANLP6?g_st=aw"
 
 const Footer = () => {
   const { therapist, isTherapistAuthenticated } = useWellnessHub();
-  const mapQuery = "Real Lite by Broadcom, The Crescent, Nairobi";
+  const mapLocationLines = ["1st Floor Realite Building", "Crescent Lane off Parklands Road"];
+  const mapQuery = "Real Lite by Broadcom, Nairobi";
   const mapHref = WELLNESS_HUB_MAP_URL;
   const mapEmbedSrc = `https://www.google.com/maps?q=${encodeURIComponent(mapQuery)}&z=18&hl=en&output=embed`;
   const handleRouteLinkClick = () => {
@@ -106,6 +108,26 @@ const Footer = () => {
                 referrerPolicy="no-referrer-when-downgrade"
                 className="pointer-events-none h-full w-full border-0"
               />
+              <div className="pointer-events-none absolute left-2 top-2 w-[min(12.75rem,calc(100%-1rem))] rounded-lg border border-primary-foreground/18 bg-primary p-2 text-left text-primary-foreground shadow-[0_16px_34px_-24px_rgba(6,12,10,0.65)] sm:left-3 sm:top-3 sm:w-auto sm:max-w-sm sm:rounded-xl sm:p-3 md:bottom-4 md:left-4 md:top-auto">
+                <div className="flex items-start gap-2 sm:gap-3">
+                  <span className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-primary-foreground/14 text-primary-foreground sm:h-9 sm:w-9">
+                    <MapPin className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                  </span>
+                  <span className="min-w-0">
+                    <span className="flex items-center gap-1 text-[0.55rem] font-semibold uppercase tracking-[0.14em] text-primary-foreground/72 sm:gap-1.5 sm:text-xs sm:tracking-[0.18em]">
+                      Open in Maps
+                      <ExternalLink className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
+                    </span>
+                    <span className="mt-0.5 block truncate text-[0.68rem] font-semibold leading-4 text-primary-foreground sm:mt-1 sm:text-sm sm:leading-5">
+                      {mapLocationLines[0]}
+                      <span className="hidden sm:inline">
+                        <br />
+                        {mapLocationLines[1]}
+                      </span>
+                    </span>
+                  </span>
+                </div>
+              </div>
             </div>
           </a>
         </div>
