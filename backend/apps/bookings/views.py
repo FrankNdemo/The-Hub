@@ -5,12 +5,15 @@ from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from apps.therapists.models import TherapistProfile
 from apps.therapists.permissions import IsTherapistAuthenticated
+from apps.therapists.serializers import TherapistProfilePublicSerializer
 
 from .exploration import is_exploration_call_notes
 from .models import Booking
 from .serializers import (
     BookingAccessSerializer,
+    BookingAvailabilityQuerySerializer,
     BookingCreateSerializer,
     BookingCheckoutSerializer,
     BookingDeleteSerializer,
@@ -35,7 +38,7 @@ from .services import (
     sync_booking_payment_status,
     validate_booking_request,
 )
-from .scheduling import BookingAvailabilityError
+from .scheduling import BookingAvailabilityError, ensure_slot_is_available
 
 
 def normalize_email(value: str) -> str:
@@ -147,6 +150,38 @@ class PublicBookingPrecheckView(APIView):
                 ),
                 "bookingFeeAmount": settings.BOOKING_FEE_AMOUNT,
                 "bookingFeeCurrency": settings.BOOKING_FEE_CURRENCY,
+            }
+        )
+
+
+class PublicBookingAvailabilityView(APIView):
+    permission_classes = [AllowAny]
+    authentication_classes = []
+
+    def get(self, request):
+        serializer = BookingAvailabilityQuerySerializer(data=request.query_params)
+        serializer.is_valid(raise_exception=True)
+        day = serializer.validated_data["date"]
+        slot_time = serializer.validated_data["time"]
+        available_therapists = []
+
+        for therapist in TherapistProfile.objects.select_related("user").all():
+            try:
+                ensure_slot_is_available(
+                    therapist=therapist,
+                    day=day,
+                    slot_time=slot_time,
+                )
+            except BookingAvailabilityError:
+                continue
+
+            available_therapists.append(therapist)
+
+        return Response(
+            {
+                "date": day.isoformat(),
+                "time": slot_time.strftime("%H:%M"),
+                "therapists": TherapistProfilePublicSerializer(available_therapists, many=True).data,
             }
         )
 

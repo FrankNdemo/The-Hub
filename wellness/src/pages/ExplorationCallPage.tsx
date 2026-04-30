@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { CalendarClock, CheckCircle2, Compass, MessageCircle, ShieldCheck, Sparkles } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { CalendarClock, CheckCircle2, Compass, LoaderCircle, MessageCircle, ShieldCheck, Sparkles, User } from "lucide-react";
 import { Link } from "react-router-dom";
 import { toast } from "sonner";
 
@@ -11,7 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useWellnessHub } from "@/context/WellnessHubContext";
-import { getApiErrorMessage, getSuggestedBookingSlot } from "@/lib/api";
+import { fetchAvailableBookingTherapists, getApiErrorMessage, getSuggestedBookingSlot } from "@/lib/api";
 import {
   BOOKING_AVAILABILITY_DETAIL,
   BOOKING_AVAILABILITY_SUMMARY,
@@ -23,7 +23,7 @@ import {
   getTodayDateInputValue,
 } from "@/lib/wellness";
 import { softPageBackgroundStyle } from "@/lib/pageBackground";
-import type { BookingRecord } from "@/types/wellness";
+import type { BookingRecord, TherapistProfile } from "@/types/wellness";
 
 const EXPLORATION_CALL_MARKER = "[exploration-call]";
 
@@ -35,26 +35,100 @@ const buildExplorationNotes = (note: string) => {
 };
 
 const ExplorationCallPage = () => {
-  const { submitBooking, therapist } = useWellnessHub();
+  const { submitBooking, therapist, therapists } = useWellnessHub();
+  const allTherapists = useMemo(() => (therapists.length ? therapists : [therapist]), [therapist, therapists]);
   const [submittedBooking, setSubmittedBooking] = useState<BookingRecord | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isLoadingTherapists, setIsLoadingTherapists] = useState(false);
   const [bookingGuidance, setBookingGuidance] = useState("");
+  const [availabilityMessage, setAvailabilityMessage] = useState("");
+  const [slotTherapists, setSlotTherapists] = useState<TherapistProfile[] | null>(null);
   const [form, setForm] = useState({
     clientName: "",
     clientEmail: "",
     clientPhone: "",
-    therapistId: therapist.id,
+    therapistId: allTherapists[0]?.id ?? therapist.id,
     date: "",
     time: "",
     notes: "",
   });
 
   const todayDate = getTodayDateInputValue();
+  const selectableTherapists = slotTherapists ?? allTherapists;
+  const selectedTherapist =
+    selectableTherapists.find((item) => item.id === form.therapistId) ?? selectableTherapists[0] ?? therapist;
+  const canSubmit = Boolean(form.therapistId) && !isSubmitting && !isLoadingTherapists;
 
   const updateField = (field: keyof typeof form, value: string) => {
     setBookingGuidance("");
+    if (field === "date" || field === "time") {
+      setAvailabilityMessage("");
+    }
     setForm((current) => ({ ...current, [field]: value }));
   };
+
+  useEffect(() => {
+    setForm((current) => {
+      if (allTherapists.some((item) => item.id === current.therapistId)) {
+        return current;
+      }
+
+      return { ...current, therapistId: allTherapists[0]?.id ?? therapist.id };
+    });
+  }, [allTherapists, therapist.id]);
+
+  useEffect(() => {
+    if (!form.date || !form.time) {
+      setSlotTherapists(null);
+      setAvailabilityMessage("Choose a date and time to see which therapists are available.");
+      return;
+    }
+
+    let isActive = true;
+    setIsLoadingTherapists(true);
+    setAvailabilityMessage("");
+
+    fetchAvailableBookingTherapists(form.date, form.time)
+      .then((response) => {
+        if (!isActive) {
+          return;
+        }
+
+        const available = response.therapists.length ? response.therapists : [];
+        setSlotTherapists(available);
+
+        setForm((current) => {
+          if (available.some((item) => item.id === current.therapistId)) {
+            return current;
+          }
+
+          return { ...current, therapistId: available[0]?.id ?? "" };
+        });
+
+        setAvailabilityMessage(
+          available.length
+            ? `${available.length} therapist${available.length === 1 ? "" : "s"} available for this slot.`
+            : "No therapist is available for this exact time. Please choose another slot.",
+        );
+      })
+      .catch(() => {
+        if (!isActive) {
+          return;
+        }
+
+        setSlotTherapists(null);
+        setAvailabilityMessage("We could not refresh live availability. You can still choose a therapist, and we will confirm the slot before sending.");
+      })
+      .finally(() => {
+        if (isActive) {
+          setIsLoadingTherapists(false);
+        }
+      });
+
+    return () => {
+      isActive = false;
+    };
+  }, [form.date, form.time]);
 
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
@@ -200,8 +274,8 @@ const ExplorationCallPage = () => {
                     <div className="mt-8 rounded-[1.5rem] border border-primary/15 bg-primary/8 p-5">
                       <p className="text-sm font-semibold uppercase tracking-[0.22em] text-primary/80">Call format</p>
                       <p className="mt-3 text-sm leading-7 text-muted-foreground">
-                        This page sends a structured exploration request to {therapist.name}. Once it arrives, the
-                        therapist can call, email, or choose another suitable way to reach you directly.
+                        This page checks therapist availability for your preferred slot, then sends your request to
+                        the therapist you choose.
                       </p>
                     </div>
 
@@ -362,9 +436,58 @@ const ExplorationCallPage = () => {
 
                     <div className="space-y-5">
                       <div className="wellness-panel rounded-[1.5rem] border border-border/60 p-5 shadow-card">
-                        <p className="text-sm font-semibold uppercase tracking-[0.22em] text-primary/75">Your therapist</p>
-                        <h3 className="mt-3 font-heading text-2xl font-semibold text-foreground">{therapist.name}</h3>
-                        <p className="mt-2 text-sm leading-7 text-muted-foreground">{therapist.title}</p>
+                        <div className="flex items-center justify-between gap-3">
+                          <p className="text-sm font-semibold uppercase tracking-[0.22em] text-primary/75">Choose therapist</p>
+                          {isLoadingTherapists ? <LoaderCircle className="h-4 w-4 animate-spin text-primary" /> : null}
+                        </div>
+                        <Label htmlFor="exploration-therapist" className="mt-4 block">
+                          Available for selected slot
+                        </Label>
+                        <select
+                          id="exploration-therapist"
+                          className="mt-2 flex h-11 w-full rounded-xl border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-60"
+                          value={form.therapistId}
+                          onChange={(event) => updateField("therapistId", event.target.value)}
+                          disabled={isLoadingTherapists || selectableTherapists.length === 0}
+                          required
+                        >
+                          {selectableTherapists.length ? (
+                            selectableTherapists.map((item) => (
+                              <option key={item.id} value={item.id}>
+                                {item.name} - {item.title}
+                              </option>
+                            ))
+                          ) : (
+                            <option value="">No therapist available</option>
+                          )}
+                        </select>
+
+                        <div className="mt-3 flex items-center gap-3 rounded-[1.25rem] border border-border/60 bg-secondary/25 p-3">
+                          {selectedTherapist.image ? (
+                            <img
+                              src={selectedTherapist.image}
+                              alt={selectedTherapist.name}
+                              loading="lazy"
+                              className="h-14 w-14 rounded-2xl object-cover object-top"
+                            />
+                          ) : (
+                            <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+                              <User className="h-5 w-5" />
+                            </div>
+                          )}
+                          <div className="min-w-0">
+                            <h3 className="font-heading text-base font-semibold leading-tight text-foreground">
+                              {selectedTherapist.name}
+                            </h3>
+                            <p className="mt-1 text-xs font-medium text-primary">{selectedTherapist.title}</p>
+                            <p className="mt-1 line-clamp-2 text-xs leading-5 text-muted-foreground">
+                              {selectedTherapist.focusAreas}
+                            </p>
+                          </div>
+                        </div>
+                        {availabilityMessage ? (
+                          <p className="mt-3 text-xs leading-6 text-muted-foreground">{availabilityMessage}</p>
+                        ) : null}
                       </div>
 
                   <div className="rounded-[1.5rem] border border-primary/15 bg-primary/8 p-5">
@@ -400,8 +523,8 @@ const ExplorationCallPage = () => {
                     </div>
                   </div>
 
-                  <Button variant="hero" size="lg" type="submit" className="mt-7 w-full rounded-full" disabled={isSubmitting}>
-                    {isSubmitting ? "Sending Your Request..." : "Send Exploration Call Request"}
+                  <Button variant="hero" size="lg" type="submit" className="mt-7 w-full rounded-full" disabled={!canSubmit}>
+                    {isSubmitting ? "Sending Your Request..." : isLoadingTherapists ? "Checking Therapists..." : "Send Exploration Call Request"}
                   </Button>
                 </form>
               </ScrollReveal>

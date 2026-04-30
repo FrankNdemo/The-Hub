@@ -522,6 +522,13 @@ export const precheckBooking = (input: BookingInput) =>
     { auth: false },
   );
 
+export const fetchAvailableBookingTherapists = (date: string, time: string) =>
+  request<{ date: string; time: string; therapists: TherapistProfile[] }>(
+    `/bookings/availability/?date=${encodeURIComponent(date)}&time=${encodeURIComponent(time)}`,
+    { method: "GET" },
+    { auth: false },
+  );
+
 export const startBookingCheckout = (input: BookingCheckoutInput) =>
   request<BookingCheckoutResponse>(
     "/bookings/checkout/",

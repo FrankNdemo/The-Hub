@@ -434,6 +434,30 @@ class BookingApiTests(APITestCase):
         self.assertEqual(conflict_response.data["suggestedTime"], "12:05")
         self.assertFalse(conflict_response.data["dayFullyBooked"])
 
+    def test_availability_endpoint_filters_therapists_by_slot(self):
+        create_response = self.client.post(
+            "/api/v1/bookings/",
+            {
+                "clientName": "Booked Client",
+                "clientEmail": "booked-slot@example.com",
+                "clientPhone": "+254700000126",
+                "therapistId": "caroline-gichia",
+                "date": "2028-04-19",
+                "time": "11:00",
+                "serviceType": "individual",
+                "sessionType": "virtual",
+            },
+            format="json",
+        )
+        self.assertEqual(create_response.status_code, status.HTTP_201_CREATED)
+
+        response = self.client.get("/api/v1/bookings/availability/?date=2028-04-19&time=11:00")
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        therapist_ids = [therapist["id"] for therapist in response.data["therapists"]]
+        self.assertNotIn("caroline-gichia", therapist_ids)
+        self.assertIn("kelvin-kagiri", therapist_ids)
+
     def test_reports_when_requested_day_is_fully_booked(self):
         for hour in range(10, 19):
             create_response = self.client.post(

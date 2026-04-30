@@ -11,6 +11,7 @@ from .views import (
     PublicBookingCreateView,
     PublicBookingCheckoutRetryView,
     PublicBookingCheckoutView,
+    PublicBookingAvailabilityView,
     PublicBookingPrecheckView,
     PublicBookingPaymentStatusView,
     TherapistBookingCompleteView,
@@ -21,6 +22,7 @@ from .views import (
 
 urlpatterns = [
     path("bookings/", PublicBookingCreateView.as_view(), name="public-booking-create"),
+    path("bookings/availability/", PublicBookingAvailabilityView.as_view(), name="public-booking-availability"),
     path("bookings/precheck/", PublicBookingPrecheckView.as_view(), name="public-booking-precheck"),
     path("bookings/checkout/", PublicBookingCheckoutView.as_view(), name="public-booking-checkout"),
     path("bookings/checkout/retry/", PublicBookingCheckoutRetryView.as_view(), name="public-booking-checkout-retry"),
