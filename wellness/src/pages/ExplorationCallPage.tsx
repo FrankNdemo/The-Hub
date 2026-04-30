@@ -58,6 +58,30 @@ const ExplorationCallPage = () => {
   const selectedTherapist =
     selectableTherapists.find((item) => item.id === form.therapistId) ?? selectableTherapists[0] ?? therapist;
   const canSubmit = Boolean(form.therapistId) && !isSubmitting && !isLoadingTherapists;
+  const callDetailsCard = (
+    <div className="rounded-[1.5rem] border border-primary/15 bg-primary/8 p-5">
+      <p className="text-sm font-semibold uppercase tracking-[0.22em] text-primary/80">Call details</p>
+      <div className="mt-4 space-y-3">
+        <div className="flex items-start gap-3">
+          <Compass className="mt-1 h-4 w-4 shrink-0 text-primary" />
+          <p className="text-sm leading-7 text-muted-foreground">Purpose: clarity, fit, and next-step guidance.</p>
+        </div>
+        <div className="flex items-start gap-3">
+          <MessageCircle className="mt-1 h-4 w-4 shrink-0 text-primary" />
+          <p className="text-sm leading-7 text-muted-foreground">
+            Follow-up: the therapist reviews your preferred time, then reaches out directly by phone, email, or another
+            suitable method.
+          </p>
+        </div>
+        <div className="flex items-start gap-3">
+          <ShieldCheck className="mt-1 h-4 w-4 shrink-0 text-primary" />
+          <p className="text-sm leading-7 text-muted-foreground">
+            Privacy: your call details stay private and manageable through a secure link.
+          </p>
+        </div>
+      </div>
+    </div>
+  );
 
   const updateField = (field: keyof typeof form, value: string) => {
     setBookingGuidance("");
@@ -342,43 +366,44 @@ const ExplorationCallPage = () => {
               </div>
             ) : (
               <ScrollReveal direction="up">
-                <form onSubmit={handleSubmit} className="overflow-hidden rounded-[2rem] border border-border/60 bg-card p-6 shadow-card sm:p-8">
-                  <LeafBannerHeading
-                    title="Book your exploration call"
-                    description="Simple, private, and separate from the full therapy session booking flow."
-                    className="-mx-6 -mt-6 sm:-mx-8 sm:-mt-8"
-                    innerClassName="px-6 py-6 sm:px-8 sm:py-7"
-                    titleClassName="text-3xl"
-                    descriptionClassName="max-w-none"
-                  />
+                <>
+                  <form onSubmit={handleSubmit} className="overflow-hidden rounded-[2rem] border border-border/60 bg-card p-6 shadow-card sm:p-8">
+                    <LeafBannerHeading
+                      title="Book your exploration call"
+                      description="Simple, private, and separate from the full therapy session booking flow."
+                      className="-mx-6 -mt-6 sm:-mx-8 sm:-mt-8"
+                      innerClassName="px-6 py-6 sm:px-8 sm:py-7"
+                      titleClassName="text-3xl"
+                      descriptionClassName="max-w-none"
+                    />
 
-                  <div className="mt-8 grid gap-5 lg:grid-cols-[1.05fr_0.95fr]">
-                    <div className="space-y-5">
-                      <div className="grid gap-5 sm:grid-cols-2">
-                        <div>
-                          <Label htmlFor="exploration-name">Full Name</Label>
-                          <Input
-                            id="exploration-name"
-                            value={form.clientName}
-                            onChange={(event) => updateField("clientName", event.target.value)}
-                            className="mt-2"
-                            placeholder="Your full name"
-                            required
-                          />
+                    <div className="mt-8 grid gap-5 lg:grid-cols-[1.05fr_0.95fr]">
+                      <div className="space-y-5">
+                        <div className="grid gap-5 sm:grid-cols-2">
+                          <div>
+                            <Label htmlFor="exploration-name">Full Name</Label>
+                            <Input
+                              id="exploration-name"
+                              value={form.clientName}
+                              onChange={(event) => updateField("clientName", event.target.value)}
+                              className="mt-2"
+                              placeholder="Your full name"
+                              required
+                            />
+                          </div>
+                          <div>
+                            <Label htmlFor="exploration-phone">Phone Number</Label>
+                            <Input
+                              id="exploration-phone"
+                              type="tel"
+                              value={form.clientPhone}
+                              onChange={(event) => updateField("clientPhone", event.target.value)}
+                              className="mt-2"
+                              placeholder="+254 7XX XXX XXX"
+                              required
+                            />
+                          </div>
                         </div>
-                        <div>
-                          <Label htmlFor="exploration-phone">Phone Number</Label>
-                          <Input
-                            id="exploration-phone"
-                            type="tel"
-                            value={form.clientPhone}
-                            onChange={(event) => updateField("clientPhone", event.target.value)}
-                            className="mt-2"
-                            placeholder="+254 7XX XXX XXX"
-                            required
-                          />
-                        </div>
-                      </div>
 
                       <div>
                         <Label htmlFor="exploration-email">Email Address</Label>
@@ -431,6 +456,10 @@ const ExplorationCallPage = () => {
                           className="mt-2 min-h-[120px]"
                           placeholder="For example: I am not sure which type of support fits me best, or I want to understand what the first full session would look like."
                         />
+                      </div>
+
+                      <div className="rounded-[1.25rem] bg-primary/8 px-4 py-3 text-sm leading-7 text-muted-foreground">
+                        {BOOKING_AVAILABILITY_DETAIL}
                       </div>
                     </div>
 
@@ -490,29 +519,8 @@ const ExplorationCallPage = () => {
                         ) : null}
                       </div>
 
-                  <div className="rounded-[1.5rem] border border-primary/15 bg-primary/8 p-5">
-                    <p className="text-sm font-semibold uppercase tracking-[0.22em] text-primary/80">Call details</p>
-                    <div className="mt-4 space-y-3">
-                      <div className="flex items-start gap-3">
-                        <Compass className="mt-1 h-4 w-4 shrink-0 text-primary" />
-                        <p className="text-sm leading-7 text-muted-foreground">Purpose: clarity, fit, and next-step guidance.</p>
-                      </div>
-                      <div className="flex items-start gap-3">
-                        <MessageCircle className="mt-1 h-4 w-4 shrink-0 text-primary" />
-                        <p className="text-sm leading-7 text-muted-foreground">
-                          Follow-up: the therapist reviews your preferred time, then reaches out directly by phone,
-                          email, or another suitable method.
-                        </p>
-                      </div>
-                      <div className="flex items-start gap-3">
-                        <ShieldCheck className="mt-1 h-4 w-4 shrink-0 text-primary" />
-                            <p className="text-sm leading-7 text-muted-foreground">Privacy: your call details stay private and manageable through a secure link.</p>
-                          </div>
-                        </div>
-                      </div>
-
-                      <div className="rounded-[1.25rem] bg-primary/8 px-4 py-3 text-sm leading-7 text-muted-foreground">
-                        {BOOKING_AVAILABILITY_DETAIL}
+                      <div className="hidden sm:block">
+                        {callDetailsCard}
                       </div>
 
                       {bookingGuidance ? (
@@ -527,6 +535,8 @@ const ExplorationCallPage = () => {
                     {isSubmitting ? "Sending Your Request..." : isLoadingTherapists ? "Checking Therapists..." : "Send Exploration Call Request"}
                   </Button>
                 </form>
+                <div className="mt-5 sm:hidden">{callDetailsCard}</div>
+                </>
               </ScrollReveal>
             )}
           </div>
