@@ -100,15 +100,15 @@ const Footer = () => {
             className="group mx-auto block w-[18rem] max-w-full overflow-hidden border border-white/12 bg-white/5 transition-all duration-300 hover:border-white/20 hover:shadow-[0_24px_48px_-32px_rgba(6,12,10,0.55)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/45 focus-visible:ring-offset-2 focus-visible:ring-offset-foreground md:mx-auto md:w-3/4 md:max-w-3xl"
             aria-label={`Open map for ${mapQuery}`}
           >
-            <div className="relative h-32 sm:h-40 md:h-64">
+            <div className="relative h-32 overflow-hidden sm:h-40 md:h-64">
               <iframe
                 title="The Wellness Hub location map"
                 src={mapEmbedSrc}
                 loading="lazy"
                 referrerPolicy="no-referrer-when-downgrade"
-                className="pointer-events-none h-full w-full border-0"
+                className="pointer-events-none absolute -top-12 left-0 h-[calc(100%+3rem)] w-full border-0 sm:-top-14 sm:h-[calc(100%+3.5rem)]"
               />
-              <div className="pointer-events-none absolute hidden border border-primary-foreground/18 bg-primary text-left text-primary-foreground shadow-[0_16px_34px_-24px_rgba(6,12,10,0.65)] sm:left-3 sm:top-3 sm:block sm:w-auto sm:max-w-sm sm:rounded-xl sm:p-3 md:bottom-4 md:left-4 md:top-auto">
+              <div className="pointer-events-none absolute hidden border border-primary-foreground/18 bg-primary text-left text-primary-foreground shadow-[0_16px_34px_-24px_rgba(6,12,10,0.65)] sm:left-3 sm:top-3 sm:block sm:w-auto sm:max-w-sm sm:rounded-xl sm:p-3 md:left-4 md:top-4">
                 <div className="flex items-start gap-2 sm:gap-3">
                   <span className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-primary-foreground/14 text-primary-foreground sm:h-9 sm:w-9">
                     <MapPin className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
