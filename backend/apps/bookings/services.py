@@ -35,6 +35,7 @@ from .scheduling import ensure_client_can_book, ensure_slot_is_available
 
 QUERY_FAILURE_CONFIRMATION_GRACE_SECONDS = 25
 MIN_STK_TIMEOUT_SECONDS = 30
+MAX_STK_PROCESSING_SECONDS = 120
 PAYMENT_RETRY_LIMIT = 3
 
 
@@ -487,18 +488,38 @@ def sync_booking_payment_status(*, booking: Booking, payment: BookingPayment) ->
     try:
         query_result = query_stk_push_status(payment)
     except BookingPaymentError as exc:
+        current_time = timezone.now()
+        if current_time >= payment.created_at + timedelta(seconds=MIN_STK_TIMEOUT_SECONDS):
+            return apply_payment_outcome(
+                booking=booking,
+                payment=payment,
+                result_code=exc.code,
+                result_description=exc.detail,
+                query_payload={"detail": exc.detail, "code": exc.code},
+            )
+
         payment.status = BookingPayment.Status.PROCESSING
         payment.result_description = exc.detail
         payment.query_payload = {"detail": exc.detail, "code": exc.code}
-        payment.last_status_check_at = timezone.now()
+        payment.last_status_check_at = current_time
         payment.save(update_fields=["status", "result_description", "query_payload", "last_status_check_at", "updated_at"])
         return booking, payment
 
     if not query_result.is_final:
+        current_time = timezone.now()
+        if current_time >= payment.created_at + timedelta(seconds=MAX_STK_PROCESSING_SECONDS):
+            return apply_payment_outcome(
+                booking=booking,
+                payment=payment,
+                result_code="1037",
+                result_description="The STK prompt timed out before completion.",
+                query_payload=query_result.raw,
+            )
+
         payment.status = BookingPayment.Status.PROCESSING
         payment.result_description = query_result.result_description
         payment.query_payload = query_result.raw
-        payment.last_status_check_at = timezone.now()
+        payment.last_status_check_at = current_time
         payment.save(update_fields=["status", "result_description", "query_payload", "last_status_check_at", "updated_at"])
         return booking, payment
 
