@@ -492,7 +492,7 @@ const StoryPage = () => {
             src={storyClosingImage}
             alt="A calm therapy space prepared for a hopeful client conversation"
             loading="lazy"
-            className="absolute inset-0 h-full w-full object-cover object-[center_45%]"
+            className="absolute inset-0 h-full w-full object-cover object-[82%_45%] sm:object-[center_45%]"
             style={desktopImageEffects ? { y: closingImageY, scale: closingImageScale } : undefined}
           />
           <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(18,32,28,0.28),rgba(18,32,28,0.58))]" />
