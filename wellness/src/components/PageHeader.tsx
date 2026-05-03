@@ -1,6 +1,7 @@
 import { useRef, type CSSProperties, type ReactNode } from "react";
 import { motion, useScroll, useSpring, useTransform } from "framer-motion";
 
+import { useDesktopImageEffects } from "@/hooks/useDesktopImageEffects";
 import { cn } from "@/lib/utils";
 
 interface PageHeaderProps {
@@ -37,6 +38,7 @@ const PageHeader = ({
   const smoothProgress = useSpring(scrollYProgress, { stiffness: 64, damping: 18, mass: 0.28 });
   const backgroundY = useTransform(smoothProgress, [0, 1], ["0%", "16%"]);
   const backgroundScale = useTransform(smoothProgress, [0, 1], [1.06, 1.16]);
+  const desktopImageEffects = useDesktopImageEffects();
   const titleWords = title.split(" ");
 
   return (
@@ -62,8 +64,7 @@ const PageHeader = ({
                 className={cn("absolute inset-0 h-full w-full object-cover", backgroundImageClassName)}
                 style={{
                   ...(backgroundImageClassName ? {} : { objectPosition: backgroundPosition }),
-                  y: backgroundY,
-                  scale: backgroundScale,
+                  ...(desktopImageEffects ? { y: backgroundY, scale: backgroundScale } : {}),
                 }}
               />
               <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(17,29,25,0.62),rgba(17,29,25,0.38),rgba(17,29,25,0.72))]" />

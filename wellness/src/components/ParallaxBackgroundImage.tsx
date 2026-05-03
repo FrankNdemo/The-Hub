@@ -1,11 +1,13 @@
 import { useRef, type CSSProperties, type ImgHTMLAttributes } from "react";
 import { motion, useScroll, useSpring, useTransform } from "framer-motion";
 
+import { useDesktopImageEffects } from "@/hooks/useDesktopImageEffects";
+
 interface ParallaxBackgroundImageProps extends Omit<ImgHTMLAttributes<HTMLImageElement>, "style"> {
   style?: CSSProperties;
 }
 
-const ParallaxBackgroundImage = ({ style, ...props }: ParallaxBackgroundImageProps) => {
+const ParallaxMotionBackgroundImage = ({ style, ...props }: ParallaxBackgroundImageProps) => {
   const imageRef = useRef<HTMLImageElement | null>(null);
   const { scrollYProgress } = useScroll({
     target: imageRef,
@@ -16,6 +18,16 @@ const ParallaxBackgroundImage = ({ style, ...props }: ParallaxBackgroundImagePro
   const scale = useTransform(smoothProgress, [0, 1], [1.06, 1.16]);
 
   return <motion.img ref={imageRef} {...props} style={{ ...style, y, scale }} />;
+};
+
+const ParallaxBackgroundImage = (props: ParallaxBackgroundImageProps) => {
+  const desktopImageEffects = useDesktopImageEffects();
+
+  if (!desktopImageEffects) {
+    return <img {...props} />;
+  }
+
+  return <ParallaxMotionBackgroundImage {...props} />;
 };
 
 export default ParallaxBackgroundImage;

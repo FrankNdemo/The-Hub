@@ -6,6 +6,7 @@ import { Link } from "react-router-dom";
 import heroImg from "@/assets/hero-wellness-custom.png";
 import leafDecor from "@/assets/leaf-decoration.png";
 import { Button } from "@/components/ui/button";
+import { useDesktopImageEffects } from "@/hooks/useDesktopImageEffects";
 import WellnessLogo from "./WellnessLogo";
 
 const heroTitleWords = ["Discover", "your"];
@@ -19,6 +20,7 @@ const HeroSection = () => {
   const smoothProgress = useSpring(scrollYProgress, { stiffness: 64, damping: 18, mass: 0.28 });
   const heroImageY = useTransform(smoothProgress, [0, 1], ["0%", "16%"]);
   const heroImageScale = useTransform(smoothProgress, [0, 1], [1.02, 1.1]);
+  const desktopImageEffects = useDesktopImageEffects();
 
   return (
     <section id="home-hero" className="relative overflow-hidden pb-0 pt-0 sm:pb-14">
@@ -33,7 +35,7 @@ const HeroSection = () => {
             loading="eager"
             fetchpriority="high"
             className="absolute inset-y-0 right-0 h-full w-[106%] max-w-none object-cover object-[80%_8%] brightness-[1.06] saturate-[1.02] contrast-[1.06] sm:-right-[4%] sm:w-[112%] sm:object-[82%_16%] sm:brightness-[1.06] sm:saturate-[1.02] sm:contrast-[1.08] md:-right-[5%] md:w-[110%] md:object-[79%_18%] md:brightness-[1.02] md:saturate-[0.92] md:contrast-[1.02] lg:-right-[2%] lg:w-[104%] lg:object-[77%_16%]"
-            style={{ y: heroImageY, scale: heroImageScale }}
+            style={desktopImageEffects ? { y: heroImageY, scale: heroImageScale } : undefined}
           />
           <div className="absolute inset-0 bg-[linear-gradient(108deg,rgba(250,247,242,0.76)_0%,rgba(250,247,242,0.48)_30%,rgba(250,247,242,0.14)_58%,rgba(250,247,242,0.02)_86%)] sm:bg-[linear-gradient(118deg,rgba(250,247,242,0.88)_0%,rgba(250,247,242,0.66)_28%,rgba(250,247,242,0.22)_56%,rgba(250,247,242,0.04)_84%)] md:bg-[linear-gradient(90deg,rgba(250,247,242,0.96)_0%,rgba(250,247,242,0.89)_22%,rgba(250,247,242,0.68)_36%,rgba(250,247,242,0.3)_52%,rgba(250,247,242,0.1)_68%,rgba(250,247,242,0.03)_100%)]" />
           <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,hsl(136_22%_92%_/_0.08),transparent_22%),radial-gradient(circle_at_bottom_left,hsl(42_31%_95%_/_0.05),transparent_26%)] sm:bg-[radial-gradient(circle_at_top_left,hsl(136_22%_92%_/_0.14),transparent_24%),radial-gradient(circle_at_bottom_left,hsl(42_31%_95%_/_0.1),transparent_28%)] md:bg-[radial-gradient(circle_at_top_left,hsl(136_22%_92%_/_0.38),transparent_24%),radial-gradient(circle_at_bottom_left,hsl(42_31%_95%_/_0.24),transparent_28%)]" />

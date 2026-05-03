@@ -21,6 +21,7 @@ import {
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { useWellnessHub } from "@/context/WellnessHubContext";
+import { useDesktopImageEffects } from "@/hooks/useDesktopImageEffects";
 import { getApiErrorMessage } from "@/lib/api";
 import { getClientStoryTestimonials } from "@/lib/clientTestimonials";
 import type { StoryServiceType } from "@/types/wellness";
@@ -111,6 +112,7 @@ const StoryPage = () => {
   const closingImageY = useTransform(smoothProgress, [0.72, 1], ["0%", "16%"]);
   const closingImageScale = useTransform(smoothProgress, [0.72, 1], [1.06, 1.16]);
   const closingFloatY = useTransform(smoothProgress, [0.72, 1], ["16%", "-8%"]);
+  const desktopImageEffects = useDesktopImageEffects();
   const storyTestimonials = useMemo(() => getClientStoryTestimonials(clientStories), [clientStories]);
   const activeStoryTestimonial = storyTestimonials[testimonialIndex];
 
@@ -189,7 +191,7 @@ const StoryPage = () => {
             src={storyHeroImage}
             alt="Soft morning light over a calm therapy-inspired space"
             className="absolute inset-0 h-full w-full object-cover object-[center_45%]"
-            style={{ y: heroImageY, scale: heroImageScale }}
+            style={desktopImageEffects ? { y: heroImageY, scale: heroImageScale } : undefined}
           />
           <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(19,35,31,0.32),rgba(20,39,34,0.42)),radial-gradient(circle_at_28%_18%,rgba(250,247,242,0.34),transparent_32%)]" />
           <motion.div
@@ -491,7 +493,7 @@ const StoryPage = () => {
             alt="A calm therapy space prepared for a hopeful client conversation"
             loading="lazy"
             className="absolute inset-0 h-full w-full object-cover object-[center_45%]"
-            style={{ y: closingImageY, scale: closingImageScale }}
+            style={desktopImageEffects ? { y: closingImageY, scale: closingImageScale } : undefined}
           />
           <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(18,32,28,0.28),rgba(18,32,28,0.58))]" />
           <motion.div
