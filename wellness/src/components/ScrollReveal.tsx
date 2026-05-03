@@ -33,7 +33,7 @@ const ScrollReveal = ({
       ref={ref}
       style={{ transitionDelay: `${delayMs}ms` }}
       className={cn(
-        "motion-reduce:transform-none motion-reduce:opacity-100 motion-safe:transition-all motion-safe:duration-700",
+        "motion-reduce:transform-none motion-reduce:opacity-100 motion-safe:transition-all motion-safe:duration-500 motion-safe:will-change-[transform,opacity]",
         isVisible ? "translate-x-0 translate-y-0 opacity-100" : hiddenStateByDirection[direction],
         className,
       )}

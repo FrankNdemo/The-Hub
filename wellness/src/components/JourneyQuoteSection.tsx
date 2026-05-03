@@ -6,7 +6,7 @@ const journeyQuoteImage =
   "https://images.pexels.com/photos/23385268/pexels-photo-23385268.jpeg?auto=compress&cs=tinysrgb&w=1400&h=700&fit=crop";
 
 const JourneyQuoteSection = () => (
-  <section className="relative z-10 -mt-2 pb-10 sm:-mt-4 sm:pb-12">
+  <section className="relative z-10 mt-24 pb-10 sm:-mt-4 sm:pb-12">
     <ScrollReveal direction="up">
       <div className="relative w-full overflow-hidden">
         <div className="grid min-h-[7.5rem] grid-cols-[minmax(0,1.45fr)_minmax(6.75rem,0.95fr)] sm:min-h-[8.5rem] sm:grid-cols-[minmax(0,1.55fr)_minmax(9rem,0.9fr)] lg:min-h-[9.5rem] lg:grid-cols-[minmax(0,1.72fr)_minmax(15rem,0.78fr)]">

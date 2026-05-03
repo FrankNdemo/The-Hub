@@ -16,7 +16,7 @@ const layouts: Record<NonNullable<WellnessLogoProps["variant"]>, LogoLayout> = {
     frame: "h-[3.65rem] w-[10.25rem]",
   },
   hero: {
-    frame: "h-[4.75rem] w-[12.15rem] sm:h-[6.2rem] sm:w-[16.2rem] md:h-[8rem] md:w-[21.8rem] lg:h-[9.35rem] lg:w-[25.8rem]",
+    frame: "h-[5.65rem] w-[13.3rem] sm:h-[6.2rem] sm:w-[16.2rem] md:h-[8rem] md:w-[21.8rem] lg:h-[9.35rem] lg:w-[25.8rem]",
   },
   footer: {
     frame: "h-[4.55rem] w-[12.7rem]",
