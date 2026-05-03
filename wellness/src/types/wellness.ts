@@ -1,7 +1,7 @@
 export type SessionType = "virtual" | "physical";
 export type ServiceType = "individual" | "family" | "corporate";
 export type StoryServiceType = "individual" | "family" | "corporate";
-export type ClientStoryStatus = "pending" | "published";
+export type ClientStoryStatus = "pending" | "reviewed" | "published";
 
 export type BookingStatus =
   | "payment_pending"
@@ -124,6 +124,8 @@ export interface BookingPaymentRecord {
   status: PaymentStatus;
   statusLabel: string;
   canRetry: boolean;
+  retryAttemptsRemaining: number;
+  retryAttemptLimit: number;
   amount: number;
   currency: string;
   phoneNumber: string;

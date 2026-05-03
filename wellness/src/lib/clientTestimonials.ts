@@ -58,6 +58,24 @@ const getClientStoryFallbackImage = (serviceType: StoryServiceType) => {
   }
 };
 
+const getTestimonialKey = (testimonial: ClientTestimonial) =>
+  `${testimonial.name.trim().toLowerCase()}|${testimonial.text.trim().toLowerCase()}`;
+
+const mergeTestimonials = (testimonials: ClientTestimonial[]) => {
+  const seen = new Set<string>();
+
+  return testimonials.filter((testimonial) => {
+    const key = getTestimonialKey(testimonial);
+
+    if (!testimonial.text.trim() || seen.has(key)) {
+      return false;
+    }
+
+    seen.add(key);
+    return true;
+  });
+};
+
 export const getClientStoryTestimonials = (clientStories: ClientStory[]): ClientTestimonial[] => {
   const publishedStories = clientStories
     .filter((story) => story.status === "published")
@@ -68,5 +86,5 @@ export const getClientStoryTestimonials = (clientStories: ClientStory[]): Client
       image: story.image || getClientStoryFallbackImage(story.serviceType),
     }));
 
-  return publishedStories.length ? publishedStories : defaultClientTestimonials;
+  return mergeTestimonials([...defaultClientTestimonials, ...publishedStories]);
 };

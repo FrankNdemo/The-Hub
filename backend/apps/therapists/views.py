@@ -360,6 +360,28 @@ class DashboardClientStoryPublishView(APIView):
         return Response(ClientStorySerializer(story).data)
 
 
+class DashboardClientStorySeenView(APIView):
+    permission_classes = [IsAuthenticated, IsTherapistAuthenticated]
+
+    def post(self, request, pk):
+        if not can_review_client_stories(request.user.therapist_profile):
+            return Response({"detail": "Story review is only available for Caroline Gichia."}, status=status.HTTP_403_FORBIDDEN)
+
+        story = ClientStory.objects.filter(
+            therapist=request.user.therapist_profile,
+            pk=pk,
+        ).first()
+
+        if not story:
+            return Response({"detail": "Story not found."}, status=status.HTTP_404_NOT_FOUND)
+
+        if story.status != ClientStory.Status.PUBLISHED:
+            story.status = ClientStory.Status.REVIEWED
+            story.save(update_fields=["status", "updated_at"])
+
+        return Response(ClientStorySerializer(story).data)
+
+
 class DashboardClientStoryUnpublishView(APIView):
     permission_classes = [IsAuthenticated, IsTherapistAuthenticated]
 
@@ -375,7 +397,7 @@ class DashboardClientStoryUnpublishView(APIView):
         if not story:
             return Response({"detail": "Story not found."}, status=status.HTTP_404_NOT_FOUND)
 
-        story.status = ClientStory.Status.PENDING
+        story.status = ClientStory.Status.REVIEWED
         story.published_at = None
         story.save(update_fields=["status", "published_at", "updated_at"])
         return Response(ClientStorySerializer(story).data)

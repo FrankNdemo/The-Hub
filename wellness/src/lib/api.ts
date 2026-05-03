@@ -797,6 +797,15 @@ export const publishClientStoryRequest = (id: string) =>
     },
   );
 
+export const markClientStorySeenRequest = (id: string) =>
+  request<ClientStory>(
+    `/dashboard/stories/${id}/seen/`,
+    {
+      method: "POST",
+      body: JSON.stringify({}),
+    },
+  );
+
 export const unpublishClientStoryRequest = (id: string) =>
   request<ClientStory>(
     `/dashboard/stories/${id}/unpublish/`,

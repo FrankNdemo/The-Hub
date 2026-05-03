@@ -67,7 +67,7 @@ const REVIEW_GARDEN_IMAGE_URL =
 type BookingStep = "details" | "summary" | "payment" | "stk_sent" | "processing" | "success" | "failed";
 
 const STK_SENT_PROMOTE_DELAY_MS = 900;
-const PAYMENT_STATUS_POLL_INTERVAL_MS = 500;
+const PAYMENT_STATUS_POLL_INTERVAL_MS = 3000;
 
 const FINAL_PAYMENT_STATUSES: BookingPaymentRecord["status"][] = [
   "success",
@@ -374,8 +374,8 @@ const DesktopStatusDialog = ({ children }: { children: ReactNode }) => {
   const modal = (
     <div className="hidden sm:block">
       <div className="fixed inset-0 z-[130] bg-foreground/18 backdrop-blur-[2px]" aria-hidden="true" />
-      <div className="fixed inset-0 z-[131] flex items-center justify-center overflow-y-auto px-5 py-8">
-        <div className="my-auto w-full max-w-xl">{children}</div>
+      <div className="fixed inset-0 z-[131] flex items-center justify-center overflow-hidden px-5 py-4">
+        <div className="w-full max-w-xl">{children}</div>
       </div>
     </div>
   );
@@ -496,7 +496,8 @@ const WhyPayCard = () => (
 );
 
 const getFailureCopy = (payment?: BookingPaymentRecord | null) => {
-  const resultDescription = payment?.resultDescription?.toLowerCase() ?? "";
+  const safeResultDescription = getSafePaymentFeedback(payment?.resultDescription ?? "");
+  const resultDescription = safeResultDescription.toLowerCase();
 
   switch (payment?.status) {
     case "cancelled":
@@ -518,16 +519,39 @@ const getFailureCopy = (payment?: BookingPaymentRecord | null) => {
       if (resultDescription.includes("pin") || resultDescription.includes("credential") || resultDescription.includes("initiator")) {
         return {
           title: "Incorrect M-Pesa PIN",
-          description: payment?.resultDescription || "The M-Pesa PIN entered on your phone was not accepted. Your session is not booked yet.",
+          description: safeResultDescription || "The M-Pesa PIN entered on your phone was not accepted. Your session is not booked yet.",
         };
       }
 
       return {
         title: "Payment not complete",
         description:
-          payment?.resultDescription || "We could not confirm the booking fee on your phone. No session has been booked yet.",
+          safeResultDescription || "We could not confirm the booking fee on your phone. No session has been booked yet.",
       };
   }
+};
+
+function getSafePaymentFeedback(message: string) {
+  const trimmed = message.trim();
+
+  if (!trimmed) {
+    return "";
+  }
+
+  if (/forbidden|permission denied|not authorized|unauthorized/i.test(trimmed)) {
+    return "We could not confirm the M-Pesa request right now. Please try again, or change the phone number.";
+  }
+
+  return trimmed;
+}
+
+const getApiErrorCode = (error: unknown) => {
+  if (!(error instanceof ApiError) || !error.data || typeof error.data !== "object") {
+    return "";
+  }
+
+  const code = (error.data as { code?: unknown }).code;
+  return typeof code === "string" ? code : "";
 };
 
 const BookingSection = () => {
@@ -549,7 +573,6 @@ const BookingSection = () => {
   const [isCheckingAvailability, setIsCheckingAvailability] = useState(false);
   const [bookingGuidance, setBookingGuidance] = useState("");
   const [paymentFeedback, setPaymentFeedback] = useState("");
-  const [retryFailureCount, setRetryFailureCount] = useState(0);
   const [retryStartOverRequired, setRetryStartOverRequired] = useState(false);
   const [serviceDescriptionText, setServiceDescriptionText] = useState("");
   const [isDeletingServiceDescription, setIsDeletingServiceDescription] = useState(false);
@@ -571,11 +594,26 @@ const BookingSection = () => {
   const todayDate = getTodayDateInputValue();
 
   const activePayment = checkout?.payment ?? null;
-  const failureCopy = retryStartOverRequired
+  const retryLimitReached = Boolean(
+    activePayment &&
+      FINAL_PAYMENT_STATUSES.includes(activePayment.status) &&
+      !activePayment.canRetry &&
+      !isBookingConfirmed(checkout?.booking ?? null),
+  );
+  const retryAttemptsRemaining = activePayment?.retryAttemptsRemaining ?? 3;
+  const retryButtonLabel =
+    retryStartOverRequired || retryLimitReached
+      ? "Start Fresh Booking"
+      : isSubmitting
+        ? "Sending STK Push..."
+        : retryAttemptsRemaining > 0
+          ? `Try Again (${retryAttemptsRemaining} left)`
+          : "Try Again";
+  const failureCopy = retryStartOverRequired || retryLimitReached
     ? {
         title: "Start a fresh booking",
         description:
-          "The second retry was forbidden by the payment service, so this payment attempt can no longer be reused. Please start a fresh booking to continue.",
+          "You have used the 3 M-Pesa retry attempts for this booking. Please start a fresh booking to continue.",
       }
     : getFailureCopy(activePayment);
 
@@ -588,7 +626,6 @@ const BookingSection = () => {
     setBookingGuidance("");
     setCheckout(null);
     setPaymentFeedback("");
-    setRetryFailureCount(0);
     setRetryStartOverRequired(false);
     setForm((current) => ({ ...current, [field]: value }));
   };
@@ -691,7 +728,7 @@ const BookingSection = () => {
           return;
         }
 
-        setPaymentFeedback(getApiErrorMessage(error, "We could not refresh the payment status just now."));
+        setPaymentFeedback(getSafePaymentFeedback(getApiErrorMessage(error, "We could not refresh the payment status just now.")));
       }
     };
 
@@ -749,7 +786,6 @@ const BookingSection = () => {
     setIsCheckingAvailability(true);
     setBookingGuidance("");
     setPaymentFeedback("");
-    setRetryFailureCount(0);
     setRetryStartOverRequired(false);
 
     try {
@@ -790,7 +826,7 @@ const BookingSection = () => {
   };
 
   const handleStartPayment = async () => {
-    if (retryStartOverRequired) {
+    if (retryStartOverRequired || retryLimitReached) {
       startFreshBooking();
       return;
     }
@@ -823,29 +859,18 @@ const BookingSection = () => {
             });
 
       setCheckout(nextCheckout);
-      setRetryFailureCount(0);
       setRetryStartOverRequired(false);
       setStep("stk_sent");
       toast.success("STK push sent. Check your phone to complete the payment.");
     } catch (error) {
-      const message = getApiErrorMessage(error, "We could not start the M-Pesa payment right now.");
+      const message = getSafePaymentFeedback(getApiErrorMessage(error, "We could not start the M-Pesa payment right now."));
       const suggestion = getSuggestedBookingSlot(error);
 
-      if (isRetryAttempt && error instanceof ApiError && error.status === 403) {
-        const nextRetryFailureCount = retryFailureCount + 1;
-
-        setRetryFailureCount(nextRetryFailureCount);
+      if (isRetryAttempt && getApiErrorCode(error) === "mpesa_retry_limit_reached") {
+        setRetryStartOverRequired(true);
+        setPaymentFeedback(message);
         setStep("failed");
-
-        if (nextRetryFailureCount >= 2) {
-          setRetryStartOverRequired(true);
-          setPaymentFeedback("This retry is forbidden now. Please start a fresh booking to continue.");
-          toast.error("This retry is forbidden now. Please start a fresh booking to continue.");
-        } else {
-          setPaymentFeedback("We could not reuse that payment attempt. Please try once more or change the phone number.");
-          toast.error("We could not reuse that payment attempt. Please try once more or change the phone number.");
-        }
-
+        toast.error(message);
         return;
       }
 
@@ -870,7 +895,6 @@ const BookingSection = () => {
 
   const resetToPaymentStep = () => {
     setPaymentFeedback("");
-    setRetryFailureCount(0);
     setRetryStartOverRequired(false);
     setStep("payment");
   };
@@ -879,7 +903,6 @@ const BookingSection = () => {
     setCheckout(null);
     setPaymentFeedback("");
     setBookingGuidance("Please review your session details, then continue to payment again.");
-    setRetryFailureCount(0);
     setRetryStartOverRequired(false);
     setStep("details");
   };
@@ -983,22 +1006,24 @@ const BookingSection = () => {
           </MobileStatusSheet>
 
           <DesktopStatusDialog>
-          <div className="max-h-[calc(100vh-4rem)] overflow-y-auto rounded-[2rem] border border-border/60 bg-[linear-gradient(180deg,hsl(150_18%_16%),hsl(150_19%_12%))] px-6 py-8 text-center text-white shadow-card sm:px-8">
-            <StatusHalo>
-              <LoaderCircle className="h-10 w-10 animate-spin" />
-            </StatusHalo>
-            <p className="mt-6 text-sm font-semibold uppercase tracking-[0.22em] text-white/65">Processing Payment</p>
-            <h3 className="mt-3 font-heading text-3xl font-semibold">Confirming your payment</h3>
-            <p className="mt-4 text-sm leading-8 text-white/78 sm:text-base">
+          <div className="no-scrollbar max-h-[calc(100vh-2rem)] overflow-y-auto rounded-[1.65rem] border border-border/60 bg-[linear-gradient(180deg,hsl(150_18%_16%),hsl(150_19%_12%))] px-6 py-6 text-center text-white shadow-card sm:px-7">
+            <div className="scale-90">
+              <StatusHalo>
+                <LoaderCircle className="h-10 w-10 animate-spin" />
+              </StatusHalo>
+            </div>
+            <p className="mt-3 text-xs font-semibold uppercase tracking-[0.22em] text-white/65">Processing Payment</p>
+            <h3 className="mt-2 font-heading text-3xl font-semibold leading-tight">Confirming your payment</h3>
+            <p className="mt-3 text-sm leading-7 text-white/78 sm:text-[0.95rem]">
               Please wait while we confirm your booking fee with M-Pesa.
             </p>
-            <div className="mt-6 rounded-[1.4rem] border border-white/10 bg-white/5 px-5 py-4 text-left text-sm leading-7 text-white/75">
+            <div className="mt-4 rounded-[1.25rem] border border-white/10 bg-white/5 px-5 py-4 text-left text-sm leading-6 text-white/75">
               <p className="font-medium text-white">What happens next</p>
               <p className="mt-2">We are checking the Safaricom response, updating your booking, and preparing the confirmation details.</p>
               <p className="mt-2 text-white/58">This usually takes a few seconds.</p>
             </div>
             {paymentFeedback ? (
-              <div className="mt-4 rounded-[1.1rem] border border-white/10 bg-white/5 px-4 py-3 text-sm leading-7 text-white/72">
+              <div className="mt-3 rounded-[1.1rem] border border-white/10 bg-white/5 px-4 py-3 text-sm leading-6 text-white/72">
                 {paymentFeedback}
               </div>
             ) : null}
@@ -1039,7 +1064,7 @@ const BookingSection = () => {
           </MobileStatusSheet>
 
           <DesktopStatusDialog>
-          <div className="max-h-[calc(100vh-4rem)] overflow-y-auto rounded-[2rem] border border-border/60 bg-card px-6 py-8 text-center shadow-hover sm:px-8">
+          <div className="no-scrollbar max-h-[calc(100vh-2rem)] overflow-y-auto rounded-[2rem] border border-border/60 bg-card px-6 py-8 text-center shadow-hover sm:px-8">
             <StatusHalo tone="success">
               <CheckCircle2 className="h-10 w-10" />
             </StatusHalo>
@@ -1093,7 +1118,7 @@ const BookingSection = () => {
           ) : null}
           <div className="mt-4 grid gap-3">
             <Button variant="hero" className="w-full rounded-xl" onClick={handleStartPayment} disabled={isSubmitting}>
-              {retryStartOverRequired ? "Start Fresh Booking" : isSubmitting ? "Trying Again..." : "Try Again"}
+              {retryButtonLabel}
             </Button>
             <Button variant="heroBorder" className="w-full rounded-xl" onClick={resetToPaymentStep}>
               Change Phone Number
@@ -1102,7 +1127,7 @@ const BookingSection = () => {
         </MobileStatusSheet>
 
         <DesktopStatusDialog>
-        <div className="relative max-h-[calc(100vh-4rem)] overflow-y-auto rounded-[2rem] border border-border/60 bg-card px-6 py-8 text-center shadow-card sm:px-8">
+        <div className="no-scrollbar relative max-h-[calc(100vh-2rem)] overflow-y-auto rounded-[1.65rem] border border-border/60 bg-card px-6 py-6 text-center shadow-card sm:px-8">
           <Button
             variant="ghost"
             size="icon"
@@ -1112,20 +1137,22 @@ const BookingSection = () => {
           >
             <X className="h-4 w-4" />
           </Button>
-          <StatusHalo tone="destructive">
-            <CircleAlert className="h-10 w-10" />
-          </StatusHalo>
-          <p className="mt-6 text-sm font-semibold uppercase tracking-[0.22em] text-primary/75">Payment Failed</p>
-          <h3 className="mt-3 font-heading text-3xl font-semibold text-foreground">{failureCopy.title}</h3>
-          <p className="mt-4 text-sm leading-8 text-muted-foreground sm:text-base">{failureCopy.description}</p>
+          <div className="scale-90">
+            <StatusHalo tone="destructive">
+              <CircleAlert className="h-10 w-10" />
+            </StatusHalo>
+          </div>
+          <p className="mt-3 text-xs font-semibold uppercase tracking-[0.22em] text-primary/75">Payment Failed</p>
+          <h3 className="mt-2 font-heading text-3xl font-semibold leading-tight text-foreground">{failureCopy.title}</h3>
+          <p className="mt-3 text-sm leading-7 text-muted-foreground sm:text-[0.95rem]">{failureCopy.description}</p>
           {paymentFeedback ? (
-            <div className="mt-5 rounded-[1.1rem] border border-destructive/15 bg-destructive/10 px-4 py-3 text-sm leading-7 text-foreground">
+            <div className="mt-4 rounded-[1.1rem] border border-destructive/15 bg-destructive/10 px-4 py-3 text-sm leading-6 text-foreground">
               {paymentFeedback}
             </div>
           ) : null}
-          <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:justify-center">
+          <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:justify-center">
             <Button variant="hero" className="rounded-full" onClick={handleStartPayment} disabled={isSubmitting}>
-              {retryStartOverRequired ? "Start Fresh Booking" : isSubmitting ? "Trying Again..." : "Try Again"}
+              {retryButtonLabel}
             </Button>
             <Button variant="heroBorder" className="rounded-full" onClick={resetToPaymentStep}>
               Change Phone Number

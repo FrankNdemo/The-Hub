@@ -109,6 +109,25 @@ def parse_json_response(response) -> dict[str, object]:
     return json.loads(body)
 
 
+def get_mpesa_http_error_detail(status_code: int, payload: dict[str, object]) -> str:
+    raw_message = str(
+        payload.get("errorMessage")
+        or payload.get("detail")
+        or payload.get("ResponseDescription")
+        or payload.get("ResultDesc")
+        or ""
+    ).strip()
+    lowered_message = raw_message.lower()
+
+    if status_code in {401, 403} or "forbidden" in lowered_message or "invalid access token" in lowered_message:
+        return "M-Pesa could not authorize this request right now. Please try again, or use a different Safaricom number."
+
+    if status_code in {408, 429, 500, 502, 503, 504}:
+        return "M-Pesa is taking longer than expected. Please try again in a moment."
+
+    return raw_message or "M-Pesa could not start or confirm this request right now. Please try again."
+
+
 def get_missing_mpesa_configuration_fields() -> list[str]:
     missing_fields: list[str] = []
     required_fields = [
@@ -150,8 +169,10 @@ def request_json(url: str, *, method: str = "GET", headers: dict[str, str] | Non
         except Exception:
             payload = {"detail": exc.reason}
 
-        message = payload.get("errorMessage") or payload.get("detail") or payload.get("ResponseDescription") or str(exc)
-        raise BookingPaymentError(str(message), code="mpesa_http_error") from exc
+        raise BookingPaymentError(
+            get_mpesa_http_error_detail(exc.code, payload),
+            code="mpesa_http_error",
+        ) from exc
     except urllib_error.URLError as exc:
         raise BookingPaymentError("M-Pesa is temporarily unavailable. Please check your connection and try again.") from exc
 
@@ -227,7 +248,7 @@ def build_simulated_metadata(payment: BookingPayment) -> dict[str, object]:
 def query_simulated_stk_push(payment: BookingPayment) -> MpesaQueryResponse:
     elapsed = timezone.now() - payment.created_at
 
-    if elapsed < timedelta(seconds=6):
+    if elapsed < timedelta(seconds=30):
         return MpesaQueryResponse(
             is_final=False,
             result_code="",

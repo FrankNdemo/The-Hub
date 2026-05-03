@@ -48,6 +48,7 @@ class ClientStory(TimeStampedUUIDModel):
 
     class Status(models.TextChoices):
         PENDING = "pending", "Pending Review"
+        REVIEWED = "reviewed", "Reviewed"
         PUBLISHED = "published", "Published"
 
     therapist = models.ForeignKey(

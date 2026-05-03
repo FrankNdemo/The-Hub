@@ -20,6 +20,7 @@ import {
   getStoredAuthTokens,
   loginTherapistRequest,
   logoutTherapistRequest,
+  markClientStorySeenRequest,
   markNotificationsReadRequest,
   publishClientStoryRequest,
   rescheduleManageBooking,
@@ -67,6 +68,7 @@ interface WellnessHubContextValue extends WellnessHubState {
   saveBlogPost: (draft: BlogPostDraft) => Promise<BlogPost>;
   deleteBlogPost: (id: string) => Promise<void>;
   updateClientStory: (id: string, input: ClientStoryUpdateInput) => Promise<ClientStory>;
+  markClientStorySeen: (id: string) => Promise<ClientStory>;
   publishClientStory: (id: string) => Promise<ClientStory>;
   unpublishClientStory: (id: string) => Promise<ClientStory>;
   deleteClientStory: (id: string) => Promise<void>;
@@ -327,6 +329,9 @@ const normalizeBookingPayment = (payment?: Partial<BookingPaymentRecord> | null)
     status,
     statusLabel: payment.statusLabel,
     canRetry: Boolean(payment.canRetry),
+    retryAttemptsRemaining:
+      typeof payment.retryAttemptsRemaining === "number" ? payment.retryAttemptsRemaining : 0,
+    retryAttemptLimit: typeof payment.retryAttemptLimit === "number" ? payment.retryAttemptLimit : 3,
     amount: normalizeAmount(payment.amount, 0),
     currency: payment.currency,
     phoneNumber: payment.phoneNumber,
@@ -496,7 +501,7 @@ export const WellnessHubProvider = ({ children }: { children: React.ReactNode })
         therapist: therapist ?? current.therapist,
         therapists: nextTherapists ?? current.therapists,
         blogPosts: blogPosts ?? current.blogPosts,
-        clientStories: clientStories ?? current.clientStories,
+        clientStories: clientStories && !getStoredAuthTokens() ? clientStories : current.clientStories,
       };
     });
   };
@@ -775,6 +780,21 @@ export const WellnessHubProvider = ({ children }: { children: React.ReactNode })
     return story;
   };
 
+  const markClientStorySeen = async (id: string) => {
+    const story = normalizeClientStory(await markClientStorySeenRequest(id));
+
+    if (!story) {
+      throw new Error("The story response was incomplete.");
+    }
+
+    setState((current) => ({
+      ...current,
+      clientStories: upsertById(current.clientStories, story),
+    }));
+
+    return story;
+  };
+
   const unpublishClientStory = async (id: string) => {
     const story = normalizeClientStory(await unpublishClientStoryRequest(id));
 
@@ -973,6 +993,7 @@ export const WellnessHubProvider = ({ children }: { children: React.ReactNode })
     saveBlogPost,
     deleteBlogPost,
     updateClientStory,
+    markClientStorySeen,
     publishClientStory,
     unpublishClientStory,
     deleteClientStory,

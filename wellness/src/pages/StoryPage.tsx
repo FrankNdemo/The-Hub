@@ -563,8 +563,11 @@ const StoryPage = () => {
           >
             <button
               type="button"
-              onClick={() => setIsSuccessOpen(false)}
-              className="absolute right-4 top-4 flex h-9 w-9 items-center justify-center rounded-full border border-primary/12 bg-white/70 text-primary shadow-soft transition-colors hover:bg-white"
+              onClick={(event) => {
+                event.stopPropagation();
+                setIsSuccessOpen(false);
+              }}
+              className="absolute right-4 top-4 z-20 flex h-9 w-9 items-center justify-center rounded-full border border-primary/12 bg-white/70 text-primary shadow-soft transition-colors hover:bg-white"
               aria-label="Close story confirmation"
             >
               <X className="h-4 w-4" />

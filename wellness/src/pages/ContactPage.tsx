@@ -264,8 +264,11 @@ const ContactPage = () => {
           >
             <button
               type="button"
-              onClick={() => setShowMobileSentPopup(false)}
-              className="absolute right-3 top-3 flex h-9 w-9 items-center justify-center rounded-full border border-primary/12 bg-white/76 text-primary shadow-soft"
+              onClick={(event) => {
+                event.stopPropagation();
+                setShowMobileSentPopup(false);
+              }}
+              className="absolute right-3 top-3 z-20 flex h-9 w-9 items-center justify-center rounded-full border border-primary/12 bg-white/76 text-primary shadow-soft"
               aria-label="Close inquiry confirmation"
             >
               <X className="h-4 w-4" />

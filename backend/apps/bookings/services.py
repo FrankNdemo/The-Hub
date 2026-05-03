@@ -34,6 +34,8 @@ from .payments import (
 from .scheduling import ensure_client_can_book, ensure_slot_is_available
 
 QUERY_FAILURE_CONFIRMATION_GRACE_SECONDS = 25
+MIN_STK_TIMEOUT_SECONDS = 30
+PAYMENT_RETRY_LIMIT = 3
 
 
 def make_id(prefix: str) -> str:
@@ -65,6 +67,35 @@ def get_booking_fee_currency() -> str:
 def get_payment_hold_expiry(now=None):
     current_time = now or timezone.now()
     return current_time + timedelta(minutes=settings.BOOKING_PAYMENT_HOLD_MINUTES)
+
+
+def get_payment_retry_count(booking: Booking) -> int:
+    return max(0, booking.payments.count() - 1)
+
+
+def get_payment_retries_remaining(booking: Booking) -> int:
+    return max(0, PAYMENT_RETRY_LIMIT - get_payment_retry_count(booking))
+
+
+def can_retry_payment(booking: Booking, payment: BookingPayment | None = None) -> bool:
+    if is_exploration_call(booking) or booking.confirmed_at:
+        return False
+
+    if booking.status in {Booking.Status.CANCELLED, Booking.Status.COMPLETED}:
+        return False
+
+    if get_payment_retries_remaining(booking) <= 0:
+        return False
+
+    if payment is None:
+        return True
+
+    return payment.status in {
+        BookingPayment.Status.FAILED,
+        BookingPayment.Status.CANCELLED,
+        BookingPayment.Status.TIMED_OUT,
+        BookingPayment.Status.INSUFFICIENT_FUNDS,
+    }
 
 
 def validate_booking_request(*, therapist, data: dict, exclude_booking: Booking | None = None) -> None:
@@ -397,6 +428,12 @@ def retry_paid_booking_checkout(*, booking: Booking, mpesa_phone_number: str) ->
     if booking.confirmed_at:
         raise ValueError("This booking has already been confirmed.")
 
+    if get_payment_retries_remaining(booking) <= 0:
+        raise BookingPaymentError(
+            "You have used the 3 M-Pesa retry attempts for this booking. Please start a fresh booking to continue.",
+            code="mpesa_retry_limit_reached",
+        )
+
     validate_booking_request(
         therapist=booking.therapist,
         data={
@@ -418,11 +455,7 @@ def should_defer_query_failure_outcome(*, booking: Booking, payment: BookingPaym
         return False
 
     payment_status, _ = get_payment_failure_message(result_code, "")
-    if payment_status in {
-        BookingPayment.Status.CANCELLED,
-        BookingPayment.Status.TIMED_OUT,
-        BookingPayment.Status.INSUFFICIENT_FUNDS,
-    }:
+    if payment_status in {BookingPayment.Status.CANCELLED, BookingPayment.Status.INSUFFICIENT_FUNDS}:
         return False
 
     if booking.confirmed_at or payment.callback_received_at:
@@ -431,6 +464,9 @@ def should_defer_query_failure_outcome(*, booking: Booking, payment: BookingPaym
     current_time = timezone.now()
     if booking.payment_expires_at and booking.payment_expires_at <= current_time:
         return False
+
+    if payment_status == BookingPayment.Status.TIMED_OUT:
+        return current_time < payment.created_at + timedelta(seconds=MIN_STK_TIMEOUT_SECONDS)
 
     return current_time < payment.created_at + timedelta(seconds=QUERY_FAILURE_CONFIRMATION_GRACE_SECONDS)
 
@@ -448,7 +484,15 @@ def sync_booking_payment_status(*, booking: Booking, payment: BookingPayment) ->
             query_payload={"detail": "Payment hold expired before final confirmation."},
         )
 
-    query_result = query_stk_push_status(payment)
+    try:
+        query_result = query_stk_push_status(payment)
+    except BookingPaymentError as exc:
+        payment.status = BookingPayment.Status.PROCESSING
+        payment.result_description = exc.detail
+        payment.query_payload = {"detail": exc.detail, "code": exc.code}
+        payment.last_status_check_at = timezone.now()
+        payment.save(update_fields=["status", "result_description", "query_payload", "last_status_check_at", "updated_at"])
+        return booking, payment
 
     if not query_result.is_final:
         payment.status = BookingPayment.Status.PROCESSING

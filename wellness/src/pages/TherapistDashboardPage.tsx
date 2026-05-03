@@ -6,6 +6,7 @@ import {
   CalendarCheck2,
   ChevronDown,
   CheckCircle2,
+  Eye,
   ExternalLink,
   FilePenLine,
   Heart,
@@ -359,6 +360,7 @@ const TherapistDashboardPage = () => {
     saveBlogPost,
     deleteBlogPost,
     updateClientStory,
+    markClientStorySeen,
     publishClientStory,
     deleteClientStory,
     dismissNotification,
@@ -538,7 +540,7 @@ const TherapistDashboardPage = () => {
     [clientStories],
   );
   const pendingStoryCount = useMemo(
-    () => sortedClientStories.filter((story) => story.status !== "published").length,
+    () => sortedClientStories.filter((story) => story.status === "pending").length,
     [sortedClientStories],
   );
   const selectedStory = useMemo(
@@ -577,6 +579,8 @@ const TherapistDashboardPage = () => {
 
   const canPublishSelectedStory =
     Boolean(selectedStory) && (selectedStory.status !== "published" || storyDraftHasChanges);
+
+  const storyTextRows = (value: string) => Math.min(12, Math.max(3, value.split(/\r\n|\r|\n/).length + 1));
 
   const setDraftField = (field: keyof BlogPostDraft, value: string | string[]) => {
     setDraft((current) => ({ ...current, [field]: value }));
@@ -758,6 +762,27 @@ const TherapistDashboardPage = () => {
       toast.success("Story changes saved.");
     } catch (error) {
       toast.error(getApiErrorMessage(error, "This story could not be saved right now."));
+    } finally {
+      setIsSavingStory(false);
+    }
+  };
+
+  const handleMarkStorySeen = async () => {
+    if (!selectedStory) {
+      return;
+    }
+
+    setIsSavingStory(true);
+
+    try {
+      const saved = storyDraftHasChanges
+        ? await updateClientStory(selectedStory.id, buildStoryUpdatePayload())
+        : selectedStory;
+      const reviewed = await markClientStorySeen(saved.id);
+      setSelectedStoryId(reviewed.id);
+      toast.success("Story marked as seen.");
+    } catch (error) {
+      toast.error(getApiErrorMessage(error, "This story could not be marked as seen right now."));
     } finally {
       setIsSavingStory(false);
     }
@@ -1088,22 +1113,6 @@ const TherapistDashboardPage = () => {
                       <span className="sm:hidden">Blog</span>
                       <span className="hidden sm:inline">Blog Manager</span>
                     </TabsTrigger>
-                    {showStoryReview ? (
-                      <TabsTrigger
-                        value="stories"
-                        className="h-auto shrink-0 rounded-full px-3 py-2 text-[10px] sm:px-4 sm:text-sm lg:px-5"
-                      >
-                        <span className="inline-flex items-center gap-2">
-                          <BookOpen className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
-                          <span>Stories</span>
-                          {pendingStoryCount > 0 ? (
-                            <span className="rounded-full bg-primary px-1.5 text-[9px] font-semibold leading-4 text-primary-foreground">
-                              {pendingStoryCount > 99 ? "99+" : pendingStoryCount}
-                            </span>
-                          ) : null}
-                        </span>
-                      </TabsTrigger>
-                    ) : null}
                     <TabsTrigger
                       value="notifications"
                       className="h-auto shrink-0 rounded-full px-3 py-2 text-[10px] sm:px-4 sm:text-sm lg:px-5"
@@ -1121,6 +1130,22 @@ const TherapistDashboardPage = () => {
                         <span className="sm:hidden">Alerts</span>
                       </span>
                     </TabsTrigger>
+                    {showStoryReview ? (
+                      <TabsTrigger
+                        value="stories"
+                        className="h-auto shrink-0 rounded-full px-3 py-2 text-[10px] sm:px-4 sm:text-sm lg:px-5"
+                      >
+                        <span className="inline-flex items-center gap-2">
+                          <BookOpen className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                          <span>Stories</span>
+                          {pendingStoryCount > 0 ? (
+                            <span className="rounded-full bg-primary px-1.5 text-[9px] font-semibold leading-4 text-primary-foreground">
+                              {pendingStoryCount > 99 ? "99+" : pendingStoryCount}
+                            </span>
+                          ) : null}
+                        </span>
+                      </TabsTrigger>
+                    ) : null}
                     <TabsTrigger value="transactions" className="h-auto shrink-0 rounded-full px-3 py-2 text-[10px] sm:px-4 sm:text-sm lg:px-5">
                       Transactions
                     </TabsTrigger>
@@ -2070,6 +2095,7 @@ const TherapistDashboardPage = () => {
                       <div className="mt-5 space-y-2">
                         {sortedClientStories.map((story) => {
                           const isPublished = story.status === "published";
+                          const isReviewed = story.status === "reviewed";
 
                           return (
                             <button
@@ -2083,6 +2109,11 @@ const TherapistDashboardPage = () => {
                                 <span className="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-primary/10 px-2.5 py-1 text-[0.68rem] font-semibold uppercase tracking-[0.14em] text-primary">
                                   <CheckCircle2 className="h-3.5 w-3.5" />
                                   Published
+                                </span>
+                              ) : isReviewed ? (
+                                <span className="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-secondary px-2.5 py-1 text-[0.68rem] font-semibold uppercase tracking-[0.14em] text-primary">
+                                  <Eye className="h-3.5 w-3.5" />
+                                  Seen
                                 </span>
                               ) : (
                                 <span className="h-2.5 w-2.5 shrink-0 rounded-full bg-amber-400" aria-label="Pending" />
@@ -2110,10 +2141,16 @@ const TherapistDashboardPage = () => {
                                   className={`rounded-full px-3 py-1 ${
                                     selectedStory.status === "published"
                                       ? "bg-primary/10 text-primary"
+                                      : selectedStory.status === "reviewed"
+                                        ? "bg-secondary text-primary"
                                       : "bg-amber-100 text-amber-800"
                                   }`}
                                 >
-                                  {selectedStory.status === "published" ? "Published" : "Pending Review"}
+                                  {selectedStory.status === "published"
+                                    ? "Published"
+                                    : selectedStory.status === "reviewed"
+                                      ? "Seen"
+                                      : "Pending Review"}
                                 </Badge>
                                 <span className="text-xs uppercase tracking-[0.2em] text-primary/65">
                                   Submitted {new Date(selectedStory.createdAt).toLocaleDateString()}
@@ -2128,7 +2165,7 @@ const TherapistDashboardPage = () => {
                                 {selectedStory.displayName}
                               </DialogTitle>
                               <DialogDescription>
-                                View the full submission, edit the public version, delete it, or publish it.
+                                View the full submission, mark it as seen, edit the public version, delete it, or publish it later.
                               </DialogDescription>
                             </DialogHeader>
 
@@ -2192,7 +2229,8 @@ const TherapistDashboardPage = () => {
                                     id="story-original"
                                     value={storyDraft.story}
                                     readOnly
-                                    className="mt-2 min-h-[14rem] rounded-[1.5rem] bg-secondary/30 leading-7"
+                                    rows={storyTextRows(storyDraft.story)}
+                                    className="mt-2 min-h-0 resize-none rounded-[1.5rem] bg-secondary/30 leading-7"
                                   />
                                 </div>
                                 <div>
@@ -2201,7 +2239,8 @@ const TherapistDashboardPage = () => {
                                     id="story-published-version"
                                     value={storyDraft.editedStory}
                                     onChange={(event) => setStoryDraftField("editedStory", event.target.value)}
-                                    className="mt-2 min-h-[14rem] rounded-[1.5rem] leading-7"
+                                    rows={storyTextRows(storyDraft.editedStory)}
+                                    className="mt-2 min-h-0 resize-none rounded-[1.5rem] leading-7"
                                     placeholder="Edit the story for public sharing."
                                   />
                                 </div>
@@ -2209,6 +2248,21 @@ const TherapistDashboardPage = () => {
                             </div>
 
                             <DialogFooter className="mt-6 flex-col gap-2 sm:flex-row sm:flex-wrap sm:justify-start">
+                              <Button
+                                type="button"
+                                variant="heroBorder"
+                                className="rounded-full"
+                                onClick={() => void handleMarkStorySeen()}
+                                disabled={
+                                  selectedStory.status !== "pending" ||
+                                  isSavingStory ||
+                                  isPublishingStory ||
+                                  isDeletingStory
+                                }
+                              >
+                                <Eye className="h-4 w-4" />
+                                {isSavingStory ? "Saving..." : "Mark Seen"}
+                              </Button>
                               <Button
                                 type="button"
                                 variant="heroBorder"

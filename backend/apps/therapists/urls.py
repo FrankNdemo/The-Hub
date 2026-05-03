@@ -7,6 +7,7 @@ from .views import (
     DashboardOverviewView,
     DashboardClientStoryDetailView,
     DashboardClientStoryPublishView,
+    DashboardClientStorySeenView,
     DashboardClientStoryUnpublishView,
     PublicClientStoryListView,
     PublicTherapistProfileView,
@@ -37,6 +38,7 @@ urlpatterns = [
     path("dashboard/profile/", TherapistProfileDetailView.as_view(), name="therapist-profile-detail"),
     path("dashboard/profile/upload-image/", TherapistProfileImageUploadView.as_view(), name="therapist-profile-image-upload"),
     path("dashboard/stories/<uuid:pk>/", DashboardClientStoryDetailView.as_view(), name="dashboard-client-story-detail"),
+    path("dashboard/stories/<uuid:pk>/seen/", DashboardClientStorySeenView.as_view(), name="dashboard-client-story-seen"),
     path("dashboard/stories/<uuid:pk>/publish/", DashboardClientStoryPublishView.as_view(), name="dashboard-client-story-publish"),
     path(
         "dashboard/stories/<uuid:pk>/unpublish/",

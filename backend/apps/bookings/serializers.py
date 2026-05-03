@@ -13,6 +13,7 @@ from .delivery import (
 )
 from .exploration import get_public_booking_notes, is_exploration_call, is_exploration_call_notes
 from .models import Booking, BookingHistoryEvent, BookingPayment, EmailRecord
+from .services import PAYMENT_RETRY_LIMIT, can_retry_payment, get_payment_retries_remaining
 
 
 def is_virtual_session_open(booking: Booking) -> bool:
@@ -51,18 +52,15 @@ def get_payment_method_label(payment: BookingPayment) -> str:
 
 
 def get_payment_retry_flag(payment: BookingPayment) -> bool:
-    return payment.status in {
-        BookingPayment.Status.FAILED,
-        BookingPayment.Status.CANCELLED,
-        BookingPayment.Status.TIMED_OUT,
-        BookingPayment.Status.INSUFFICIENT_FUNDS,
-    }
+    return can_retry_payment(payment.booking, payment)
 
 
 class BookingPaymentSummarySerializer(serializers.ModelSerializer):
     paymentMethod = serializers.SerializerMethodField()
     statusLabel = serializers.SerializerMethodField()
     canRetry = serializers.SerializerMethodField()
+    retryAttemptsRemaining = serializers.SerializerMethodField()
+    retryAttemptLimit = serializers.SerializerMethodField()
     merchantRequestId = serializers.CharField(source="merchant_request_id", allow_blank=True)
     checkoutRequestId = serializers.CharField(source="checkout_request_id", allow_blank=True, allow_null=True)
     transactionId = serializers.CharField(source="transaction_id", allow_blank=True)
@@ -82,6 +80,8 @@ class BookingPaymentSummarySerializer(serializers.ModelSerializer):
             "status",
             "statusLabel",
             "canRetry",
+            "retryAttemptsRemaining",
+            "retryAttemptLimit",
             "amount",
             "currency",
             "phoneNumber",
@@ -103,6 +103,12 @@ class BookingPaymentSummarySerializer(serializers.ModelSerializer):
 
     def get_canRetry(self, obj: BookingPayment) -> bool:
         return get_payment_retry_flag(obj)
+
+    def get_retryAttemptsRemaining(self, obj: BookingPayment) -> int:
+        return get_payment_retries_remaining(obj.booking)
+
+    def get_retryAttemptLimit(self, obj: BookingPayment) -> int:
+        return PAYMENT_RETRY_LIMIT
 
 
 class BookingPaymentSerializer(BookingPaymentSummarySerializer):
