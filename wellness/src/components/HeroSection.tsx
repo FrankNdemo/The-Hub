@@ -21,11 +21,11 @@ const HeroSection = () => {
   const heroImageScale = useTransform(smoothProgress, [0, 1], [1.02, 1.1]);
 
   return (
-    <section id="home-hero" className="relative overflow-hidden pb-14 pt-0">
+    <section id="home-hero" className="relative overflow-hidden pb-0 pt-0 sm:pb-14">
       <div className="w-full">
         <div
           ref={heroRef}
-          className="relative min-h-[34rem] overflow-hidden border-b border-border/60 bg-[linear-gradient(135deg,hsl(42_31%_99%),hsl(42_31%_97%))] shadow-hover sm:min-h-[36rem] md:min-h-[38rem] lg:min-h-[40rem]"
+          className="relative min-h-[100svh] overflow-hidden border-b border-border/60 bg-[linear-gradient(135deg,hsl(42_31%_99%),hsl(42_31%_97%))] shadow-hover sm:min-h-[36rem] md:min-h-[38rem] lg:min-h-[40rem]"
         >
           <motion.img
             src={heroImg}
@@ -68,8 +68,8 @@ const HeroSection = () => {
             </div>
           </div>
 
-          <div className="relative z-20 mx-auto flex min-h-[34rem] max-w-7xl items-start px-4 pb-10 pt-44 sm:min-h-[36rem] sm:px-6 sm:pb-12 sm:pt-48 md:min-h-[38rem] md:px-8 md:pt-48 lg:min-h-[40rem] lg:px-10 lg:pb-14 lg:pt-52">
-            <div className="animate-fade-up mt-9 max-w-[24rem] pl-2 text-left sm:mt-10 sm:max-w-[26rem] sm:pl-4 md:mt-14 md:max-w-[30rem] md:pl-6 lg:mt-16 lg:max-w-[33rem] lg:pl-8">
+          <div className="relative z-20 mx-auto flex min-h-[100svh] max-w-7xl items-center px-4 pb-16 pt-40 sm:min-h-[36rem] sm:items-start sm:px-6 sm:pb-12 sm:pt-48 md:min-h-[38rem] md:px-8 md:pt-48 lg:min-h-[40rem] lg:px-10 lg:pb-14 lg:pt-52">
+            <div className="animate-fade-up max-w-[24rem] pl-2 text-left sm:mt-10 sm:max-w-[26rem] sm:pl-4 md:mt-14 md:max-w-[30rem] md:pl-6 lg:mt-16 lg:max-w-[33rem] lg:pl-8">
               <h1
                 className="max-w-[19rem] font-heading text-[2.4rem] font-medium leading-[0.92] text-foreground [text-shadow:0_10px_24px_rgba(255,255,255,0.18)] sm:max-w-[21rem] sm:text-[2.8rem] md:max-w-[23rem] md:text-[3.1rem] lg:max-w-[26rem] lg:text-[3.45rem]"
                 aria-label="Discover your best self!"

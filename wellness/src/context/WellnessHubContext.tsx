@@ -861,16 +861,18 @@ export const WellnessHubProvider = ({ children }: { children: React.ReactNode })
     try {
       const payload = await loginTherapistRequest(email, password);
 
-      setState((current) => ({
-        ...current,
-        therapist: normalizeTherapistProfile(payload.therapist),
-        therapistSession: payload.therapistSession,
-      }));
-
       try {
-        await refreshDashboard();
+        const snapshot = await fetchDashboardOverview();
+        const nextState = applyDashboardSnapshot(snapshot);
+        cacheTherapists(nextState.therapists);
+        setState(nextState);
       } catch {
         // Keep the authenticated session even if the dashboard snapshot fails to hydrate immediately.
+        setState((current) => ({
+          ...current,
+          therapist: normalizeTherapistProfile(payload.therapist),
+          therapistSession: payload.therapistSession,
+        }));
       }
 
       return { success: true } as const;

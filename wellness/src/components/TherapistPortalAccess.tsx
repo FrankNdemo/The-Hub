@@ -155,7 +155,7 @@ const TherapistPortalAccess = () => {
     setPassword("");
     setLoginOpen(false);
     toast.success("Therapist portal unlocked.");
-    navigate("/therapist/portal");
+    navigate("/therapist/portal", { replace: true });
   };
 
   const handlePasswordReset = async (event: FormEvent) => {

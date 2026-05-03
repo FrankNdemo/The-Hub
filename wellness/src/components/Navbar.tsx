@@ -522,7 +522,7 @@ const Navbar = () => {
 
             <div
               className={cn(
-                "absolute inset-x-0 top-0 h-[75svh] overflow-hidden rounded-none bg-[radial-gradient(circle_at_top_left,rgba(94,134,115,0.14),transparent_24%),radial-gradient(circle_at_bottom_right,rgba(75,115,94,0.18),transparent_28%),linear-gradient(160deg,rgba(7,24,18,0.985)_0%,rgba(10,34,25,0.985)_48%,rgba(13,45,32,0.97)_100%)] text-white shadow-[0_34px_80px_-36px_rgba(3,8,6,0.8)] backdrop-blur-xl md:inset-0 md:h-full md:overflow-y-auto md:overscroll-contain md:no-scrollbar",
+                "absolute inset-x-0 top-0 h-[92svh] max-h-[calc(100svh-0.75rem)] overflow-y-auto overscroll-contain rounded-none bg-[radial-gradient(circle_at_top_left,rgba(94,134,115,0.14),transparent_24%),radial-gradient(circle_at_bottom_right,rgba(75,115,94,0.18),transparent_28%),linear-gradient(160deg,rgba(7,24,18,0.985)_0%,rgba(10,34,25,0.985)_48%,rgba(13,45,32,0.97)_100%)] text-white shadow-[0_34px_80px_-36px_rgba(3,8,6,0.8)] backdrop-blur-xl no-scrollbar md:inset-0 md:h-full md:max-h-none md:overflow-y-auto md:overscroll-contain",
                 isMenuClosing ? "animate-menu-sheet-out" : "animate-menu-sheet-in",
               )}
               data-nav-theme="inverse"
@@ -544,7 +544,7 @@ const Navbar = () => {
                 className="pointer-events-none absolute bottom-[10rem] right-[5rem] z-0 hidden w-[9.5rem] rotate-[24deg] opacity-[0.08] saturate-[0.58] brightness-[0.84] md:block lg:right-[6rem] lg:w-[11rem]"
               />
 
-              <div className="relative z-10 mx-auto flex h-full w-full max-w-6xl flex-col px-4 pb-5 pt-4 sm:px-6 sm:pb-6 sm:pt-5 md:min-h-full md:px-10 md:pb-8 md:pt-7 lg:px-14 lg:pb-10">
+              <div className="relative z-10 mx-auto flex min-h-full w-full max-w-6xl flex-col px-4 pb-7 pt-4 sm:px-6 sm:pb-8 sm:pt-5 md:min-h-full md:px-10 md:pb-8 md:pt-7 lg:px-14 lg:pb-10">
                 <div className="flex items-start justify-between gap-4">
                   <div className="min-w-0 origin-left scale-[0.82] sm:scale-[0.92] md:scale-[1.08]">
                     <WellnessLogo variant="navbar" tone="inverse" />
