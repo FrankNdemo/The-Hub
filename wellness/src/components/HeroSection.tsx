@@ -1,4 +1,3 @@
-import { useRef } from "react";
 import { motion, useReducedMotion, useScroll, useSpring, useTransform } from "framer-motion";
 import { CalendarClock, MessageCircle, PhoneCall } from "lucide-react";
 import { Link } from "react-router-dom";
@@ -12,24 +11,18 @@ import WellnessLogo from "./WellnessLogo";
 const heroTitleWords = ["Discover", "your"];
 
 const HeroSection = () => {
-  const heroRef = useRef<HTMLDivElement | null>(null);
-  const { scrollYProgress } = useScroll({
-    target: heroRef,
-    offset: ["start start", "end start"],
-  });
+  const { scrollYProgress } = useScroll();
   const smoothProgress = useSpring(scrollYProgress, { stiffness: 64, damping: 18, mass: 0.28 });
-  const heroImageY = useTransform(smoothProgress, [0, 1], ["0%", "16%"]);
-  const heroImageScale = useTransform(smoothProgress, [0, 1], [1.06, 1.16]);
-  const heroGlowY = useTransform(smoothProgress, [0, 1], ["0%", "34%"]);
+  const heroImageY = useTransform(smoothProgress, [0, 0.28], ["0%", "20%"]);
+  const heroImageScale = useTransform(smoothProgress, [0, 0.28], [1.08, 1.24]);
+  const heroGlowY = useTransform(smoothProgress, [0, 0.55], ["0%", "34%"]);
   const desktopImageEffects = useDesktopImageEffects();
   const shouldReduceMotion = useReducedMotion();
-  const shouldAnimateHeroImage = desktopImageEffects && !shouldReduceMotion;
 
   return (
     <section id="home-hero" className="relative overflow-hidden pb-0 pt-0 sm:pb-14" data-nav-theme="inverse">
       <div className="w-full">
         <div
-          ref={heroRef}
           className="relative min-h-[100svh] overflow-hidden border-b border-border/60 bg-[linear-gradient(135deg,hsl(42_31%_99%),hsl(42_31%_97%))] shadow-hover sm:min-h-[36rem] md:min-h-[38rem] lg:min-h-[40rem]"
         >
           <motion.img
@@ -38,13 +31,13 @@ const HeroSection = () => {
             loading="eager"
             fetchpriority="high"
             className="absolute inset-y-0 -right-[8%] h-full w-[128%] max-w-none object-cover object-[66%_8%] brightness-[1.03] saturate-[1.03] contrast-[1.05] sm:-right-[4%] sm:w-[112%] sm:object-[82%_16%] sm:brightness-[1.06] sm:saturate-[1.02] sm:contrast-[1.08] md:-right-[5%] md:w-[110%] md:object-[79%_18%] md:brightness-[1.02] md:saturate-[0.92] md:contrast-[1.02] lg:-right-[2%] lg:w-[104%] lg:object-[77%_16%]"
-            style={shouldAnimateHeroImage ? { y: heroImageY, scale: heroImageScale } : undefined}
+            style={desktopImageEffects ? { y: heroImageY, scale: heroImageScale } : undefined}
           />
           <div className="absolute inset-0 bg-[linear-gradient(102deg,rgba(9,24,19,0.78)_0%,rgba(9,24,19,0.52)_38%,rgba(9,24,19,0.15)_70%,rgba(9,24,19,0.02)_100%)] sm:bg-[linear-gradient(108deg,rgba(9,24,19,0.72)_0%,rgba(9,24,19,0.44)_34%,rgba(9,24,19,0.12)_68%,rgba(9,24,19,0.01)_100%)] md:bg-[linear-gradient(90deg,rgba(9,24,19,0.72)_0%,rgba(9,24,19,0.5)_26%,rgba(9,24,19,0.24)_48%,rgba(9,24,19,0.06)_72%,rgba(9,24,19,0.01)_100%),radial-gradient(circle_at_28%_18%,rgba(250,247,242,0.25),transparent_32%)]" />
           <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(255,255,255,0.12),transparent_24%),radial-gradient(circle_at_bottom_left,rgba(8,24,19,0.28),transparent_34%)] sm:bg-[radial-gradient(circle_at_top_left,rgba(255,255,255,0.14),transparent_24%),radial-gradient(circle_at_bottom_left,rgba(8,24,19,0.22),transparent_34%)] md:bg-[radial-gradient(circle_at_top_left,rgba(255,255,255,0.16),transparent_24%),radial-gradient(circle_at_bottom_left,rgba(8,24,19,0.18),transparent_32%)]" />
           <motion.div
             className="pointer-events-none absolute left-[7%] top-[18%] hidden h-36 w-36 rounded-full bg-white/18 blur-3xl sm:h-52 sm:w-52 md:block"
-            style={shouldAnimateHeroImage ? { y: heroGlowY } : undefined}
+            style={desktopImageEffects ? { y: heroGlowY } : undefined}
           />
           <motion.img
             src={leafDecor}
