@@ -10,7 +10,6 @@ class Notification(TimeStampedUUIDModel):
         CANCEL = "cancel", "Cancel"
         COMPLETION = "completion", "Completion"
         BLOG = "blog", "Blog"
-        INQUIRY = "inquiry", "Inquiry"
 
     therapist = models.ForeignKey(
         "therapists.TherapistProfile",

@@ -8,10 +8,12 @@ import {
   createBooking as createBookingRequest,
   deleteBookingRequest,
   deleteBlogPostRequest,
+  deleteClientStoryRequest,
   deleteNotificationRequest,
   fetchDashboardOverview,
   fetchManageBooking,
   fetchPublicBlogPosts,
+  fetchPublicClientStories,
   fetchPublicTherapist,
   fetchPublicTherapists,
   getApiErrorMessage,
@@ -19,11 +21,15 @@ import {
   loginTherapistRequest,
   logoutTherapistRequest,
   markNotificationsReadRequest,
+  publishClientStoryRequest,
   rescheduleManageBooking,
   cancelManageBooking as cancelManageBookingRequest,
   completeBookingRequest,
   resetTherapistPasswordRequest,
   saveBlogPostRequest,
+  submitClientStoryRequest,
+  unpublishClientStoryRequest,
+  updateClientStoryRequest,
   updateTherapistPasswordRequest,
   updateTherapistProfileRequest,
   updateTherapistSecretPassphraseRequest,
@@ -36,6 +42,9 @@ import type {
   BookingInput,
   BookingPaymentRecord,
   BookingRecord,
+  ClientStory,
+  ClientStoryInput,
+  ClientStoryUpdateInput,
   NotificationItem,
   TherapistProfile,
   WellnessHubState,
@@ -49,6 +58,7 @@ interface WellnessHubContextValue extends WellnessHubState {
   refreshPublicContent: () => Promise<void>;
   refreshDashboard: () => Promise<void>;
   submitBooking: (input: BookingInput) => Promise<BookingRecord>;
+  submitClientStory: (input: ClientStoryInput) => Promise<ClientStory>;
   getBookingByToken: (token: string, email: string) => Promise<BookingRecord | null>;
   rescheduleBooking: (input: { token: string; clientEmail: string; date: string; time: string }) => Promise<BookingRecord>;
   cancelBooking: (token: string, email: string) => Promise<BookingRecord>;
@@ -56,6 +66,10 @@ interface WellnessHubContextValue extends WellnessHubState {
   deleteBooking: (id: string, reason: string) => Promise<void>;
   saveBlogPost: (draft: BlogPostDraft) => Promise<BlogPost>;
   deleteBlogPost: (id: string) => Promise<void>;
+  updateClientStory: (id: string, input: ClientStoryUpdateInput) => Promise<ClientStory>;
+  publishClientStory: (id: string) => Promise<ClientStory>;
+  unpublishClientStory: (id: string) => Promise<ClientStory>;
+  deleteClientStory: (id: string) => Promise<void>;
   dismissNotification: (id: string) => Promise<void>;
   markNotificationsRead: () => Promise<void>;
   updateTherapistProfile: (profile: TherapistProfile) => Promise<TherapistProfile>;
@@ -78,6 +92,7 @@ const WellnessHubContext = createContext<WellnessHubContextValue | null>(null);
 
 const defaultState: WellnessHubState = {
   blogPosts: seedBlogPosts,
+  clientStories: [],
   bookings: [],
   transactions: [],
   notifications: [],
@@ -173,7 +188,8 @@ const normalizeNotification = (notification?: Partial<NotificationItem> | null):
     notification.type === "reschedule" ||
     notification.type === "cancel" ||
     notification.type === "completion" ||
-    notification.type === "blog"
+    notification.type === "blog" ||
+    notification.type === "inquiry"
       ? notification.type
       : "booking";
 
@@ -221,6 +237,43 @@ const normalizeBlogPost = (post?: Partial<BlogPost> | null): BlogPost | null => 
         : seedFallback?.featuredImage ?? "",
     contentHtml: post.contentHtml,
     tags: post.tags.filter((tag): tag is string => typeof tag === "string"),
+  };
+};
+
+const normalizeClientStory = (story?: Partial<ClientStory> | null): ClientStory | null => {
+  if (
+    !story ||
+    typeof story.id !== "string" ||
+    typeof story.displayName !== "string" ||
+    typeof story.serviceType !== "string" ||
+    typeof story.story !== "string" ||
+    typeof story.status !== "string" ||
+    typeof story.createdAt !== "string" ||
+    typeof story.updatedAt !== "string"
+  ) {
+    return null;
+  }
+
+  return {
+    id: story.id,
+    fullName: typeof story.fullName === "string" ? story.fullName : "",
+    displayName: story.displayName || "Anonymous client",
+    image: typeof story.image === "string" ? story.image : "",
+    serviceType:
+      story.serviceType === "family" || story.serviceType === "corporate" ? story.serviceType : "individual",
+    story: story.story,
+    editedStory: typeof story.editedStory === "string" ? story.editedStory : "",
+    publishedText:
+      typeof story.publishedText === "string" && story.publishedText.trim()
+        ? story.publishedText
+        : typeof story.editedStory === "string" && story.editedStory.trim()
+          ? story.editedStory
+          : story.story,
+    status: story.status === "published" ? "published" : "pending",
+    createdAt: story.createdAt,
+    updatedAt: story.updatedAt,
+    publishedAt:
+      typeof story.publishedAt === "string" || story.publishedAt === null ? story.publishedAt : undefined,
   };
 };
 
@@ -384,6 +437,11 @@ const applyDashboardSnapshot = (snapshot: DashboardOverviewResponse): WellnessHu
   blogPosts: snapshot.blogPosts
     .map((post) => normalizeBlogPost(post))
     .filter((post): post is BlogPost => Boolean(post)),
+  clientStories: Array.isArray(snapshot.clientStories)
+    ? snapshot.clientStories
+        .map((story) => normalizeClientStory(story))
+        .filter((story): story is ClientStory => Boolean(story))
+    : [],
   bookings: snapshot.bookings
     .map((booking) => normalizeBooking(booking))
     .filter((booking): booking is BookingRecord => Boolean(booking)),
@@ -418,10 +476,12 @@ export const WellnessHubProvider = ({ children }: { children: React.ReactNode })
     therapist,
     therapists,
     blogPosts,
+    clientStories,
   }: {
     therapist?: TherapistProfile;
     therapists?: TherapistProfile[];
     blogPosts?: BlogPost[];
+    clientStories?: ClientStory[];
   }) => {
     setState((current) => {
       const nextTherapists =
@@ -436,6 +496,7 @@ export const WellnessHubProvider = ({ children }: { children: React.ReactNode })
         therapist: therapist ?? current.therapist,
         therapists: nextTherapists ?? current.therapists,
         blogPosts: blogPosts ?? current.blogPosts,
+        clientStories: clientStories ?? current.clientStories,
       };
     });
   };
@@ -451,10 +512,11 @@ export const WellnessHubProvider = ({ children }: { children: React.ReactNode })
   };
 
   const refreshPublicContent = async () => {
-    const [therapistResult, therapistsResult, blogPostsResult] = await Promise.allSettled([
+    const [therapistResult, therapistsResult, blogPostsResult, clientStoriesResult] = await Promise.allSettled([
       fetchPublicTherapist(),
       fetchPublicTherapists(),
       fetchPublicBlogPosts(),
+      fetchPublicClientStories(),
     ]);
 
     const therapist =
@@ -471,11 +533,17 @@ export const WellnessHubProvider = ({ children }: { children: React.ReactNode })
             .map((post) => normalizeBlogPost(post))
             .filter((post): post is BlogPost => Boolean(post))
         : undefined;
+    const clientStories =
+      clientStoriesResult.status === "fulfilled"
+        ? clientStoriesResult.value
+            .map((story) => normalizeClientStory(story))
+            .filter((story): story is ClientStory => Boolean(story))
+        : undefined;
 
     const nextBlogPosts = blogPosts && blogPosts.length > 0 ? blogPosts : undefined;
 
-    if (therapist || therapists || nextBlogPosts) {
-      setPublicContent({ therapist, therapists, blogPosts: nextBlogPosts });
+    if (therapist || therapists || nextBlogPosts || clientStories) {
+      setPublicContent({ therapist, therapists, blogPosts: nextBlogPosts, clientStories });
     }
   };
 
@@ -536,6 +604,20 @@ export const WellnessHubProvider = ({ children }: { children: React.ReactNode })
     }
 
     return booking;
+  };
+
+  const submitClientStory = async (input: ClientStoryInput) => {
+    const story = normalizeClientStory(await submitClientStoryRequest(input));
+
+    if (!story) {
+      throw new Error("The story response was incomplete.");
+    }
+
+    if (getStoredAuthTokens()) {
+      void refreshDashboard().catch(() => undefined);
+    }
+
+    return story;
   };
 
   const getBookingByToken = async (token: string, email: string) => {
@@ -660,6 +742,59 @@ export const WellnessHubProvider = ({ children }: { children: React.ReactNode })
     setState((current) => ({
       ...current,
       blogPosts: current.blogPosts.filter((post) => post.id !== id),
+    }));
+  };
+
+  const updateClientStory = async (id: string, input: ClientStoryUpdateInput) => {
+    const story = normalizeClientStory(await updateClientStoryRequest(id, input));
+
+    if (!story) {
+      throw new Error("The story response was incomplete.");
+    }
+
+    setState((current) => ({
+      ...current,
+      clientStories: upsertById(current.clientStories, story),
+    }));
+
+    return story;
+  };
+
+  const publishClientStory = async (id: string) => {
+    const story = normalizeClientStory(await publishClientStoryRequest(id));
+
+    if (!story) {
+      throw new Error("The story response was incomplete.");
+    }
+
+    setState((current) => ({
+      ...current,
+      clientStories: upsertById(current.clientStories, story),
+    }));
+
+    return story;
+  };
+
+  const unpublishClientStory = async (id: string) => {
+    const story = normalizeClientStory(await unpublishClientStoryRequest(id));
+
+    if (!story) {
+      throw new Error("The story response was incomplete.");
+    }
+
+    setState((current) => ({
+      ...current,
+      clientStories: upsertById(current.clientStories, story),
+    }));
+
+    return story;
+  };
+
+  const deleteClientStory = async (id: string) => {
+    await deleteClientStoryRequest(id);
+    setState((current) => ({
+      ...current,
+      clientStories: current.clientStories.filter((story) => story.id !== id),
     }));
   };
 
@@ -827,6 +962,7 @@ export const WellnessHubProvider = ({ children }: { children: React.ReactNode })
     refreshPublicContent,
     refreshDashboard,
     submitBooking,
+    submitClientStory,
     getBookingByToken,
     rescheduleBooking,
     cancelBooking,
@@ -834,6 +970,10 @@ export const WellnessHubProvider = ({ children }: { children: React.ReactNode })
     deleteBooking,
     saveBlogPost,
     deleteBlogPost,
+    updateClientStory,
+    publishClientStory,
+    unpublishClientStory,
+    deleteClientStory,
     dismissNotification,
     markNotificationsRead,
     updateTherapistProfile,

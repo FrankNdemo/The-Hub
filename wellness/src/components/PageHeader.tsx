@@ -1,4 +1,5 @@
-import type { CSSProperties, ReactNode } from "react";
+import { useRef, type CSSProperties, type ReactNode } from "react";
+import { motion, useScroll, useSpring, useTransform } from "framer-motion";
 
 import { cn } from "@/lib/utils";
 
@@ -28,11 +29,21 @@ const PageHeader = ({
   contentClassName,
 }: PageHeaderProps) => {
   const hasBackgroundImage = Boolean(backgroundImage);
+  const headerRef = useRef<HTMLDivElement | null>(null);
+  const { scrollYProgress } = useScroll({
+    target: headerRef,
+    offset: ["start start", "end start"],
+  });
+  const smoothProgress = useSpring(scrollYProgress, { stiffness: 64, damping: 18, mass: 0.28 });
+  const backgroundY = useTransform(smoothProgress, [0, 1], ["0%", "16%"]);
+  const backgroundScale = useTransform(smoothProgress, [0, 1], [1.06, 1.16]);
+  const titleWords = title.split(" ");
 
   return (
     <section className="overflow-x-clip pb-10 pt-0 sm:pb-16" data-nav-theme={hasBackgroundImage ? "inverse" : undefined}>
       <div className="w-full px-0">
         <div
+          ref={headerRef}
           className={cn(
             "relative overflow-hidden border border-border/60 px-4 pb-8 pt-24 shadow-card sm:px-8 sm:pb-10 sm:pt-32 lg:px-10 lg:pb-12 lg:pt-36",
             hasBackgroundImage ? "min-h-[22rem] sm:min-h-[27rem] lg:min-h-[31rem]" : "",
@@ -44,34 +55,72 @@ const PageHeader = ({
         >
           {hasBackgroundImage ? (
             <>
-              <img
+              <motion.img
                 src={backgroundImage}
                 alt=""
                 aria-hidden="true"
                 className={cn("absolute inset-0 h-full w-full object-cover", backgroundImageClassName)}
-                style={backgroundImageClassName ? undefined : { objectPosition: backgroundPosition }}
+                style={{
+                  ...(backgroundImageClassName ? {} : { objectPosition: backgroundPosition }),
+                  y: backgroundY,
+                  scale: backgroundScale,
+                }}
               />
               <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(17,29,25,0.62),rgba(17,29,25,0.38),rgba(17,29,25,0.72))]" />
               <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,hsl(190_18%_78%_/_0.16),transparent_34%),radial-gradient(circle_at_bottom_left,hsl(145_23%_28%_/_0.32),transparent_32%)]" />
             </>
           ) : null}
 
-          <div className={cn("mx-auto max-w-4xl text-center", hasBackgroundImage && "relative z-10 text-white", contentClassName)}>
+          <div
+            className={cn(
+              "mx-auto max-w-4xl text-center",
+              hasBackgroundImage && "relative z-10 text-white",
+              contentClassName,
+            )}
+          >
             {eyebrow ? (
-              <p className={cn("text-[0.76rem] font-semibold uppercase tracking-[0.3em]", hasBackgroundImage ? "text-white/90" : "text-primary/70")}>
+              <motion.p
+                initial={{ opacity: 0, y: 18 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true, amount: 0.8 }}
+                transition={{ duration: 0.62, ease: [0.22, 1, 0.36, 1] }}
+                className={cn("text-[0.76rem] font-semibold uppercase tracking-[0.3em]", hasBackgroundImage ? "text-white/90" : "text-primary/70")}
+              >
                 {eyebrow}
-              </p>
+              </motion.p>
             ) : null}
             <h1
+              aria-label={title}
               className={cn(
                 "mx-auto max-w-5xl font-heading text-[1.95rem] font-semibold leading-[0.94] sm:text-4xl md:text-[3.35rem] lg:text-[4rem]",
                 eyebrow ? "mt-2 sm:mt-4" : "mt-1 sm:mt-2",
                 hasBackgroundImage ? "text-white [text-shadow:0_10px_30px_rgba(0,0,0,0.28)]" : "text-foreground",
               )}
             >
-              {title}
+              {titleWords.map((word, index) => (
+                <motion.span
+                  key={`${word}-${index}`}
+                  aria-hidden="true"
+                  className="inline-block"
+                  initial={{ opacity: 0, y: 24, filter: "blur(8px)" }}
+                  whileInView={{ opacity: 1, y: 0, filter: "blur(0px)" }}
+                  viewport={{ once: true, amount: 0.8 }}
+                  transition={{
+                    delay: index * 0.07,
+                    duration: 0.62,
+                    ease: [0.22, 1, 0.36, 1],
+                  }}
+                >
+                  {word}
+                  {index < titleWords.length - 1 ? "\u00A0" : null}
+                </motion.span>
+              ))}
             </h1>
-            <p
+            <motion.p
+              initial={{ opacity: 0, y: 22 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true, amount: 0.75 }}
+              transition={{ delay: titleWords.length * 0.055, duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
               className={cn(
                 "mx-auto mt-3 max-w-3xl px-1 text-[0.92rem] leading-6 sm:mt-5 sm:px-0 sm:text-base sm:leading-8 md:text-[1.05rem]",
                 hasBackgroundImage ? "text-white [text-shadow:0_4px_20px_rgba(0,0,0,0.24)]" : "text-muted-foreground",
@@ -79,7 +128,7 @@ const PageHeader = ({
               )}
             >
               {description}
-            </p>
+            </motion.p>
           </div>
 
           {children ? (
@@ -89,7 +138,7 @@ const PageHeader = ({
                 hasBackgroundImage ? "relative z-10 border-t border-white/18" : "border-t border-border/50",
               )}
             >
-                <div
+              <div
                 className={cn(
                   "w-full",
                   hasBackgroundImage &&

@@ -2,10 +2,13 @@ import { Fragment, type MouseEvent, useEffect, useMemo, useRef, useState } from 
 import { Link, Navigate, useSearchParams } from "react-router-dom";
 import {
   BellRing,
+  BookOpen,
   CalendarCheck2,
   ChevronDown,
+  CheckCircle2,
   ExternalLink,
   FilePenLine,
+  Heart,
   LayoutDashboard,
   Mail,
   Phone,
@@ -41,7 +44,15 @@ import { useWellnessHub } from "@/context/WellnessHubContext";
 import { getApiErrorMessage, uploadTherapistProfileImageRequest } from "@/lib/api";
 import { softPageBackgroundStyle } from "@/lib/pageBackground";
 import { formatCurrencyAmount, formatDisplayDate, formatDisplayTime, formatServiceType, stripHtml } from "@/lib/wellness";
-import type { BlogPostDraft, BookingPaymentRecord, BookingRecord, BookingStatus, TherapistProfile } from "@/types/wellness";
+import type {
+  BlogPostDraft,
+  BookingPaymentRecord,
+  BookingRecord,
+  BookingStatus,
+  ClientStory,
+  StoryServiceType,
+  TherapistProfile,
+} from "@/types/wellness";
 
 interface TherapistProfileFormState {
   name: string;
@@ -58,11 +69,20 @@ interface TherapistProfileFormState {
   image: string;
 }
 
+interface ClientStoryEditFormState {
+  fullName: string;
+  image: string;
+  serviceType: StoryServiceType;
+  story: string;
+  editedStory: string;
+}
+
 const DASHBOARD_TABS = [
   "overview",
   "sessions",
   "calls",
   "blog",
+  "stories",
   "notifications",
   "transactions",
   "completed",
@@ -99,6 +119,17 @@ const makeProfileDraft = (therapist: TherapistProfile): TherapistProfileFormStat
   location: therapist.location.join("\n"),
   image: therapist.image,
 });
+
+const makeStoryDraft = (story?: ClientStory | null): ClientStoryEditFormState => ({
+  fullName: story?.fullName ?? "",
+  image: story?.image ?? "",
+  serviceType: story?.serviceType ?? "individual",
+  story: story?.story ?? "",
+  editedStory: story?.editedStory || story?.publishedText || story?.story || "",
+});
+
+const canReviewClientStories = (therapist: TherapistProfile) =>
+  therapist.id === "caroline-gichia" || therapist.name.trim().toLowerCase() === "caroline gichia";
 
 const parseCommaSeparated = (value: string) =>
   value
@@ -315,6 +346,7 @@ const TherapistDashboardPage = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const {
     blogPosts,
+    clientStories,
     bookings,
     transactions,
     notifications,
@@ -326,6 +358,9 @@ const TherapistDashboardPage = () => {
     deleteBooking,
     saveBlogPost,
     deleteBlogPost,
+    updateClientStory,
+    publishClientStory,
+    deleteClientStory,
     dismissNotification,
     markNotificationsRead,
     updateTherapistProfile,
@@ -335,6 +370,12 @@ const TherapistDashboardPage = () => {
   const [draft, setDraft] = useState<BlogPostDraft>(() => makeEmptyDraft(therapist.name));
   const [tagInput, setTagInput] = useState("");
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [selectedStoryId, setSelectedStoryId] = useState<string | null>(null);
+  const [isStoryDialogOpen, setIsStoryDialogOpen] = useState(false);
+  const [storyDraft, setStoryDraft] = useState<ClientStoryEditFormState>(() => makeStoryDraft());
+  const [isSavingStory, setIsSavingStory] = useState(false);
+  const [isPublishingStory, setIsPublishingStory] = useState(false);
+  const [isDeletingStory, setIsDeletingStory] = useState(false);
   const [expandedOverviewBookingId, setExpandedOverviewBookingId] = useState<string | null>(null);
   const [expandedSessionBookingId, setExpandedSessionBookingId] = useState<string | null>(null);
   const [expandedCallBookingId, setExpandedCallBookingId] = useState<string | null>(null);
@@ -348,6 +389,7 @@ const TherapistDashboardPage = () => {
   const [isDeletingBooking, setIsDeletingBooking] = useState(false);
   const [loaderProgress, setLoaderProgress] = useState(12);
   const dashboardTabsRef = useRef<HTMLDivElement | null>(null);
+  const showStoryReview = canReviewClientStories(therapist);
 
   useEffect(() => {
     setProfileDraft(makeProfileDraft(therapist));
@@ -359,8 +401,9 @@ const TherapistDashboardPage = () => {
   const requestedTab = normalizeDashboardTab(searchParams.get("tab"));
 
   useEffect(() => {
-    setActiveTab((current) => (current === requestedTab ? current : requestedTab));
-  }, [requestedTab]);
+    const nextTab = !showStoryReview && requestedTab === "stories" ? "overview" : requestedTab;
+    setActiveTab((current) => (current === nextTab ? current : nextTab));
+  }, [requestedTab, showStoryReview]);
 
   useEffect(() => {
     if (isInitializing || !isTherapistAuthenticated) {
@@ -490,6 +533,50 @@ const TherapistDashboardPage = () => {
     }),
     [sessionBookings, currentTime],
   );
+  const sortedClientStories = useMemo(
+    () => [...clientStories].sort((left, right) => right.createdAt.localeCompare(left.createdAt)),
+    [clientStories],
+  );
+  const pendingStoryCount = useMemo(
+    () => sortedClientStories.filter((story) => story.status !== "published").length,
+    [sortedClientStories],
+  );
+  const selectedStory = useMemo(
+    () => sortedClientStories.find((story) => story.id === selectedStoryId) ?? null,
+    [selectedStoryId, sortedClientStories],
+  );
+
+  useEffect(() => {
+    if (!selectedStoryId || sortedClientStories.some((story) => story.id === selectedStoryId)) {
+      return;
+    }
+
+    setSelectedStoryId(null);
+    setIsStoryDialogOpen(false);
+  }, [selectedStoryId, sortedClientStories]);
+
+  useEffect(() => {
+    setStoryDraft(makeStoryDraft(selectedStory));
+  }, [selectedStory?.id, selectedStory?.updatedAt]);
+
+  const storyDraftHasChanges = useMemo(() => {
+    if (!selectedStory) {
+      return false;
+    }
+
+    const selectedPublishedDraft = selectedStory.editedStory || selectedStory.publishedText || selectedStory.story;
+
+    return (
+      storyDraft.fullName.trim() !== selectedStory.fullName.trim() ||
+      storyDraft.image !== selectedStory.image ||
+      storyDraft.serviceType !== selectedStory.serviceType ||
+      storyDraft.story.trim() !== selectedStory.story.trim() ||
+      storyDraft.editedStory.trim() !== selectedPublishedDraft.trim()
+    );
+  }, [selectedStory, storyDraft]);
+
+  const canPublishSelectedStory =
+    Boolean(selectedStory) && (selectedStory.status !== "published" || storyDraftHasChanges);
 
   const setDraftField = (field: keyof BlogPostDraft, value: string | string[]) => {
     setDraft((current) => ({ ...current, [field]: value }));
@@ -497,6 +584,19 @@ const TherapistDashboardPage = () => {
 
   const setProfileField = (field: keyof TherapistProfileFormState, value: string) => {
     setProfileDraft((current) => ({ ...current, [field]: value }));
+  };
+
+  const setStoryDraftField = <K extends keyof ClientStoryEditFormState>(
+    field: K,
+    value: ClientStoryEditFormState[K],
+  ) => {
+    setStoryDraft((current) => ({ ...current, [field]: value }));
+  };
+
+  const openStoryDetails = (story: ClientStory) => {
+    setSelectedStoryId(story.id);
+    setStoryDraft(makeStoryDraft(story));
+    setIsStoryDialogOpen(true);
   };
 
   const resetDraft = () => {
@@ -629,6 +729,78 @@ const TherapistDashboardPage = () => {
       toast.success("Blog post deleted.");
     } catch (error) {
       toast.error(getApiErrorMessage(error, "This blog post could not be deleted right now."));
+    }
+  };
+
+  const buildStoryUpdatePayload = () => ({
+    fullName: storyDraft.fullName.trim(),
+    image: storyDraft.image,
+    serviceType: storyDraft.serviceType,
+    story: storyDraft.story.trim(),
+    editedStory: storyDraft.editedStory.trim(),
+  });
+
+  const handleSaveStory = async () => {
+    if (!selectedStory) {
+      return;
+    }
+
+    if (!storyDraft.story.trim()) {
+      toast.error("The original story cannot be empty.");
+      return;
+    }
+
+    setIsSavingStory(true);
+
+    try {
+      const saved = await updateClientStory(selectedStory.id, buildStoryUpdatePayload());
+      setSelectedStoryId(saved.id);
+      toast.success("Story changes saved.");
+    } catch (error) {
+      toast.error(getApiErrorMessage(error, "This story could not be saved right now."));
+    } finally {
+      setIsSavingStory(false);
+    }
+  };
+
+  const handlePublishStory = async () => {
+    if (!selectedStory) {
+      return;
+    }
+
+    if (!storyDraft.story.trim()) {
+      toast.error("The story needs content before publishing.");
+      return;
+    }
+
+    setIsPublishingStory(true);
+
+    try {
+      await updateClientStory(selectedStory.id, buildStoryUpdatePayload());
+      const published = await publishClientStory(selectedStory.id);
+      setSelectedStoryId(published.id);
+      toast.success("Story published to What our clients say.");
+    } catch (error) {
+      toast.error(getApiErrorMessage(error, "This story could not be published right now."));
+    } finally {
+      setIsPublishingStory(false);
+    }
+  };
+
+  const handleDeleteStory = async (id: string) => {
+    setIsDeletingStory(true);
+
+    try {
+      await deleteClientStory(id);
+      if (selectedStoryId === id) {
+        setSelectedStoryId(null);
+        setIsStoryDialogOpen(false);
+      }
+      toast.success("Story deleted.");
+    } catch (error) {
+      toast.error(getApiErrorMessage(error, "This story could not be deleted right now."));
+    } finally {
+      setIsDeletingStory(false);
     }
   };
 
@@ -892,7 +1064,8 @@ const TherapistDashboardPage = () => {
                   <Tabs
                   value={activeTab}
                   onValueChange={(value) => {
-                    const nextTab = normalizeDashboardTab(value);
+                    const normalizedTab = normalizeDashboardTab(value);
+                    const nextTab = !showStoryReview && normalizedTab === "stories" ? "overview" : normalizedTab;
                     setActiveTab(nextTab);
                     setSearchParams(nextTab === "overview" ? {} : { tab: nextTab }, { replace: true });
                     if (nextTab === "notifications") {
@@ -915,6 +1088,22 @@ const TherapistDashboardPage = () => {
                       <span className="sm:hidden">Blog</span>
                       <span className="hidden sm:inline">Blog Manager</span>
                     </TabsTrigger>
+                    {showStoryReview ? (
+                      <TabsTrigger
+                        value="stories"
+                        className="h-auto shrink-0 rounded-full px-3 py-2 text-[10px] sm:px-4 sm:text-sm lg:px-5"
+                      >
+                        <span className="inline-flex items-center gap-2">
+                          <BookOpen className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                          <span>Stories</span>
+                          {pendingStoryCount > 0 ? (
+                            <span className="rounded-full bg-primary px-1.5 text-[9px] font-semibold leading-4 text-primary-foreground">
+                              {pendingStoryCount > 99 ? "99+" : pendingStoryCount}
+                            </span>
+                          ) : null}
+                        </span>
+                      </TabsTrigger>
+                    ) : null}
                     <TabsTrigger
                       value="notifications"
                       className="h-auto shrink-0 rounded-full px-3 py-2 text-[10px] sm:px-4 sm:text-sm lg:px-5"
@@ -1862,6 +2051,217 @@ const TherapistDashboardPage = () => {
                       ))}
                     </div>
                   </TabsContent>
+
+                  {showStoryReview ? (
+                  <TabsContent value="stories" className="mt-8">
+                    <div className="rounded-[1.75rem] border border-border/60 bg-secondary/25 p-4 shadow-card sm:p-5">
+                      <div className="flex items-center justify-between gap-3">
+                        <div>
+                          <h2 className="font-heading text-2xl font-semibold text-foreground">Story Queue</h2>
+                          <p className="mt-1 text-sm text-muted-foreground">
+                            Review submissions before they appear publicly.
+                          </p>
+                        </div>
+                        <Badge variant="secondary" className="rounded-full bg-primary/10 px-3 py-1 text-primary">
+                          {pendingStoryCount} pending
+                        </Badge>
+                      </div>
+
+                      <div className="mt-5 space-y-2">
+                        {sortedClientStories.map((story) => {
+                          const isPublished = story.status === "published";
+
+                          return (
+                            <button
+                              key={story.id}
+                              type="button"
+                              onClick={() => openStoryDetails(story)}
+                              className="flex min-h-11 w-full items-center justify-between gap-3 rounded-full border border-border/50 bg-card/80 px-4 py-2 text-left text-foreground transition-all hover:border-primary/20 hover:bg-background/85 hover:shadow-soft"
+                            >
+                              <span className="min-w-0 truncate text-sm font-medium">{story.displayName}</span>
+                              {isPublished ? (
+                                <span className="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-primary/10 px-2.5 py-1 text-[0.68rem] font-semibold uppercase tracking-[0.14em] text-primary">
+                                  <CheckCircle2 className="h-3.5 w-3.5" />
+                                  Published
+                                </span>
+                              ) : (
+                                <span className="h-2.5 w-2.5 shrink-0 rounded-full bg-amber-400" aria-label="Pending" />
+                              )}
+                            </button>
+                          );
+                        })}
+
+                        {sortedClientStories.length === 0 ? (
+                          <div className="rounded-[1.5rem] bg-card/80 p-5 text-sm leading-7 text-muted-foreground">
+                            Submitted stories will appear here as a compact name list.
+                          </div>
+                        ) : null}
+                      </div>
+                    </div>
+
+                    <Dialog open={isStoryDialogOpen} onOpenChange={setIsStoryDialogOpen}>
+                      <DialogContent className="max-h-[92vh] overflow-y-auto sm:max-w-4xl">
+                        {selectedStory ? (
+                          <>
+                            <DialogHeader>
+                              <div className="flex flex-wrap items-center gap-2">
+                                <Badge
+                                  variant="secondary"
+                                  className={`rounded-full px-3 py-1 ${
+                                    selectedStory.status === "published"
+                                      ? "bg-primary/10 text-primary"
+                                      : "bg-amber-100 text-amber-800"
+                                  }`}
+                                >
+                                  {selectedStory.status === "published" ? "Published" : "Pending Review"}
+                                </Badge>
+                                <span className="text-xs uppercase tracking-[0.2em] text-primary/65">
+                                  Submitted {new Date(selectedStory.createdAt).toLocaleDateString()}
+                                </span>
+                                {selectedStory.publishedAt ? (
+                                  <span className="text-xs uppercase tracking-[0.2em] text-primary/65">
+                                    Published {new Date(selectedStory.publishedAt).toLocaleDateString()}
+                                  </span>
+                                ) : null}
+                              </div>
+                              <DialogTitle className="font-heading text-3xl text-foreground">
+                                {selectedStory.displayName}
+                              </DialogTitle>
+                              <DialogDescription>
+                                View the full submission, edit the public version, delete it, or publish it.
+                              </DialogDescription>
+                            </DialogHeader>
+
+                            <div className="mt-2 space-y-6">
+                              <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+                                <div className="grid flex-1 gap-4 sm:grid-cols-2">
+                                  <div>
+                                    <Label htmlFor="story-review-name">Public name</Label>
+                                    <Input
+                                      id="story-review-name"
+                                      value={storyDraft.fullName}
+                                      onChange={(event) => setStoryDraftField("fullName", event.target.value)}
+                                      className="mt-2 rounded-2xl"
+                                      placeholder="Anonymous client"
+                                    />
+                                  </div>
+                                  <div>
+                                    <Label htmlFor="story-review-service">Service type</Label>
+                                    <select
+                                      id="story-review-service"
+                                      value={storyDraft.serviceType}
+                                      onChange={(event) =>
+                                        setStoryDraftField("serviceType", event.target.value as StoryServiceType)
+                                      }
+                                      className="mt-2 flex h-10 w-full rounded-2xl border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/25"
+                                    >
+                                      <option value="individual">Individual Therapy</option>
+                                      <option value="family">Family Therapy</option>
+                                      <option value="corporate">Corporate Wellness</option>
+                                    </select>
+                                  </div>
+                                  <div className="sm:col-span-2">
+                                    <Label htmlFor="story-review-image">Image</Label>
+                                    <Input
+                                      id="story-review-image"
+                                      value={storyDraft.image}
+                                      onChange={(event) => setStoryDraftField("image", event.target.value)}
+                                      className="mt-2 rounded-2xl"
+                                      placeholder="Optional image URL"
+                                    />
+                                  </div>
+                                </div>
+
+                                {storyDraft.image ? (
+                                  <img
+                                    src={storyDraft.image}
+                                    alt={selectedStory.displayName}
+                                    className="h-24 w-24 rounded-[1.25rem] object-cover shadow-card"
+                                  />
+                                ) : (
+                                  <div className="flex h-24 w-24 items-center justify-center rounded-[1.25rem] bg-secondary/45 text-primary">
+                                    <Heart className="h-8 w-8" />
+                                  </div>
+                                )}
+                              </div>
+
+                              <div className="grid gap-5 lg:grid-cols-2">
+                                <div>
+                                  <Label htmlFor="story-original">Original story</Label>
+                                  <Textarea
+                                    id="story-original"
+                                    value={storyDraft.story}
+                                    readOnly
+                                    className="mt-2 min-h-[14rem] rounded-[1.5rem] bg-secondary/30 leading-7"
+                                  />
+                                </div>
+                                <div>
+                                  <Label htmlFor="story-published-version">Published version</Label>
+                                  <Textarea
+                                    id="story-published-version"
+                                    value={storyDraft.editedStory}
+                                    onChange={(event) => setStoryDraftField("editedStory", event.target.value)}
+                                    className="mt-2 min-h-[14rem] rounded-[1.5rem] leading-7"
+                                    placeholder="Edit the story for public sharing."
+                                  />
+                                </div>
+                              </div>
+                            </div>
+
+                            <DialogFooter className="mt-6 flex-col gap-2 sm:flex-row sm:flex-wrap sm:justify-start">
+                              <Button
+                                type="button"
+                                variant="heroBorder"
+                                className="rounded-full"
+                                onClick={() => void handleSaveStory()}
+                                disabled={
+                                  !storyDraftHasChanges ||
+                                  isSavingStory ||
+                                  isPublishingStory ||
+                                  isDeletingStory
+                                }
+                              >
+                                <FilePenLine className="h-4 w-4" />
+                                {isSavingStory ? "Saving..." : "Save Edits"}
+                              </Button>
+                              <Button
+                                type="button"
+                                variant={canPublishSelectedStory ? "hero" : "heroBorder"}
+                                className="rounded-full"
+                                onClick={() => void handlePublishStory()}
+                                disabled={
+                                  !canPublishSelectedStory ||
+                                  isSavingStory ||
+                                  isPublishingStory ||
+                                  isDeletingStory
+                                }
+                              >
+                                <CheckCircle2 className="h-4 w-4" />
+                                {selectedStory.status === "published" && !storyDraftHasChanges
+                                  ? "Published"
+                                  : isPublishingStory
+                                    ? "Publishing..."
+                                    : selectedStory.status === "published"
+                                      ? "Publish Update"
+                                      : "Publish"}
+                              </Button>
+                              <Button
+                                type="button"
+                                variant="heroBorder"
+                                className="rounded-full"
+                                onClick={() => void handleDeleteStory(selectedStory.id)}
+                                disabled={isSavingStory || isPublishingStory || isDeletingStory}
+                              >
+                                <Trash2 className="h-4 w-4" />
+                                {isDeletingStory ? "Deleting..." : "Delete"}
+                              </Button>
+                            </DialogFooter>
+                          </>
+                        ) : null}
+                      </DialogContent>
+                    </Dialog>
+                  </TabsContent>
+                  ) : null}
 
                   <TabsContent value="profile" className="mt-8">
                     <div className="grid gap-6 xl:grid-cols-[0.8fr_1.2fr]">

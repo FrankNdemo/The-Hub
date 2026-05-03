@@ -90,7 +90,7 @@ class ContactInquiryView(APIView):
         for therapist in therapists:
             Notification.objects.create(
                 therapist=therapist,
-                type=Notification.NotificationType.INQUIRY,
+                type="inquiry",
                 title=f"New inquiry from {name}",
                 description=inquiry_message,
             )

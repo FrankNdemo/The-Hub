@@ -5,6 +5,7 @@ import aboutImg from "@/assets/about-therapy.jpg";
 import Footer from "@/components/Footer";
 import LeafBannerHeading from "@/components/LeafBannerHeading";
 import PageHeader from "@/components/PageHeader";
+import ParallaxBackgroundImage from "@/components/ParallaxBackgroundImage";
 import { Button } from "@/components/ui/button";
 import { useWellnessHub } from "@/context/WellnessHubContext";
 import { pageHeaderBackgrounds, softPageBackgroundStyle } from "@/lib/pageBackground";
@@ -82,7 +83,7 @@ const AboutPage = () => {
             className="relative overflow-hidden border-y border-border/60 bg-[linear-gradient(135deg,hsl(42_31%_99%),hsl(42_31%_97%))] px-6 py-10 shadow-card md:rounded-[2.5rem] md:border md:px-8 lg:px-10 lg:py-12"
             data-nav-theme="inverse"
           >
-            <img
+            <ParallaxBackgroundImage
               src={aboutValueBackgroundImage}
               alt=""
               aria-hidden="true"
@@ -160,7 +161,7 @@ const AboutPage = () => {
       <section className="py-16">
         <div className="w-full px-0">
           <div className="relative overflow-hidden border-y border-border/60 px-6 py-8 shadow-card lg:px-8 lg:py-10">
-            <img
+            <ParallaxBackgroundImage
               src={aboutApproachBackgroundImage}
               alt=""
               aria-hidden="true"

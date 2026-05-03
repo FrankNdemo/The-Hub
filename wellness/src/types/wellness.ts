@@ -1,5 +1,7 @@
 export type SessionType = "virtual" | "physical";
 export type ServiceType = "individual" | "family" | "corporate";
+export type StoryServiceType = "individual" | "family" | "corporate";
+export type ClientStoryStatus = "pending" | "published";
 
 export type BookingStatus =
   | "payment_pending"
@@ -66,6 +68,36 @@ export interface BlogPostDraft {
   featuredImage: string;
   contentHtml: string;
   tags: string[];
+}
+
+export interface ClientStory {
+  id: string;
+  fullName: string;
+  displayName: string;
+  image: string;
+  serviceType: StoryServiceType;
+  story: string;
+  editedStory: string;
+  publishedText: string;
+  status: ClientStoryStatus;
+  createdAt: string;
+  updatedAt: string;
+  publishedAt?: string | null;
+}
+
+export interface ClientStoryInput {
+  fullName?: string;
+  image?: string;
+  serviceType: StoryServiceType;
+  story: string;
+}
+
+export interface ClientStoryUpdateInput {
+  fullName?: string;
+  image?: string;
+  serviceType?: StoryServiceType;
+  story?: string;
+  editedStory?: string;
 }
 
 export interface EmailRecord {
@@ -167,7 +199,7 @@ export interface BookingJoinRecord {
 
 export interface NotificationItem {
   id: string;
-  type: "booking" | "reschedule" | "cancel" | "completion" | "blog";
+  type: "booking" | "reschedule" | "cancel" | "completion" | "blog" | "inquiry";
   title: string;
   description: string;
   createdAt: string;
@@ -182,6 +214,7 @@ export interface TherapistSession {
 
 export interface WellnessHubState {
   blogPosts: BlogPost[];
+  clientStories: ClientStory[];
   bookings: BookingRecord[];
   transactions: BookingPaymentRecord[];
   notifications: NotificationItem[];

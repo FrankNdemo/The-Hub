@@ -19,6 +19,7 @@ import JoinSessionPage from "./pages/JoinSessionPage";
 import ManageBookingPage from "./pages/ManageBookingPage";
 import NotFound from "./pages/NotFound";
 import ServicesPage from "./pages/ServicesPage";
+import StoryPage from "./pages/StoryPage";
 import TeamPage from "./pages/TeamPage";
 import TherapistDashboardPage from "./pages/TherapistDashboardPage";
 import TherapistSessionPage from "./pages/TherapistSessionPage";
@@ -100,6 +101,7 @@ const PreviewRoutes = () => {
       <Route path="/blog" element={<BlogPage />} />
       <Route path="/blog/:slug" element={<BlogPostPage />} />
       <Route path="/contact" element={<ContactPage />} />
+      <Route path="/story" element={<StoryPage />} />
       <Route path="/exploration-call" element={<ExplorationCallPage />} />
       <Route path="/booking" element={<BookingPage />} />
       <Route path="/join/:token" element={<JoinSessionPage />} />

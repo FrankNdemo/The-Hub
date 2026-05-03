@@ -1,7 +1,7 @@
 from django.contrib.auth.models import User
 from rest_framework import serializers
 
-from .models import TherapistProfile
+from .models import ClientStory, TherapistProfile
 
 
 class TherapistProfilePublicSerializer(serializers.ModelSerializer):
@@ -88,6 +88,65 @@ class TherapistProfileUpdateSerializer(serializers.ModelSerializer):
                 BlogPost.objects.filter(author=instance, author_name=previous_name).update(author_name=instance.name)
 
         return instance
+
+
+class ClientStorySerializer(serializers.ModelSerializer):
+    fullName = serializers.CharField(source="full_name", allow_blank=True)
+    displayName = serializers.SerializerMethodField()
+    image = serializers.CharField(source="image_url", allow_blank=True)
+    serviceType = serializers.CharField(source="service_type")
+    story = serializers.CharField(source="story_text")
+    editedStory = serializers.CharField(source="edited_story_text", allow_blank=True)
+    publishedText = serializers.SerializerMethodField()
+    createdAt = serializers.DateTimeField(source="created_at")
+    updatedAt = serializers.DateTimeField(source="updated_at")
+    publishedAt = serializers.DateTimeField(source="published_at", allow_null=True)
+
+    class Meta:
+        model = ClientStory
+        fields = [
+            "id",
+            "fullName",
+            "displayName",
+            "image",
+            "serviceType",
+            "story",
+            "editedStory",
+            "publishedText",
+            "status",
+            "createdAt",
+            "updatedAt",
+            "publishedAt",
+        ]
+
+    def get_displayName(self, obj: ClientStory) -> str:
+        return obj.display_name
+
+    def get_publishedText(self, obj: ClientStory) -> str:
+        return obj.published_text
+
+
+class ClientStoryCreateSerializer(serializers.ModelSerializer):
+    fullName = serializers.CharField(source="full_name", allow_blank=True, required=False, max_length=160)
+    image = serializers.CharField(source="image_url", allow_blank=True, required=False)
+    serviceType = serializers.ChoiceField(source="service_type", choices=ClientStory.ServiceType.choices)
+    story = serializers.CharField(source="story_text", trim_whitespace=True)
+
+    class Meta:
+        model = ClientStory
+        fields = ["fullName", "image", "serviceType", "story"]
+
+
+class ClientStoryUpdateSerializer(serializers.ModelSerializer):
+    fullName = serializers.CharField(source="full_name", allow_blank=True, required=False, max_length=160)
+    image = serializers.CharField(source="image_url", allow_blank=True, required=False)
+    serviceType = serializers.ChoiceField(source="service_type", choices=ClientStory.ServiceType.choices, required=False)
+    story = serializers.CharField(source="story_text", trim_whitespace=True, required=False)
+    editedStory = serializers.CharField(source="edited_story_text", trim_whitespace=True, allow_blank=True, required=False)
+
+    class Meta:
+        model = ClientStory
+        fields = ["fullName", "image", "serviceType", "story", "editedStory"]
 
 
 class TherapistSessionSerializer(serializers.Serializer):

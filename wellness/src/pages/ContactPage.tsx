@@ -1,11 +1,12 @@
 import { type FormEvent, useState } from "react";
-import { Clock3, Mail, MapPin, MessageCircle, Send } from "lucide-react";
+import { Clock3, Mail, MapPin, MessageCircle, Send, X } from "lucide-react";
 import { toast } from "sonner";
 
 import Footer from "@/components/Footer";
 import FAQSection from "@/components/FAQSection";
 import LeafBannerHeading from "@/components/LeafBannerHeading";
 import PageHeader from "@/components/PageHeader";
+import WellnessLogo from "@/components/WellnessLogo";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -23,6 +24,7 @@ const getFormValue = (formData: FormData, key: string) => String(formData.get(ke
 const ContactPage = () => {
   const { therapist } = useWellnessHub();
   const [sent, setSent] = useState(false);
+  const [showMobileSentPopup, setShowMobileSentPopup] = useState(false);
   const [isSending, setIsSending] = useState(false);
   const mapArea = therapist.location[0] ?? "Nairobi, Westlands";
   const locationLines = [mapArea, ...therapist.location.slice(1)];
@@ -65,7 +67,15 @@ const ContactPage = () => {
     try {
       await sendContactInquiry({ name, whatsappMobile: mobile, subject, message });
       setSent(true);
-      toast.success("Your inquiry has been sent. We will get back to you soon.");
+      const isDesktop = typeof window !== "undefined" && window.matchMedia("(min-width: 640px)").matches;
+
+      if (isDesktop) {
+        window.requestAnimationFrame(() => {
+          document.getElementById("contact-message-area")?.scrollIntoView({ behavior: "smooth", block: "center" });
+        });
+      } else {
+        setShowMobileSentPopup(true);
+      }
     } catch (error) {
       toast.error(getApiErrorMessage(error, "Your inquiry could not be sent right now."));
     } finally {
@@ -176,7 +186,7 @@ const ContactPage = () => {
               </div>
 
               {sent ? (
-                <div className="mt-8 rounded-[1.75rem] bg-primary/8 p-8 text-center">
+                <div className="mt-8 hidden rounded-[1.75rem] bg-primary/8 p-8 text-center sm:block">
                   <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-3xl bg-primary/12 text-primary">
                     <Send className="h-8 w-8" />
                   </div>
@@ -243,6 +253,49 @@ const ContactPage = () => {
           </div>
         </div>
       </section>
+
+      {showMobileSentPopup ? (
+        <div className="fixed inset-0 z-[90] flex items-center justify-center bg-foreground/24 px-4 py-5 backdrop-blur-[5px] sm:hidden">
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="contact-success-title"
+            className="relative max-h-[calc(100svh-2rem)] w-full max-w-[21.5rem] overflow-y-auto rounded-[1.85rem] border border-white/70 bg-[linear-gradient(160deg,rgba(255,255,250,0.96),rgba(239,247,239,0.94))] px-5 pb-6 pt-5 text-center shadow-[0_32px_72px_-34px_rgba(15,32,25,0.5)] backdrop-blur-2xl"
+          >
+            <button
+              type="button"
+              onClick={() => setShowMobileSentPopup(false)}
+              className="absolute right-3 top-3 flex h-9 w-9 items-center justify-center rounded-full border border-primary/12 bg-white/76 text-primary shadow-soft"
+              aria-label="Close inquiry confirmation"
+            >
+              <X className="h-4 w-4" />
+            </button>
+            <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_18%_18%,hsl(136_22%_88%_/_0.34),transparent_28%),radial-gradient(circle_at_86%_78%,hsl(42_31%_88%_/_0.42),transparent_30%)]" />
+            <div className="relative z-10 flex flex-col items-center">
+              <div className="scale-[0.66]">
+                <WellnessLogo variant="footer" />
+              </div>
+              <div className="mt-1 flex h-16 w-16 items-center justify-center rounded-3xl bg-primary/12 text-primary shadow-soft">
+                <Send className="h-8 w-8" />
+              </div>
+              <h3 id="contact-success-title" className="mt-5 font-heading text-3xl font-semibold text-foreground">
+                Inquiry sent
+              </h3>
+              <p className="mt-3 text-sm leading-7 text-muted-foreground">
+                Your message has been sent to the practice. We will get back to you as soon as possible.
+              </p>
+              <Button
+                type="button"
+                variant="hero"
+                className="mt-6 w-full rounded-full"
+                onClick={() => setShowMobileSentPopup(false)}
+              >
+                Done
+              </Button>
+            </div>
+          </div>
+        </div>
+      ) : null}
 
       <FAQSection />
       <Footer />

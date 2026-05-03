@@ -12,6 +12,7 @@ import {
   Menu,
   MessageCircle,
   Phone,
+  PenLine,
   UserRound,
   Users,
   X,
@@ -34,6 +35,7 @@ const navLinks = [
   { label: "Services", href: "/services", icon: Leaf },
   { label: "Team", href: "/team", icon: Users },
   { label: "Blog", href: "/blog", icon: FileText },
+  { label: "Story", href: "/story", icon: PenLine },
   { label: "Contact", href: "/contact", icon: Mail },
 ];
 

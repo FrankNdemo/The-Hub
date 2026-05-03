@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { ArrowLeft, ArrowRight, CalendarClock, Eye, Leaf, Lock, Quote, ShieldCheck, Sun, Video } from "lucide-react";
 
@@ -8,9 +8,11 @@ import Footer from "@/components/Footer";
 import FAQSection from "@/components/FAQSection";
 import HeroSection from "@/components/HeroSection";
 import JourneyQuoteSection from "@/components/JourneyQuoteSection";
+import ParallaxBackgroundImage from "@/components/ParallaxBackgroundImage";
 import ScrollReveal from "@/components/ScrollReveal";
 import { Button } from "@/components/ui/button";
 import { useWellnessHub } from "@/context/WellnessHubContext";
+import { getClientStoryTestimonials } from "@/lib/clientTestimonials";
 import {
   familyServiceImage,
   homeSpecializedSupportImage,
@@ -72,30 +74,6 @@ const featuredServices = [
   },
 ];
 
-const testimonials = [
-  {
-    text: "The Wellness Hub helped me slow down, name what I was carrying, and finally feel like I had tools I could trust.",
-    name: "Sarah M.",
-    role: "Individual Therapy Client",
-    image:
-      "https://images.pexels.com/photos/17746102/pexels-photo-17746102.jpeg?auto=compress&cs=tinysrgb&w=240&h=240&fit=crop&crop=faces",
-  },
-  {
-    text: "Our family conversations feel softer now. We are listening more, reacting less, and reconnecting in healthier ways.",
-    name: "James K.",
-    role: "Family Therapy Client",
-    image:
-      "https://images.pexels.com/photos/19379640/pexels-photo-19379640.jpeg?auto=compress&cs=tinysrgb&w=240&h=240&fit=crop&crop=faces",
-  },
-  {
-    text: "The sessions brought clarity to our workplace wellbeing strategy and gave our team practical emotional support.",
-    name: "Aisha N.",
-    role: "Corporate Wellness Client",
-    image:
-      "https://images.pexels.com/photos/18500501/pexels-photo-18500501.jpeg?auto=compress&cs=tinysrgb&w=240&h=240&fit=crop&crop=faces",
-  },
-];
-
 const approachPillars = [
   {
     icon: Leaf,
@@ -119,11 +97,12 @@ const careDescriptionQuote =
   "You do not have to carry everything alone. Healing grows in spaces where you feel safe, seen, and gently supported.";
 
 const Index = () => {
-  const { therapists } = useWellnessHub();
+  const { clientStories, therapists } = useWellnessHub();
   const [typedCtaText, setTypedCtaText] = useState("");
   const [isDeletingCtaText, setIsDeletingCtaText] = useState(false);
   const [testimonialIndex, setTestimonialIndex] = useState(0);
   const featuredTherapists = therapists;
+  const testimonials = useMemo(() => getClientStoryTestimonials(clientStories), [clientStories]);
   const activeTestimonial = testimonials[testimonialIndex];
 
   const showPreviousTestimonial = () => {
@@ -133,6 +112,10 @@ const Index = () => {
   const showNextTestimonial = () => {
     setTestimonialIndex((current) => (current + 1) % testimonials.length);
   };
+
+  useEffect(() => {
+    setTestimonialIndex((current) => (current >= testimonials.length ? 0 : current));
+  }, [testimonials.length]);
 
   useEffect(() => {
     if (!isDeletingCtaText && typedCtaText === ctaTypedPhrase) {
@@ -206,7 +189,7 @@ const Index = () => {
       <div className="container mx-auto px-0 sm:px-4">
         <ScrollReveal direction="up">
           <div className="relative overflow-hidden rounded-none border-y border-border/60 shadow-card sm:rounded-[2.4rem] sm:border" data-nav-theme="inverse">
-            <img
+            <ParallaxBackgroundImage
               src={homepageAwarenessImage}
               alt="A woman speaking with an African man and woman in a bright, supportive office conversation"
               loading="lazy"
@@ -369,7 +352,7 @@ const Index = () => {
       <div className="w-full px-0">
         <ScrollReveal direction="right">
           <div className="relative overflow-hidden border-y border-border/60 px-4 py-6 shadow-card sm:px-6 sm:py-8 lg:px-8 lg:py-10">
-            <img
+            <ParallaxBackgroundImage
               src={homepageApproachImage}
               alt=""
               aria-hidden="true"
@@ -471,7 +454,7 @@ const Index = () => {
               <div className="flex items-center justify-center gap-3">
                 {testimonials.map((testimonial, index) => (
                   <button
-                    key={testimonial.name}
+                    key={`${testimonial.name}-${index}`}
                     type="button"
                     onClick={() => setTestimonialIndex(index)}
                     className={`h-2 rounded-full transition-all ${
@@ -529,7 +512,7 @@ const Index = () => {
       <div className="container mx-auto px-0 md:px-4">
         <ScrollReveal direction="up">
           <div className="relative min-h-[100svh] overflow-hidden shadow-hover md:min-h-0 md:rounded-[2.5rem]" data-nav-theme="inverse">
-            <img
+            <ParallaxBackgroundImage
               src={homepageCtaImage}
               alt="A calm Black woman seated on a sofa near indoor plants in a bright wellness-inspired room"
               className="h-[100svh] w-full object-cover object-[56%_50%] brightness-[1.04] contrast-[1.04] saturate-[1.03] sm:h-[540px] sm:object-[54%_44%] md:h-[560px] md:object-[52%_40%]"

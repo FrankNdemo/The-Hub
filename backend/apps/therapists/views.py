@@ -9,11 +9,14 @@ from rest_framework.views import APIView
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.views import TokenRefreshView
 
-from .models import TherapistProfile
+from .models import ClientStory, TherapistProfile
 from .permissions import IsTherapistAuthenticated
 from .serializers import (
     ChangePasswordSerializer,
     ChangeSecretPassphraseSerializer,
+    ClientStoryCreateSerializer,
+    ClientStorySerializer,
+    ClientStoryUpdateSerializer,
     LoginSerializer,
     ResetPasswordSerializer,
     TherapistProfilePublicSerializer,
@@ -26,6 +29,10 @@ from .serializers import (
 
 def get_primary_therapist() -> TherapistProfile:
     return TherapistProfile.objects.select_related("user").filter(is_primary=True).first() or TherapistProfile.objects.select_related("user").first()
+
+
+def can_review_client_stories(therapist: TherapistProfile) -> bool:
+    return therapist.public_id == "caroline-gichia" or therapist.name.strip().lower() == "caroline gichia"
 
 
 class PublicTherapistProfileView(APIView):
@@ -46,6 +53,42 @@ class PublicTherapistListView(APIView):
     def get(self, request):
         therapists = TherapistProfile.objects.select_related("user").all()
         return Response(TherapistProfilePublicSerializer(therapists, many=True).data)
+
+
+class PublicClientStoryListView(APIView):
+    permission_classes = []
+    authentication_classes = []
+
+    def get(self, request):
+        stories = ClientStory.objects.filter(status=ClientStory.Status.PUBLISHED).select_related("therapist")
+        return Response(ClientStorySerializer(stories, many=True).data)
+
+
+class ClientStorySubmitView(APIView):
+    permission_classes = []
+    authentication_classes = []
+
+    @transaction.atomic
+    def post(self, request):
+        serializer = ClientStoryCreateSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        therapist = get_primary_therapist()
+        if not therapist:
+            return Response({"detail": "Therapist profile has not been created yet."}, status=status.HTTP_503_SERVICE_UNAVAILABLE)
+
+        story = ClientStory.objects.create(therapist=therapist, **serializer.validated_data)
+
+        from apps.notifications.models import Notification
+
+        Notification.objects.create(
+            therapist=therapist,
+            type="inquiry",
+            title=f"New story from {story.display_name}",
+            description="A client story is waiting for review before it can be shared publicly.",
+        )
+
+        return Response(ClientStorySerializer(story).data, status=status.HTTP_201_CREATED)
 
 
 class TherapistLoginView(APIView):
@@ -178,12 +221,14 @@ class DashboardOverviewView(APIView):
         )
         transactions = BookingPayment.objects.filter(booking__therapist=therapist, booking__deleted_at__isnull=True).select_related("booking")
         blog_posts = BlogPost.objects.select_related("author").all()
+        client_stories = ClientStory.objects.filter(therapist=therapist) if can_review_client_stories(therapist) else []
         notifications = Notification.objects.filter(therapist=therapist)
         therapists = TherapistProfile.objects.select_related("user").all()
 
         return Response(
             {
                 "blogPosts": BlogPostSerializer(blog_posts, many=True).data,
+                "clientStories": ClientStorySerializer(client_stories, many=True).data,
                 "bookings": BookingDetailSerializer(
                     bookings,
                     many=True,
@@ -250,6 +295,90 @@ class TherapistProfileImageUploadView(APIView):
         therapist.save(update_fields=["image_url"])
         
         return Response({"image": image_url})
+
+
+class DashboardClientStoryDetailView(APIView):
+    permission_classes = [IsAuthenticated, IsTherapistAuthenticated]
+
+    def get_story(self, request, pk):
+        if not can_review_client_stories(request.user.therapist_profile):
+            return None
+
+        story = ClientStory.objects.filter(
+            therapist=request.user.therapist_profile,
+            pk=pk,
+        ).first()
+
+        if not story:
+            return None
+
+        return story
+
+    def patch(self, request, pk):
+        if not can_review_client_stories(request.user.therapist_profile):
+            return Response({"detail": "Story review is only available for Caroline Gichia."}, status=status.HTTP_403_FORBIDDEN)
+
+        story = self.get_story(request, pk)
+        if not story:
+            return Response({"detail": "Story not found."}, status=status.HTTP_404_NOT_FOUND)
+
+        serializer = ClientStoryUpdateSerializer(story, data=request.data, partial=True)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response(ClientStorySerializer(story).data)
+
+    def delete(self, request, pk):
+        if not can_review_client_stories(request.user.therapist_profile):
+            return Response({"detail": "Story review is only available for Caroline Gichia."}, status=status.HTTP_403_FORBIDDEN)
+
+        story = self.get_story(request, pk)
+        if not story:
+            return Response({"detail": "Story not found."}, status=status.HTTP_404_NOT_FOUND)
+
+        story.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+class DashboardClientStoryPublishView(APIView):
+    permission_classes = [IsAuthenticated, IsTherapistAuthenticated]
+
+    def post(self, request, pk):
+        if not can_review_client_stories(request.user.therapist_profile):
+            return Response({"detail": "Story review is only available for Caroline Gichia."}, status=status.HTTP_403_FORBIDDEN)
+
+        story = ClientStory.objects.filter(
+            therapist=request.user.therapist_profile,
+            pk=pk,
+        ).first()
+
+        if not story:
+            return Response({"detail": "Story not found."}, status=status.HTTP_404_NOT_FOUND)
+
+        story.status = ClientStory.Status.PUBLISHED
+        story.published_at = timezone.now()
+        story.save(update_fields=["status", "published_at", "updated_at"])
+        return Response(ClientStorySerializer(story).data)
+
+
+class DashboardClientStoryUnpublishView(APIView):
+    permission_classes = [IsAuthenticated, IsTherapistAuthenticated]
+
+    def post(self, request, pk):
+        if not can_review_client_stories(request.user.therapist_profile):
+            return Response({"detail": "Story review is only available for Caroline Gichia."}, status=status.HTTP_403_FORBIDDEN)
+
+        story = ClientStory.objects.filter(
+            therapist=request.user.therapist_profile,
+            pk=pk,
+        ).first()
+
+        if not story:
+            return Response({"detail": "Story not found."}, status=status.HTTP_404_NOT_FOUND)
+
+        story.status = ClientStory.Status.PENDING
+        story.published_at = None
+        story.save(update_fields=["status", "published_at", "updated_at"])
+        return Response(ClientStorySerializer(story).data)
 
 
 class ChangePasswordView(APIView):

@@ -8,6 +8,9 @@ import type {
   BookingPaymentRecord,
   BookingPrecheckResponse,
   BookingRecord,
+  ClientStory,
+  ClientStoryInput,
+  ClientStoryUpdateInput,
   NotificationItem,
   TherapistProfile,
   TherapistSession,
@@ -147,6 +150,7 @@ export interface TherapistLoginResponse {
 
 export interface DashboardOverviewResponse {
   blogPosts: BlogPost[];
+  clientStories: ClientStory[];
   bookings: BookingRecord[];
   transactions: BookingPaymentRecord[];
   notifications: NotificationItem[];
@@ -492,6 +496,9 @@ export const fetchPublicTherapists = () =>
 export const fetchPublicBlogPosts = () =>
   request<BlogPost[]>("/blog/posts/", { method: "GET" }, { auth: false });
 
+export const fetchPublicClientStories = () =>
+  request<ClientStory[]>("/public/stories/", { method: "GET" }, { auth: false });
+
 export const sendContactInquiry = (input: ContactInquiryInput) =>
   request<ContactInquiryResponse>(
     "/contact/inquiry/",
@@ -505,6 +512,16 @@ export const sendContactInquiry = (input: ContactInquiryInput) =>
 export const createBooking = (input: BookingInput) =>
   request<BookingRecord>(
     "/bookings/",
+    {
+      method: "POST",
+      body: JSON.stringify(input),
+    },
+    { auth: false },
+  );
+
+export const submitClientStoryRequest = (input: ClientStoryInput) =>
+  request<ClientStory>(
+    "/stories/",
     {
       method: "POST",
       body: JSON.stringify(input),
@@ -757,6 +774,41 @@ export const saveBlogPostRequest = (draft: BlogPostDraft) => {
 export const deleteBlogPostRequest = (id: string) =>
   request<void>(
     `/dashboard/blog-posts/${id}/`,
+    {
+      method: "DELETE",
+    },
+  );
+
+export const updateClientStoryRequest = (id: string, input: ClientStoryUpdateInput) =>
+  request<ClientStory>(
+    `/dashboard/stories/${id}/`,
+    {
+      method: "PATCH",
+      body: JSON.stringify(input),
+    },
+  );
+
+export const publishClientStoryRequest = (id: string) =>
+  request<ClientStory>(
+    `/dashboard/stories/${id}/publish/`,
+    {
+      method: "POST",
+      body: JSON.stringify({}),
+    },
+  );
+
+export const unpublishClientStoryRequest = (id: string) =>
+  request<ClientStory>(
+    `/dashboard/stories/${id}/unpublish/`,
+    {
+      method: "POST",
+      body: JSON.stringify({}),
+    },
+  );
+
+export const deleteClientStoryRequest = (id: string) =>
+  request<void>(
+    `/dashboard/stories/${id}/`,
     {
       method: "DELETE",
     },
