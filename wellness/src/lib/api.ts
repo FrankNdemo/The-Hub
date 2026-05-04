@@ -20,6 +20,37 @@ const FALLBACK_API_BASE_URL = "http://127.0.0.1:8000/api/v1";
 const LOCALHOST_API_BASE_URL = "http://localhost:8000/api/v1";
 const AUTH_STORAGE_KEY = "wellness-auth-v1";
 const API_BASE_STORAGE_KEY = "wellness-api-base-v1";
+const NETWORK_UNAVAILABLE_MESSAGE = "Unable to reach our service. Check your internet connection and try again.";
+const SERVICE_UNAVAILABLE_MESSAGE = "Our service is temporarily unavailable. Please try again shortly.";
+const SERVICE_ERROR_MESSAGE = "Something went wrong while completing your request. Please try again shortly.";
+const REQUEST_ERROR_MESSAGE = "We could not complete this request right now. Please try again.";
+const TECHNICAL_ERROR_PATTERNS = [
+  /\bapi\b/i,
+  /\bbackend\b/i,
+  /\bfrontend\b/i,
+  /\bcors\b/i,
+  /\bdatabase\b/i,
+  /\bdjango\b/i,
+  /\blocalhost\b/i,
+  /\bmigration\b/i,
+  /\borigin\b/i,
+  /\bschema\b/i,
+  /\bserver\b/i,
+  /\btraceback\b/i,
+  /\bvite_[a-z0-9_]+\b/i,
+  /\b127\.0\.0\.1\b/i,
+  /\bfailed to fetch\b/i,
+  /\bfetch failed\b/i,
+  /\bnetworkerror\b/i,
+  /\bload failed\b/i,
+  /\brequest failed with status\b/i,
+  /\bresponse was incomplete\b/i,
+  /\baccess token\b/i,
+  /\bcheckout request identifier\b/i,
+  /\bdaraja configuration\b/i,
+  /\bmpesa_[a-z0-9_]+\b/i,
+  /\/api\/v\d+/i,
+];
 
 const trimTrailingSlash = (value: string) => value.replace(/\/+$/, "");
 
@@ -209,14 +240,30 @@ const isHtmlDocumentText = (value: string) =>
 
 const getHttpErrorMessage = (status: number) => {
   if (status === 503) {
-    return "The wellness API is temporarily unavailable. Please try again shortly.";
+    return SERVICE_UNAVAILABLE_MESSAGE;
   }
 
   if (status >= 500) {
-    return "The wellness API hit a server error while confirming your request. Please try again shortly.";
+    return SERVICE_ERROR_MESSAGE;
   }
 
-  return `Request failed with status ${status}.`;
+  if (status === 401) {
+    return "Please log in again to continue.";
+  }
+
+  if (status === 403) {
+    return "You do not have permission to do that.";
+  }
+
+  if (status === 404) {
+    return "We could not find what you requested.";
+  }
+
+  if (status === 429) {
+    return "Too many attempts. Please wait a moment and try again.";
+  }
+
+  return REQUEST_ERROR_MESSAGE;
 };
 
 const parseStoredTokens = (): AuthTokens | null => {
@@ -326,6 +373,28 @@ const extractErrorMessage = (value: unknown): string | null => {
   }
 
   return null;
+};
+
+const sanitizeErrorMessage = (message: string | null | undefined, fallback: string) => {
+  const cleaned = message?.trim();
+
+  if (!cleaned || isHtmlDocumentText(cleaned)) {
+    return fallback;
+  }
+
+  if (TECHNICAL_ERROR_PATTERNS.some((pattern) => pattern.test(cleaned))) {
+    return fallback;
+  }
+
+  return cleaned;
+};
+
+const getApiErrorFallback = (status: number, fallback: string) => {
+  if (status >= 500 || status === 401 || status === 403 || status === 404 || status === 429) {
+    return getHttpErrorMessage(status);
+  }
+
+  return fallback;
 };
 
 const parseResponseBody = async (response: Response) => {
@@ -438,19 +507,18 @@ const request = async <T>(
 
 export const getApiErrorMessage = (error: unknown, fallback: string) => {
   if (error instanceof ApiError) {
-    return extractErrorMessage(error.data) ?? error.message;
+    return sanitizeErrorMessage(
+      extractErrorMessage(error.data) ?? error.message,
+      getApiErrorFallback(error.status, fallback),
+    );
   }
 
   if (error instanceof Error && isLikelyNetworkErrorMessage(error.message)) {
-    if (typeof window !== "undefined" && !isLocalLikeHost(window.location.hostname) && !getConfiguredApiBaseUrl()) {
-      return "This deployed frontend is missing VITE_API_BASE_URL. Point it to your backend /api/v1 URL, then confirm that origin is allowed in Django CORS.";
-    }
-
-    return "Unable to reach the wellness API. Check that the Django server is running and that this frontend origin is allowed in CORS.";
+    return NETWORK_UNAVAILABLE_MESSAGE;
   }
 
   if (error instanceof Error && error.message) {
-    return error.message;
+    return sanitizeErrorMessage(error.message, fallback);
   }
 
   return fallback;

@@ -68,6 +68,7 @@ type BookingStep = "details" | "summary" | "payment" | "stk_sent" | "processing"
 
 const STK_SENT_PROMOTE_DELAY_MS = 900;
 const PAYMENT_STATUS_POLL_INTERVAL_MS = 1500;
+const DEFAULT_BOOKING_FEE_AMOUNT = 200;
 
 const FINAL_PAYMENT_STATUSES: BookingPaymentRecord["status"][] = [
   "success",
@@ -130,6 +131,17 @@ const STK_PROMPT_STEPS = [
   "Enter your M-Pesa PIN to approve the booking fee.",
   "Return here while we confirm the payment automatically.",
 ];
+
+const normalizeBookingFeeAmount = (value: unknown, fallback = DEFAULT_BOOKING_FEE_AMOUNT) => {
+  const parsed =
+    typeof value === "number" ? value : typeof value === "string" ? Number.parseFloat(value) : Number.NaN;
+
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
+};
+
+const shouldShowProcessingFeedback = (message: string) =>
+  Boolean(message) &&
+  !/stk push sent|still being processed|awaiting customer action|transaction is being processed/i.test(message);
 
 const getCheckoutStageIndex = (step: BookingStep) => {
   if (step === "summary") {
@@ -414,12 +426,14 @@ const SummaryCard = ({
   date,
   time,
   therapistName,
+  bookingAmount,
 }: {
   serviceType: ServiceType;
   sessionType: SessionType;
   date: string;
   time: string;
   therapistName: string;
+  bookingAmount: number;
 }) => (
   <div className="rounded-[1.6rem] border border-border/60 bg-card/95 p-6 shadow-card">
     <p className="text-sm font-semibold uppercase tracking-[0.2em] text-primary/75">Session Summary</p>
@@ -448,7 +462,7 @@ const SummaryCard = ({
         {
           icon: Wallet,
           label: "Booking Fee",
-          value: formatCurrencyAmount(200, "KES"),
+          value: formatCurrencyAmount(bookingAmount, "KES"),
         },
       ].map((item) => (
         <div
@@ -502,18 +516,18 @@ const getFailureCopy = (payment?: BookingPaymentRecord | null) => {
   switch (payment?.status) {
     case "cancelled":
       return {
-        title: "Payment Cancelled",
-        description: "You cancelled the M-Pesa prompt before the booking fee was confirmed. Your session is not booked yet.",
+        title: "Payment cancelled",
+        description: "You cancelled the M-Pesa prompt before approving the booking fee. Your session has not been booked yet.",
       };
     case "timed_out":
       return {
         title: "Payment timed out",
-        description: "The M-Pesa prompt on your phone took too long to finish. Your session is not booked yet, so please try again.",
+        description: "M-Pesa did not send a final confirmation in time. Your session has not been booked yet, so please try again.",
       };
     case "insufficient_funds":
       return {
         title: "Insufficient funds",
-        description: "Your M-Pesa balance was not enough for the booking fee. Your session is not booked yet.",
+        description: "Your M-Pesa balance is not enough for the booking fee. Top up or use another Safaricom number to continue.",
       };
     default:
       if (resultDescription.includes("pin") || resultDescription.includes("credential") || resultDescription.includes("initiator")) {
@@ -524,9 +538,9 @@ const getFailureCopy = (payment?: BookingPaymentRecord | null) => {
       }
 
       return {
-        title: "Payment not complete",
+        title: "Payment not confirmed",
         description:
-          safeResultDescription || "We could not confirm the booking fee on your phone. No session has been booked yet.",
+          safeResultDescription || "We could not confirm the booking fee with M-Pesa. Your session has not been booked yet.",
       };
   }
 };
@@ -538,8 +552,8 @@ function getSafePaymentFeedback(message: string) {
     return "";
   }
 
-  if (/forbidden|permission denied|not authorized|unauthorized/i.test(trimmed)) {
-    return "We could not confirm the M-Pesa request right now. Please try again, or change the phone number.";
+  if (/could not authorize this request|forbidden|permission denied|not authorized|unauthorized/i.test(trimmed)) {
+    return "M-Pesa could not verify the checkout request right now. Please try again in a moment.";
   }
 
   return trimmed;
@@ -573,6 +587,7 @@ const BookingSection = () => {
   const [isCheckingAvailability, setIsCheckingAvailability] = useState(false);
   const [bookingGuidance, setBookingGuidance] = useState("");
   const [paymentFeedback, setPaymentFeedback] = useState("");
+  const [currentBookingFeeAmount, setCurrentBookingFeeAmount] = useState(DEFAULT_BOOKING_FEE_AMOUNT);
   const [retryStartOverRequired, setRetryStartOverRequired] = useState(false);
   const [serviceDescriptionText, setServiceDescriptionText] = useState("");
   const [isDeletingServiceDescription, setIsDeletingServiceDescription] = useState(false);
@@ -618,8 +633,8 @@ const BookingSection = () => {
     : getFailureCopy(activePayment);
 
   const bookingAmount = useMemo(
-    () => (checkout?.booking.bookingFeeAmount ? checkout.booking.bookingFeeAmount : 200),
-    [checkout?.booking.bookingFeeAmount],
+    () => normalizeBookingFeeAmount(checkout?.booking.bookingFeeAmount, currentBookingFeeAmount),
+    [checkout?.booking.bookingFeeAmount, currentBookingFeeAmount],
   );
 
   const updateField = (field: keyof typeof form, value: string) => {
@@ -704,6 +719,8 @@ const BookingSection = () => {
 
         setCheckout(latest);
         const latestStatus = latest.payment.status;
+        const latestFeedback = getSafePaymentFeedback(latest.payment.resultDescription ?? "");
+        setPaymentFeedback(latestStatus === "processing" && shouldShowProcessingFeedback(latestFeedback) ? latestFeedback : "");
 
         if (isBookingConfirmed(latest.booking)) {
           rememberBookingAccess(latest.booking.token, form.clientEmail.trim());
@@ -789,7 +806,7 @@ const BookingSection = () => {
     setRetryStartOverRequired(false);
 
     try {
-      await precheckBooking({
+      const precheck = await precheckBooking({
         clientName: form.clientName,
         clientEmail: form.clientEmail,
         clientPhone: form.clientPhone,
@@ -801,6 +818,7 @@ const BookingSection = () => {
         sessionType,
         notes: form.notes,
       });
+      setCurrentBookingFeeAmount(normalizeBookingFeeAmount(precheck.bookingFeeAmount, currentBookingFeeAmount));
       setCheckout(null);
       setPaymentPhone(form.clientPhone);
       setStep("summary");
@@ -859,6 +877,7 @@ const BookingSection = () => {
             });
 
       setCheckout(nextCheckout);
+      setCurrentBookingFeeAmount(normalizeBookingFeeAmount(nextCheckout.booking.bookingFeeAmount, bookingAmount));
       setRetryStartOverRequired(false);
       setStep("stk_sent");
       toast.success("STK push sent. Check your phone to complete the payment.");
@@ -1585,6 +1604,7 @@ const BookingSection = () => {
                           date={form.date}
                           time={form.time}
                           therapistName={selectedTherapist.name}
+                          bookingAmount={bookingAmount}
                         />
                         <div className="space-y-5">
                           <WhyPayCard />
@@ -1691,6 +1711,7 @@ const BookingSection = () => {
                             date={form.date}
                             time={form.time}
                             therapistName={selectedTherapist.name}
+                            bookingAmount={bookingAmount}
                           />
                         </div>
                         <div className="order-1 space-y-5 lg:order-2">

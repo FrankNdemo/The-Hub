@@ -294,6 +294,11 @@ const normalizeAmount = (value: unknown, fallback = 0) => {
   return fallback;
 };
 
+const normalizePositiveAmount = (value: unknown, fallback = 0) => {
+  const amount = normalizeAmount(value, fallback);
+  return amount > 0 ? amount : fallback;
+};
+
 const normalizeBookingPayment = (payment?: Partial<BookingPaymentRecord> | null): BookingPaymentRecord | null => {
   if (
     !payment ||
@@ -428,7 +433,7 @@ const normalizeBooking = (booking?: Partial<BookingRecord> | null): BookingRecor
     updatedAt: booking.updatedAt,
     confirmedAt:
       typeof booking.confirmedAt === "string" || booking.confirmedAt === null ? booking.confirmedAt : undefined,
-    bookingFeeAmount: normalizeAmount(booking.bookingFeeAmount, 200),
+    bookingFeeAmount: normalizePositiveAmount(booking.bookingFeeAmount, 200),
     bookingFeeCurrency: typeof booking.bookingFeeCurrency === "string" ? booking.bookingFeeCurrency : "KES",
     payment: normalizeBookingPayment(booking.payment),
     notes: typeof booking.notes === "string" && booking.notes ? booking.notes : undefined,

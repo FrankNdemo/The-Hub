@@ -24,7 +24,7 @@ def api_exception_handler(exc, context):
         log_api_error("Database schema error while handling API request", exc)
         return Response(
             {
-                "detail": "The booking database schema is not up to date. Please run the latest migrations.",
+                "detail": "The booking service is temporarily unavailable. Please try again shortly.",
                 "code": "database_schema_error",
             },
             status=status.HTTP_503_SERVICE_UNAVAILABLE,
@@ -34,7 +34,7 @@ def api_exception_handler(exc, context):
         log_api_error("Database connection error while handling API request", exc)
         return Response(
             {
-                "detail": "The booking service cannot reach the database right now. Please try again shortly.",
+                "detail": "The booking service is temporarily unavailable. Please try again shortly.",
                 "code": "database_unavailable",
             },
             status=status.HTTP_503_SERVICE_UNAVAILABLE,
@@ -44,7 +44,7 @@ def api_exception_handler(exc, context):
         log_api_error("Database data error while handling API request", exc)
         return Response(
             {
-                "detail": "The booking database needs the latest migration before this session can be saved.",
+                "detail": "The booking service is temporarily unavailable. Please try again shortly.",
                 "code": "database_data_error",
             },
             status=status.HTTP_503_SERVICE_UNAVAILABLE,
@@ -54,7 +54,7 @@ def api_exception_handler(exc, context):
         log_api_error("Database integrity error while handling API request", exc)
         return Response(
             {
-                "detail": "The booking service could not save this session because the database rejected a required record.",
+                "detail": "We could not save this session right now. Please try again shortly.",
                 "code": "database_integrity_error",
             },
             status=status.HTTP_503_SERVICE_UNAVAILABLE,
@@ -64,7 +64,7 @@ def api_exception_handler(exc, context):
         log_api_error("Database error while handling API request", exc)
         return Response(
             {
-                "detail": "The booking service could not complete the database request.",
+                "detail": "The booking service is temporarily unavailable. Please try again shortly.",
                 "code": "database_error",
             },
             status=status.HTTP_503_SERVICE_UNAVAILABLE,
@@ -73,7 +73,7 @@ def api_exception_handler(exc, context):
     log_api_error("Unhandled API error", exc)
     return Response(
         {
-            "detail": "The wellness API could not complete this request right now.",
+            "detail": "We could not complete this request right now. Please try again shortly.",
             "code": "server_error",
         },
         status=status.HTTP_500_INTERNAL_SERVER_ERROR,

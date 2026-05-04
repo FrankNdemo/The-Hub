@@ -37,6 +37,13 @@ QUERY_FAILURE_CONFIRMATION_GRACE_SECONDS = 25
 MIN_STK_TIMEOUT_SECONDS = 30
 MAX_STK_PROCESSING_SECONDS = 120
 PAYMENT_RETRY_LIMIT = 3
+RETRYABLE_MPESA_STATUS_ERROR_CODES = {
+    "mpesa_http_error",
+    "mpesa_provider_authorization_error",
+    "mpesa_provider_unavailable",
+    "mpesa_auth_failed",
+    "payment_error",
+}
 
 
 def make_id(prefix: str) -> str:
@@ -63,6 +70,25 @@ def get_booking_fee_amount():
 
 def get_booking_fee_currency() -> str:
     return settings.BOOKING_FEE_CURRENCY
+
+
+def sync_booking_fee_amount_from_settings(booking: Booking) -> Booking:
+    current_fee = get_booking_fee_amount()
+    current_currency = get_booking_fee_currency()
+    update_fields = []
+
+    if booking.booking_fee_amount != current_fee:
+        booking.booking_fee_amount = current_fee
+        update_fields.append("booking_fee_amount")
+
+    if booking.booking_fee_currency != current_currency:
+        booking.booking_fee_currency = current_currency
+        update_fields.append("booking_fee_currency")
+
+    if update_fields:
+        booking.save(update_fields=[*update_fields, "updated_at"])
+
+    return booking
 
 
 def get_payment_hold_expiry(now=None):
@@ -215,16 +241,18 @@ def get_payment_failure_history_title(payment: BookingPayment) -> str:
 
 def get_payment_failure_message(result_code: str, result_description: str) -> tuple[str, str]:
     code = str(result_code).strip()
+    raw_description = result_description.strip()
     description = normalize_payment_result_description(result_description)
+    lowered_raw_description = raw_description.lower()
 
     if code == "0":
         return BookingPayment.Status.SUCCESS, description
-    if code == "1032":
+    if code == "1032" or "cancel" in lowered_raw_description:
         return BookingPayment.Status.CANCELLED, "Payment cancelled on the phone."
     if code in {"1037", "1019"}:
-        return BookingPayment.Status.TIMED_OUT, "The STK prompt timed out before completion."
-    if code == "1":
-        return BookingPayment.Status.INSUFFICIENT_FUNDS, "The M-Pesa wallet has insufficient funds."
+        return BookingPayment.Status.TIMED_OUT, description if raw_description else "The STK prompt timed out before completion."
+    if code == "1" or "insufficient" in lowered_raw_description:
+        return BookingPayment.Status.INSUFFICIENT_FUNDS, "Your M-Pesa balance is not enough for the booking fee."
 
     return BookingPayment.Status.FAILED, description
 
@@ -232,6 +260,12 @@ def get_payment_failure_message(result_code: str, result_description: str) -> tu
 def normalize_payment_result_description(result_description: str) -> str:
     description = result_description.strip() or "The payment did not complete."
     lowered_description = description.lower()
+
+    if "cancel" in lowered_description:
+        return "Payment cancelled on the phone."
+
+    if "insufficient" in lowered_description:
+        return "Your M-Pesa balance is not enough for the booking fee."
 
     if "wrong pin" in lowered_description or "incorrect pin" in lowered_description:
         return "The M-Pesa PIN entered on your phone was not accepted. Please try again."
@@ -242,7 +276,26 @@ def normalize_payment_result_description(result_description: str) -> str:
     if "invalid access token" in lowered_description:
         return "We could not finish confirming your M-Pesa request right now. Please try again in a moment."
 
+    if "could not authorize this request" in lowered_description or "forbidden" in lowered_description:
+        return "M-Pesa could not verify this checkout request right now. Please try again in a moment."
+
     return description
+
+
+def is_customer_action_failure_message(description: str) -> bool:
+    lowered_description = description.lower()
+    return "pin" in lowered_description and "not accepted" in lowered_description
+
+
+def get_pending_mpesa_confirmation_message() -> str:
+    return "We are still waiting for M-Pesa to send the final payment result. This page will update as soon as Safaricom confirms it."
+
+
+def get_unconfirmed_mpesa_timeout_message() -> str:
+    return (
+        "We could not receive a final M-Pesa confirmation in time. "
+        "If you cancelled, entered the wrong PIN, or had insufficient funds, please try again."
+    )
 
 
 def mark_booking_payment_failed(*, booking: Booking, payment: BookingPayment) -> None:
@@ -350,6 +403,7 @@ def create_payment_attempt(*, booking: Booking, normalized_phone_number: str) ->
 
 
 def start_booking_payment(*, booking: Booking, mpesa_phone_number: str) -> tuple[Booking, BookingPayment]:
+    booking = sync_booking_fee_amount_from_settings(booking)
     normalized_phone_number = normalize_mpesa_phone_number(mpesa_phone_number)
     booking.status = Booking.Status.PAYMENT_PENDING
     booking.payment_expires_at = get_payment_hold_expiry()
@@ -447,23 +501,29 @@ def retry_paid_booking_checkout(*, booking: Booking, mpesa_phone_number: str) ->
 
     # Fix: always sync fee amount from settings before retry.
     # This prevents old bookings created with amount=0 from retrying with 0.
-    current_fee = get_booking_fee_amount()
-    if booking.booking_fee_amount != current_fee:
-        booking.booking_fee_amount = current_fee
-        booking.save(update_fields=["booking_fee_amount", "updated_at"])
+    booking = sync_booking_fee_amount_from_settings(booking)
 
     return start_booking_payment(booking=booking, mpesa_phone_number=mpesa_phone_number)
 
 
-def should_defer_query_failure_outcome(*, booking: Booking, payment: BookingPayment, result_code: str) -> bool:
+def should_defer_query_failure_outcome(
+    *,
+    booking: Booking,
+    payment: BookingPayment,
+    result_code: str,
+    result_description: str,
+) -> bool:
     if settings.MPESA_SIMULATE_PAYMENTS:
         return False
 
     if not result_code or result_code == "0":
         return False
 
-    payment_status, _ = get_payment_failure_message(result_code, "")
+    payment_status, normalized_description = get_payment_failure_message(result_code, result_description)
     if payment_status in {BookingPayment.Status.CANCELLED, BookingPayment.Status.INSUFFICIENT_FUNDS}:
+        return False
+
+    if payment_status == BookingPayment.Status.FAILED and is_customer_action_failure_message(normalized_description):
         return False
 
     if booking.confirmed_at or payment.callback_received_at:
@@ -496,18 +556,37 @@ def sync_booking_payment_status(*, booking: Booking, payment: BookingPayment) ->
         query_result = query_stk_push_status(payment)
     except BookingPaymentError as exc:
         current_time = timezone.now()
+        query_payload = {"detail": exc.detail, "code": exc.code}
+
+        if exc.code in RETRYABLE_MPESA_STATUS_ERROR_CODES:
+            if current_time >= payment.created_at + timedelta(seconds=MAX_STK_PROCESSING_SECONDS):
+                return apply_payment_outcome(
+                    booking=booking,
+                    payment=payment,
+                    result_code="1037",
+                    result_description=get_unconfirmed_mpesa_timeout_message(),
+                    query_payload=query_payload,
+                )
+
+            payment.status = BookingPayment.Status.PROCESSING
+            payment.result_description = get_pending_mpesa_confirmation_message()
+            payment.query_payload = query_payload
+            payment.last_status_check_at = current_time
+            payment.save(update_fields=["status", "result_description", "query_payload", "last_status_check_at", "updated_at"])
+            return booking, payment
+
         if current_time >= payment.created_at + timedelta(seconds=MIN_STK_TIMEOUT_SECONDS):
             return apply_payment_outcome(
                 booking=booking,
                 payment=payment,
                 result_code=exc.code,
                 result_description=exc.detail,
-                query_payload={"detail": exc.detail, "code": exc.code},
+                query_payload=query_payload,
             )
 
         payment.status = BookingPayment.Status.PROCESSING
         payment.result_description = exc.detail
-        payment.query_payload = {"detail": exc.detail, "code": exc.code}
+        payment.query_payload = query_payload
         payment.last_status_check_at = current_time
         payment.save(update_fields=["status", "result_description", "query_payload", "last_status_check_at", "updated_at"])
         return booking, payment
@@ -534,6 +613,7 @@ def sync_booking_payment_status(*, booking: Booking, payment: BookingPayment) ->
         booking=booking,
         payment=payment,
         result_code=str(query_result.result_code).strip(),
+        result_description=query_result.result_description,
     ):
         payment.status = BookingPayment.Status.PROCESSING
         payment.result_description = (

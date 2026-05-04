@@ -997,6 +997,56 @@ class PaidBookingCheckoutApiTests(APITestCase):
         self.assertEqual(retry_response.data["code"], "mpesa_retry_limit_reached")
         self.assertNotIn("Forbidden", retry_response.data["detail"])
 
+    def test_retry_checkout_syncs_current_booking_fee_for_old_zero_amount_booking(self):
+        unique_tag = timezone.now().strftime("%H%M%S%f")
+        checkout_response = self.client.post(
+            "/api/v1/bookings/checkout/",
+            {
+                "clientName": "Old Zero Amount Client",
+                "clientEmail": f"old-zero-{unique_tag}@example.com",
+                "clientPhone": "+254700888333",
+                "therapistId": "caroline-gichia",
+                "date": "2028-10-05",
+                "time": "14:00",
+                "serviceType": "individual",
+                "sessionType": "physical",
+                "mpesaPhoneNumber": "0711111222",
+            },
+            format="json",
+        )
+        self.assertEqual(checkout_response.status_code, status.HTTP_201_CREATED)
+        booking = Booking.objects.get(pk=checkout_response.data["booking"]["id"])
+        payment = BookingPayment.objects.get(pk=checkout_response.data["payment"]["id"])
+
+        Booking.objects.filter(pk=booking.pk).update(
+            booking_fee_amount=0,
+            status=Booking.Status.PAYMENT_FAILED,
+        )
+        BookingPayment.objects.filter(pk=payment.pk).update(
+            status=BookingPayment.Status.CANCELLED,
+            result_code="1032",
+            result_description="Payment cancelled on the phone.",
+            completed_at=timezone.now(),
+        )
+        booking.refresh_from_db()
+
+        retry_response = self.client.post(
+            "/api/v1/bookings/checkout/retry/",
+            {
+                "bookingToken": booking.manage_token,
+                "mpesaPhoneNumber": "0711111222",
+            },
+            format="json",
+        )
+
+        self.assertEqual(retry_response.status_code, status.HTTP_200_OK)
+        self.assertEqual(float(retry_response.data["booking"]["bookingFeeAmount"]), 200.0)
+        self.assertEqual(float(retry_response.data["payment"]["amount"]), 200.0)
+        booking.refresh_from_db()
+        latest_payment = booking.payments.first()
+        self.assertEqual(float(booking.booking_fee_amount), 200.0)
+        self.assertEqual(float(latest_payment.amount), 200.0)
+
     @patch("apps.bookings.services.query_stk_push_status")
     def test_status_endpoint_keeps_processing_when_mpesa_query_has_provider_error(self, query_stk_push_status_mock):
         query_stk_push_status_mock.side_effect = BookingPaymentError(
@@ -1029,7 +1079,7 @@ class PaidBookingCheckoutApiTests(APITestCase):
         self.assertNotIn("Forbidden", response.data["payment"]["resultDescription"])
 
     @patch("apps.bookings.services.query_stk_push_status")
-    def test_status_endpoint_marks_provider_query_error_failed_after_minimum_wait(self, query_stk_push_status_mock):
+    def test_status_endpoint_keeps_provider_query_error_processing_until_timeout(self, query_stk_push_status_mock):
         unique_tag = timezone.now().strftime("%H%M%S%f")
         query_stk_push_status_mock.side_effect = BookingPaymentError(
             "M-Pesa could not authorize this request right now. Please try again, or use a different Safaricom number.",
@@ -1058,9 +1108,16 @@ class PaidBookingCheckoutApiTests(APITestCase):
         response = self.client.get(f"/api/v1/bookings/checkout/{booking.manage_token}/payments/{payment.id}/status/")
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertEqual(response.data["payment"]["status"], BookingPayment.Status.FAILED)
-        self.assertTrue(response.data["payment"]["canRetry"])
+        self.assertEqual(response.data["payment"]["status"], BookingPayment.Status.PROCESSING)
         self.assertNotIn("Forbidden", response.data["payment"]["resultDescription"])
+
+        BookingPayment.objects.filter(pk=payment.pk).update(created_at=timezone.now() - timedelta(seconds=121))
+        timeout_response = self.client.get(f"/api/v1/bookings/checkout/{booking.manage_token}/payments/{payment.id}/status/")
+
+        self.assertEqual(timeout_response.status_code, status.HTTP_200_OK)
+        self.assertEqual(timeout_response.data["payment"]["status"], BookingPayment.Status.TIMED_OUT)
+        self.assertTrue(timeout_response.data["payment"]["canRetry"])
+        self.assertIn("final M-Pesa confirmation", timeout_response.data["payment"]["resultDescription"])
 
     @override_settings(
         MPESA_SIMULATE_PAYMENTS=False,

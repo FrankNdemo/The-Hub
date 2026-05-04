@@ -120,12 +120,31 @@ def get_mpesa_http_error_detail(status_code: int, payload: dict[str, object]) ->
     lowered_message = raw_message.lower()
 
     if status_code in {401, 403} or "forbidden" in lowered_message or "invalid access token" in lowered_message:
-        return "M-Pesa could not authorize this request right now. Please try again, or use a different Safaricom number."
+        return "M-Pesa could not verify this checkout request right now. Please try again in a moment."
 
     if status_code in {408, 429, 500, 502, 503, 504}:
         return "M-Pesa is taking longer than expected. Please try again in a moment."
 
     return raw_message or "M-Pesa could not start or confirm this request right now. Please try again."
+
+
+def get_mpesa_http_error_code(status_code: int, payload: dict[str, object]) -> str:
+    raw_message = str(
+        payload.get("errorMessage")
+        or payload.get("detail")
+        or payload.get("ResponseDescription")
+        or payload.get("ResultDesc")
+        or ""
+    ).strip()
+    lowered_message = raw_message.lower()
+
+    if status_code in {401, 403} or "forbidden" in lowered_message or "invalid access token" in lowered_message:
+        return "mpesa_provider_authorization_error"
+
+    if status_code in {408, 429, 500, 502, 503, 504}:
+        return "mpesa_provider_unavailable"
+
+    return "mpesa_http_error"
 
 
 def get_missing_mpesa_configuration_fields() -> list[str]:
@@ -171,7 +190,7 @@ def request_json(url: str, *, method: str = "GET", headers: dict[str, str] | Non
 
         raise BookingPaymentError(
             get_mpesa_http_error_detail(exc.code, payload),
-            code="mpesa_http_error",
+            code=get_mpesa_http_error_code(exc.code, payload),
         ) from exc
     except urllib_error.URLError as exc:
         raise BookingPaymentError("M-Pesa is temporarily unavailable. Please check your connection and try again.") from exc

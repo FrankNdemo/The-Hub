@@ -48,16 +48,18 @@ export const formatServiceType = (value: ServiceType) => {
   }
 };
 
-export const formatCurrencyAmount = (amount: number, currency = "KES") => {
-  if (!Number.isFinite(amount)) {
+export const formatCurrencyAmount = (amount: number | string, currency = "KES") => {
+  const numericAmount = typeof amount === "number" ? amount : Number.parseFloat(amount);
+
+  if (!Number.isFinite(numericAmount)) {
     return `${currency} 0`;
   }
 
   return new Intl.NumberFormat("en-KE", {
     style: "currency",
     currency,
-    maximumFractionDigits: amount % 1 === 0 ? 0 : 2,
-  }).format(amount);
+    maximumFractionDigits: numericAmount % 1 === 0 ? 0 : 2,
+  }).format(numericAmount);
 };
 
 export const formatPaymentStatus = (status: PaymentStatus) => {
