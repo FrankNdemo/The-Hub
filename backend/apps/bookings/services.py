@@ -445,6 +445,13 @@ def retry_paid_booking_checkout(*, booking: Booking, mpesa_phone_number: str) ->
         exclude_booking=booking,
     )
 
+    # Fix: always sync fee amount from settings before retry.
+    # This prevents old bookings created with amount=0 from retrying with 0.
+    current_fee = get_booking_fee_amount()
+    if booking.booking_fee_amount != current_fee:
+        booking.booking_fee_amount = current_fee
+        booking.save(update_fields=["booking_fee_amount", "updated_at"])
+
     return start_booking_payment(booking=booking, mpesa_phone_number=mpesa_phone_number)
 
 
