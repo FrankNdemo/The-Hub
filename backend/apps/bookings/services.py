@@ -97,7 +97,7 @@ def get_payment_hold_expiry(now=None):
 
 
 def get_payment_retry_count(booking: Booking) -> int:
-    return max(0, booking.payments.count() - 1)
+    return max(0, BookingPayment.objects.filter(booking=booking).count() - 1)
 
 
 def get_payment_retries_remaining(booking: Booking) -> int:
@@ -247,12 +247,12 @@ def get_payment_failure_message(result_code: str, result_description: str) -> tu
 
     if code == "0":
         return BookingPayment.Status.SUCCESS, description
+    if code in {"1037", "1019"} or "timed out" in lowered_raw_description or "timeout" in lowered_raw_description:
+        return BookingPayment.Status.TIMED_OUT, raw_description if raw_description else "The STK prompt timed out before completion."
+    if code == "1" or "insufficient" in lowered_raw_description or "insufficient funds" in description.lower():
+        return BookingPayment.Status.INSUFFICIENT_FUNDS, "Your M-Pesa balance is not enough for the booking fee."
     if code == "1032" or "cancel" in lowered_raw_description:
         return BookingPayment.Status.CANCELLED, "Payment cancelled on the phone."
-    if code in {"1037", "1019"}:
-        return BookingPayment.Status.TIMED_OUT, description if raw_description else "The STK prompt timed out before completion."
-    if code == "1" or "insufficient" in lowered_raw_description:
-        return BookingPayment.Status.INSUFFICIENT_FUNDS, "Your M-Pesa balance is not enough for the booking fee."
 
     return BookingPayment.Status.FAILED, description
 
@@ -311,6 +311,12 @@ def mark_booking_payment_failed(*, booking: Booking, payment: BookingPayment) ->
     )
 
 
+def refresh_booking_payment_state(*, booking: Booking, payment: BookingPayment) -> tuple[Booking, BookingPayment]:
+    payment.refresh_from_db()
+    booking.refresh_from_db()
+    return booking, payment
+
+
 def finalize_paid_booking(*, booking: Booking, payment: BookingPayment) -> Booking:
     if booking.confirmed_at:
         return booking
@@ -339,11 +345,24 @@ def apply_payment_outcome(
     query_payload: dict[str, object] | None = None,
     callback_payload: dict[str, object] | None = None,
 ) -> tuple[Booking, BookingPayment]:
-    if payment.is_final and booking.confirmed_at:
-        return booking, payment
-
     metadata = metadata or {}
     payment_status, normalized_description = get_payment_failure_message(result_code, result_description)
+    booking, payment = refresh_booking_payment_state(booking=booking, payment=payment)
+
+    if payment.is_final:
+        if payment.status == BookingPayment.Status.SUCCESS or booking.confirmed_at:
+            return booking, payment
+
+        if payment.callback_received_at and callback_payload is None:
+            return booking, payment
+
+        if payment_status != BookingPayment.Status.SUCCESS:
+            if callback_payload is not None and not payment.callback_received_at:
+                payment.callback_payload = callback_payload
+                payment.callback_received_at = timezone.now()
+                payment.save(update_fields=["callback_payload", "callback_received_at", "updated_at"])
+            return booking, payment
+
     current_time = timezone.now()
 
     payment.status = payment_status
@@ -557,6 +576,10 @@ def sync_booking_payment_status(*, booking: Booking, payment: BookingPayment) ->
     except BookingPaymentError as exc:
         current_time = timezone.now()
         query_payload = {"detail": exc.detail, "code": exc.code}
+        booking, payment = refresh_booking_payment_state(booking=booking, payment=payment)
+
+        if payment.is_final:
+            return booking, payment
 
         if exc.code in RETRYABLE_MPESA_STATUS_ERROR_CODES:
             if current_time >= payment.created_at + timedelta(seconds=MAX_STK_PROCESSING_SECONDS):
@@ -589,6 +612,11 @@ def sync_booking_payment_status(*, booking: Booking, payment: BookingPayment) ->
         payment.query_payload = query_payload
         payment.last_status_check_at = current_time
         payment.save(update_fields=["status", "result_description", "query_payload", "last_status_check_at", "updated_at"])
+        return booking, payment
+
+    booking, payment = refresh_booking_payment_state(booking=booking, payment=payment)
+
+    if payment.is_final:
         return booking, payment
 
     if not query_result.is_final:

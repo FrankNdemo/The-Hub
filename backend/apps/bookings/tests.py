@@ -1225,6 +1225,174 @@ class PaidBookingCheckoutApiTests(APITestCase):
         self.assertEqual(payment.transaction_id, "QWE123456")
         self.assertEqual(len(mail.outbox), 2)
 
+    @override_settings(
+        MPESA_SIMULATE_PAYMENTS=False,
+        MPESA_CONSUMER_KEY="test-key",
+        MPESA_CONSUMER_SECRET="test-secret",
+        MPESA_SHORTCODE="174379",
+        MPESA_PASSKEY="test-passkey",
+        MPESA_CALLBACK_URL="https://example.com/api/v1/payments/mpesa/callback/",
+    )
+    @patch("apps.bookings.services.query_stk_push_status")
+    @patch("apps.bookings.services.initiate_stk_push")
+    def test_callback_success_wins_over_stale_query_failure(
+        self,
+        initiate_stk_push_mock,
+        query_stk_push_status_mock,
+    ):
+        from apps.bookings.services import handle_mpesa_callback
+
+        unique_tag = timezone.now().strftime("%H%M%S%f")
+        initiate_stk_push_mock.return_value = MpesaStkPushResponse(
+            merchant_request_id="mr_callback_wins",
+            checkout_request_id="ws_callback_wins",
+            raw={
+                "MerchantRequestID": "mr_callback_wins",
+                "CheckoutRequestID": "ws_callback_wins",
+                "ResponseCode": "0",
+                "ResponseDescription": "Success. Request accepted for processing",
+            },
+        )
+
+        def return_stale_query_failure(payment):
+            handle_mpesa_callback(
+                checkout_request_id=payment.checkout_request_id,
+                payload={
+                    "Body": {
+                        "stkCallback": {
+                            "MerchantRequestID": payment.merchant_request_id,
+                            "CheckoutRequestID": payment.checkout_request_id,
+                            "ResultCode": 0,
+                            "ResultDesc": "The service request is processed successfully.",
+                            "CallbackMetadata": {
+                                "Item": [
+                                    {"Name": "Amount", "Value": 200},
+                                    {"Name": "MpesaReceiptNumber", "Value": "QWE999888"},
+                                    {"Name": "PhoneNumber", "Value": 254712345678},
+                                ]
+                            },
+                        }
+                    }
+                },
+            )
+            return MpesaQueryResponse(
+                is_final=True,
+                result_code="1032",
+                result_description="Request cancelled by user.",
+                raw={
+                    "ResponseCode": "0",
+                    "ResponseDescription": "The transaction status has been received.",
+                    "CheckoutRequestID": payment.checkout_request_id,
+                    "ResultCode": "1032",
+                    "ResultDesc": "Request cancelled by user.",
+                },
+                metadata={},
+            )
+
+        query_stk_push_status_mock.side_effect = return_stale_query_failure
+        checkout_response = self.client.post(
+            "/api/v1/bookings/checkout/",
+            {
+                "clientName": "Callback Wins Client",
+                "clientEmail": f"callback-wins-{unique_tag}@example.com",
+                "clientPhone": "+254700777999",
+                "therapistId": "caroline-gichia",
+                "date": "2028-09-30",
+                "time": "16:30",
+                "serviceType": "individual",
+                "sessionType": "virtual",
+                "notes": "Callback should beat stale query result.",
+                "mpesaPhoneNumber": "0712345678",
+            },
+            format="json",
+        )
+        self.assertEqual(checkout_response.status_code, status.HTTP_201_CREATED)
+
+        booking = Booking.objects.get(pk=checkout_response.data["booking"]["id"])
+        payment = BookingPayment.objects.get(pk=checkout_response.data["payment"]["id"])
+
+        status_response = self.client.get(
+            f"/api/v1/bookings/checkout/{booking.manage_token}/payments/{payment.id}/status/"
+        )
+
+        self.assertEqual(status_response.status_code, status.HTTP_200_OK)
+        self.assertEqual(status_response.data["payment"]["status"], BookingPayment.Status.SUCCESS)
+        self.assertEqual(status_response.data["payment"]["transactionId"], "QWE999888")
+        self.assertEqual(status_response.data["booking"]["status"], Booking.Status.UPCOMING)
+        self.assertEqual(len(mail.outbox), 2)
+
+    @override_settings(
+        MPESA_SIMULATE_PAYMENTS=False,
+        MPESA_CONSUMER_KEY="test-key",
+        MPESA_CONSUMER_SECRET="test-secret",
+        MPESA_SHORTCODE="174379",
+        MPESA_PASSKEY="test-passkey",
+        MPESA_CALLBACK_URL="https://example.com/api/v1/payments/mpesa/callback/",
+    )
+    @patch("apps.bookings.services.query_stk_push_status")
+    @patch("apps.bookings.services.initiate_stk_push")
+    def test_status_endpoint_reports_insufficient_funds_without_callback_wait(
+        self,
+        initiate_stk_push_mock,
+        query_stk_push_status_mock,
+    ):
+        unique_tag = timezone.now().strftime("%H%M%S%f")
+        initiate_stk_push_mock.return_value = MpesaStkPushResponse(
+            merchant_request_id="mr_insufficient",
+            checkout_request_id="ws_insufficient",
+            raw={
+                "MerchantRequestID": "mr_insufficient",
+                "CheckoutRequestID": "ws_insufficient",
+                "ResponseCode": "0",
+                "ResponseDescription": "Success. Request accepted for processing",
+            },
+        )
+        query_stk_push_status_mock.return_value = MpesaQueryResponse(
+            is_final=True,
+            result_code="1",
+            result_description="The balance is insufficient for the transaction.",
+            raw={
+                "ResponseCode": "0",
+                "ResponseDescription": "The transaction status has been received.",
+                "CheckoutRequestID": "ws_insufficient",
+                "ResultCode": "1",
+                "ResultDesc": "The balance is insufficient for the transaction.",
+            },
+            metadata={},
+        )
+
+        checkout_response = self.client.post(
+            "/api/v1/bookings/checkout/",
+            {
+                "clientName": "Insufficient Funds Client",
+                "clientEmail": f"insufficient-{unique_tag}@example.com",
+                "clientPhone": "+254700778000",
+                "therapistId": "caroline-gichia",
+                "date": "2028-10-03",
+                "time": "16:30",
+                "serviceType": "individual",
+                "sessionType": "virtual",
+                "notes": "Surface insufficient funds quickly.",
+                "mpesaPhoneNumber": "0712345678",
+            },
+            format="json",
+        )
+        self.assertEqual(checkout_response.status_code, status.HTTP_201_CREATED, checkout_response.data)
+
+        booking = Booking.objects.get(pk=checkout_response.data["booking"]["id"])
+        payment = BookingPayment.objects.get(pk=checkout_response.data["payment"]["id"])
+
+        status_response = self.client.get(
+            f"/api/v1/bookings/checkout/{booking.manage_token}/payments/{payment.id}/status/"
+        )
+
+        self.assertEqual(status_response.status_code, status.HTTP_200_OK)
+        self.assertEqual(status_response.data["payment"]["status"], BookingPayment.Status.INSUFFICIENT_FUNDS)
+        self.assertEqual(status_response.data["payment"]["resultDescription"], "Your M-Pesa balance is not enough for the booking fee.")
+        self.assertTrue(status_response.data["payment"]["canRetry"])
+        self.assertEqual(status_response.data["booking"]["status"], Booking.Status.PAYMENT_FAILED)
+        self.assertEqual(len(mail.outbox), 0)
+
     def test_direct_full_session_booking_requires_payment_flow(self):
         response = self.client.post(
             "/api/v1/bookings/",

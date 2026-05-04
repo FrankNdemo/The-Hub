@@ -67,7 +67,9 @@ const REVIEW_GARDEN_IMAGE_URL =
 type BookingStep = "details" | "summary" | "payment" | "stk_sent" | "processing" | "success" | "failed";
 
 const STK_SENT_PROMOTE_DELAY_MS = 900;
-const PAYMENT_STATUS_POLL_INTERVAL_MS = 1500;
+const PAYMENT_STATUS_FAST_POLL_INTERVAL_MS = 1000;
+const PAYMENT_STATUS_SLOW_POLL_INTERVAL_MS = 2500;
+const PAYMENT_STATUS_FAST_POLL_WINDOW_MS = 18000;
 const DEFAULT_BOOKING_FEE_AMOUNT = 200;
 
 const FINAL_PAYMENT_STATUSES: BookingPaymentRecord["status"][] = [
@@ -704,11 +706,29 @@ const BookingSection = () => {
     }
 
     let isActive = true;
+    let nextPollTimer: number | undefined;
+    const pollingStartedAt = Date.now();
     const promoteTimer = window.setTimeout(() => {
       if (isActive) {
         setStep((current) => (current === "stk_sent" ? "processing" : current));
       }
     }, STK_SENT_PROMOTE_DELAY_MS);
+
+    const scheduleNextPoll = () => {
+      if (!isActive) {
+        return;
+      }
+
+      const elapsed = Date.now() - pollingStartedAt;
+      const delay =
+        elapsed < PAYMENT_STATUS_FAST_POLL_WINDOW_MS
+          ? PAYMENT_STATUS_FAST_POLL_INTERVAL_MS
+          : PAYMENT_STATUS_SLOW_POLL_INTERVAL_MS;
+
+      nextPollTimer = window.setTimeout(() => {
+        void pollPayment();
+      }, delay);
+    };
 
     const pollPayment = async () => {
       try {
@@ -747,17 +767,18 @@ const BookingSection = () => {
 
         setPaymentFeedback(getSafePaymentFeedback(getApiErrorMessage(error, "We could not refresh the payment status just now.")));
       }
+
+      scheduleNextPoll();
     };
 
     void pollPayment();
-    const intervalId = window.setInterval(() => {
-      void pollPayment();
-    }, PAYMENT_STATUS_POLL_INTERVAL_MS);
 
     return () => {
       isActive = false;
       window.clearTimeout(promoteTimer);
-      window.clearInterval(intervalId);
+      if (nextPollTimer !== undefined) {
+        window.clearTimeout(nextPollTimer);
+      }
     };
   }, [checkout?.booking.token, checkout?.payment.id, form.clientEmail, step]);
 

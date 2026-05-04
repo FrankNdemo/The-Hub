@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import base64
+import hashlib
 import json
 import secrets
 from dataclasses import dataclass
@@ -10,6 +11,7 @@ from urllib import error as urllib_error
 from urllib import request as urllib_request
 
 from django.conf import settings
+from django.core.cache import cache
 from django.utils import timezone
 
 from .models import Booking, BookingPayment
@@ -17,6 +19,8 @@ from .models import Booking, BookingPayment
 
 SANDBOX_BASE_URL = "https://sandbox.safaricom.co.ke"
 PRODUCTION_BASE_URL = "https://api.safaricom.co.ke"
+MPESA_ACCESS_TOKEN_CACHE_PREFIX = "mpesa:access-token"
+MPESA_ACCESS_TOKEN_EXPIRY_BUFFER_SECONDS = 60
 
 
 class BookingPaymentError(Exception):
@@ -175,12 +179,20 @@ def raise_for_missing_mpesa_configuration() -> None:
     )
 
 
-def request_json(url: str, *, method: str = "GET", headers: dict[str, str] | None = None, payload=None) -> dict[str, object]:
+def request_json(
+    url: str,
+    *,
+    method: str = "GET",
+    headers: dict[str, str] | None = None,
+    payload=None,
+    timeout_seconds: int | None = None,
+) -> dict[str, object]:
     body = None if payload is None else json.dumps(payload).encode("utf-8")
     request = urllib_request.Request(url, data=body, headers=headers or {}, method=method)
+    timeout = timeout_seconds or settings.MPESA_TIMEOUT_SECONDS
 
     try:
-        with urllib_request.urlopen(request, timeout=settings.MPESA_TIMEOUT_SECONDS) as response:
+        with urllib_request.urlopen(request, timeout=timeout) as response:
             return parse_json_response(response)
     except urllib_error.HTTPError as exc:
         try:
@@ -193,11 +205,44 @@ def request_json(url: str, *, method: str = "GET", headers: dict[str, str] | Non
             code=get_mpesa_http_error_code(exc.code, payload),
         ) from exc
     except urllib_error.URLError as exc:
-        raise BookingPaymentError("M-Pesa is temporarily unavailable. Please check your connection and try again.") from exc
+        raise BookingPaymentError(
+            "M-Pesa is temporarily unavailable. Please check your connection and try again.",
+            code="mpesa_provider_unavailable",
+        ) from exc
+
+
+def get_access_token_cache_key() -> str:
+    signature = "|".join(
+        [
+            settings.MPESA_ENVIRONMENT,
+            get_mpesa_base_url(),
+            settings.MPESA_CONSUMER_KEY.strip(),
+            settings.MPESA_SHORTCODE.strip(),
+        ]
+    )
+    digest = hashlib.sha256(signature.encode("utf-8")).hexdigest()
+    return f"{MPESA_ACCESS_TOKEN_CACHE_PREFIX}:{digest}"
+
+
+def get_access_token_cache_timeout(payload: dict[str, object]) -> int:
+    raw_expires_in = payload.get("expires_in", 3599)
+
+    try:
+        expires_in = int(str(raw_expires_in))
+    except (TypeError, ValueError):
+        expires_in = 3599
+
+    return max(60, expires_in - MPESA_ACCESS_TOKEN_EXPIRY_BUFFER_SECONDS)
 
 
 def get_access_token() -> str:
     raise_for_missing_mpesa_configuration()
+    cache_key = get_access_token_cache_key()
+    cached_access_token = cache.get(cache_key)
+
+    if isinstance(cached_access_token, str) and cached_access_token:
+        return cached_access_token
+
     consumer_key = settings.MPESA_CONSUMER_KEY.strip()
     consumer_secret = settings.MPESA_CONSUMER_SECRET.strip()
 
@@ -209,12 +254,14 @@ def get_access_token() -> str:
             "Accept": "application/json",
             "Authorization": f"Basic {credentials}",
         },
+        timeout_seconds=settings.MPESA_STATUS_TIMEOUT_SECONDS,
     )
     access_token = payload.get("access_token")
 
     if not isinstance(access_token, str) or not access_token:
         raise BookingPaymentError("M-Pesa did not return an access token.", code="mpesa_auth_failed")
 
+    cache.set(cache_key, access_token, timeout=get_access_token_cache_timeout(payload))
     return access_token
 
 
@@ -372,6 +419,7 @@ def query_stk_push_status(payment: BookingPayment) -> MpesaQueryResponse:
         method="POST",
         headers=build_request_headers(access_token),
         payload=payload,
+        timeout_seconds=settings.MPESA_STATUS_TIMEOUT_SECONDS,
     )
 
     result_code = response.get("ResultCode")
