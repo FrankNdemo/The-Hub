@@ -67,7 +67,7 @@ const REVIEW_GARDEN_IMAGE_URL =
 type BookingStep = "details" | "summary" | "payment" | "stk_sent" | "processing" | "success" | "failed";
 
 const STK_SENT_PROMOTE_DELAY_MS = 900;
-const PAYMENT_STATUS_POLL_INTERVAL_MS = 3000;
+const PAYMENT_STATUS_POLL_INTERVAL_MS = 1500;
 
 const FINAL_PAYMENT_STATUSES: BookingPaymentRecord["status"][] = [
   "success",
