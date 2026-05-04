@@ -1068,7 +1068,7 @@ class PaidBookingCheckoutApiTests(APITestCase):
         MPESA_CONSUMER_SECRET="test-secret",
         MPESA_SHORTCODE="174379",
         MPESA_PASSKEY="test-passkey",
-        MPESA_CALLBACK_URL="https://example.com/api/v1/payments/mpesa/callback/",
+        MPESA_CALLBACK_URL="https://thewhub-three.vercel.app/api/v1/payments/mpesa/callback/",
     )
     @patch("apps.bookings.services.query_stk_push_status")
     @patch("apps.bookings.services.initiate_stk_push")
