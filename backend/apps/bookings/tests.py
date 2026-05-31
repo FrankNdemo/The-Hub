@@ -86,7 +86,7 @@ class BookingApiTests(APITestCase):
         self.assertNotIn(create_response.data["joinUrl"], mail.outbox[0].body)
         self.assertNotIn(actual_meet_link, mail.outbox[0].body)
         self.assertIn("Virtual Session Link", mail.outbox[0].body)
-        self.assertEqual(mail.outbox[1].to, ["likentnerg@gmail.com"])
+        self.assertEqual(mail.outbox[1].to, ["cgichia@gmail.com"])
         self.assertEqual(mail.outbox[1].subject, "New Session Booked | The Wellness Hub")
         self.assertIn("Client Email: client@example.com", mail.outbox[1].body)
         escaped_therapist_session_prefix = html.escape("http://localhost:8080/therapist/session/", quote=True)
@@ -106,7 +106,7 @@ class BookingApiTests(APITestCase):
         self.assertIn(f"LOCATION:{create_response.data['joinUrl']}", mail.outbox[0].attachments[0][1])
         self.assertIn("BEGIN:VALARM", mail.outbox[0].attachments[0][1])
         self.assertIn("client@example.com", mail.outbox[0].attachments[0][1])
-        self.assertIn("likentnerg@gmail.com", mail.outbox[0].attachments[0][1])
+        self.assertIn("cgichia@gmail.com", mail.outbox[0].attachments[0][1])
         self.assertNotIn(actual_meet_link, mail.outbox[0].attachments[0][1])
         self.assertNotIn(create_response.data["manageUrl"], mail.outbox[0].attachments[0][1])
         self.assertIn("/therapist/session/", mail.outbox[1].attachments[0][1])
@@ -180,7 +180,7 @@ class BookingApiTests(APITestCase):
 
         therapist_join_response = self.client.post(
             f"/api/v1/bookings/join/{token}/",
-            {"email": "likentnerg@gmail.com"},
+            {"email": "cgichia@gmail.com"},
             format="json",
         )
         self.assertEqual(therapist_join_response.status_code, status.HTTP_403_FORBIDDEN)
@@ -220,7 +220,7 @@ class BookingApiTests(APITestCase):
         self.assertEqual(mail.outbox[2].subject, "Your Session Has Been Rescheduled | The Wellness Hub")
         self.assertEqual(mail.outbox[2].to, ["client@example.com"])
         self.assertEqual(mail.outbox[3].subject, "Session Rescheduled | The Wellness Hub")
-        self.assertEqual(mail.outbox[3].to, ["likentnerg@gmail.com"])
+        self.assertEqual(mail.outbox[3].to, ["cgichia@gmail.com"])
         self.assertEqual(mail.outbox[2].attachments[0][0], "wellness-session-updated.ics")
         self.assertIn("METHOD:REQUEST", mail.outbox[2].attachments[0][1])
         self.assertIn(create_response.data["calendarEventId"], mail.outbox[2].attachments[0][1])
@@ -238,7 +238,7 @@ class BookingApiTests(APITestCase):
         self.assertEqual(mail.outbox[4].subject, "Your Session Has Been Cancelled | The Wellness Hub")
         self.assertEqual(mail.outbox[4].to, ["client@example.com"])
         self.assertEqual(mail.outbox[5].subject, "Session Cancellation Notice | The Wellness Hub")
-        self.assertEqual(mail.outbox[5].to, ["likentnerg@gmail.com"])
+        self.assertEqual(mail.outbox[5].to, ["cgichia@gmail.com"])
         self.assertEqual(mail.outbox[4].attachments[0][0], "wellness-session-cancelled.ics")
         self.assertIn("METHOD:CANCEL", mail.outbox[4].attachments[0][1])
         self.assertIn(create_response.data["calendarEventId"], mail.outbox[4].attachments[0][1])
@@ -347,7 +347,7 @@ class BookingApiTests(APITestCase):
         self.assertIn("Expect a call from the therapist after they review your request.", client_message.body)
 
         self.assertEqual(therapist_message.subject, "New Exploration Call Request | The Wellness Hub")
-        self.assertEqual(therapist_message.to, ["likentnerg@gmail.com"])
+        self.assertEqual(therapist_message.to, ["cgichia@gmail.com"])
         self.assertEqual(therapist_message.attachments, [])
         self.assertIn("Client Phone: +254711222333", therapist_message.body)
         self.assertIn("Open Calls Page", therapist_html)

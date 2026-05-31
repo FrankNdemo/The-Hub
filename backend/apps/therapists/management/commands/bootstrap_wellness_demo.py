@@ -11,7 +11,7 @@ class Command(BaseCommand):
 
     @transaction.atomic
     def handle(self, *args, **options):
-        email = "likentnerg@gmail.com"
+        email = "cgichia@gmail.com"
         password = "WellnessHub2026!"
         secret_passphrase = "gichia"
         kelvin_email = "ndemojnrr@gmail.com"
@@ -71,7 +71,7 @@ class Command(BaseCommand):
                         "Trauma and CBT",
                     ],
                     "email": email,
-                    "phone": "+254114470441",
+                    "phone": "+254726 759 850",
                     "location_lines": [
                         "Nairobi, Westlands",
                         "1st Floor Realite Building",
@@ -111,7 +111,7 @@ class Command(BaseCommand):
             "Trauma and CBT",
         ]
         therapist.email = email
-        therapist.phone = "+254114470441"
+        therapist.phone = "+254726 759 850"
         therapist.location_lines = [
             "Nairobi, Westlands",
             "1st Floor Realite Building",
@@ -170,7 +170,7 @@ class Command(BaseCommand):
             "Team building",
         ]
         kelvin.email = kelvin_email
-        kelvin.phone = "+254114470441"
+        kelvin.phone = "+254726 759 850"
         kelvin.location_lines = [
             "Real Lite by Broadcom",
             "Nairobi, Westlands",

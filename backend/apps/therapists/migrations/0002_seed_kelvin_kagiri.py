@@ -58,7 +58,7 @@ def seed_kelvin_therapist(apps, schema_editor):
         "Team building",
     ]
     profile.email = KELVIN_EMAIL
-    profile.phone = "+254114470441"
+    profile.phone = "+254726 759 850"
     profile.location_lines = [
         "Real Lite by Broadcom",
         "Nairobi, Westlands",

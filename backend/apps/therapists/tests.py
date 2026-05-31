@@ -16,12 +16,12 @@ class TherapistAuthApiTests(APITestCase):
             format="json",
         )
         self.assertEqual(verify_response.status_code, status.HTTP_200_OK)
-        self.assertEqual(verify_response.data["email"], "likentnerg@gmail.com")
+        self.assertEqual(verify_response.data["email"], "cgichia@gmail.com")
 
         login_response = self.client.post(
             "/api/v1/auth/login/",
             {
-                "email": "likentnerg@gmail.com",
+                "email": "cgichia@gmail.com",
                 "password": "WellnessHub2026!",
             },
             format="json",
@@ -53,7 +53,7 @@ class TherapistAuthApiTests(APITestCase):
         response = self.client.post(
             "/api/v1/auth/reset-password/",
             {
-                "email": "likentnerg@gmail.com",
+                "email": "cgichia@gmail.com",
                 "secretPassphrase": "gichia",
                 "nextPassword": "NewWellnessHub2026!",
             },
