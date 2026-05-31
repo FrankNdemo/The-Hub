@@ -352,6 +352,7 @@ const normalizeBookingPayment = (payment?: Partial<BookingPaymentRecord> | null)
     payment.status === "initiated" ||
     payment.status === "stk_push_sent" ||
     payment.status === "processing" ||
+    payment.status === "manual_review" ||
     payment.status === "success" ||
     payment.status === "failed" ||
     payment.status === "cancelled" ||
@@ -468,7 +469,22 @@ const normalizeBooking = (booking?: Partial<BookingRecord> | null): BookingRecor
       typeof booking.confirmedAt === "string" || booking.confirmedAt === null ? booking.confirmedAt : undefined,
     bookingFeeAmount: normalizePositiveAmount(booking.bookingFeeAmount, 200),
     bookingFeeCurrency: typeof booking.bookingFeeCurrency === "string" ? booking.bookingFeeCurrency : "KES",
-    payment: normalizeBookingPayment(booking.payment),
+    payment: normalizeBookingPayment(
+      booking.payment
+        ? {
+            ...booking.payment,
+            bookingId: booking.payment.bookingId ?? booking.id,
+            bookingToken: booking.payment.bookingToken ?? booking.token,
+            clientName: booking.payment.clientName ?? booking.clientName,
+            clientEmail: booking.payment.clientEmail ?? booking.clientEmail,
+            therapistName: booking.payment.therapistName ?? booking.therapistName,
+            serviceType: booking.payment.serviceType ?? booking.serviceType,
+            sessionType: booking.payment.sessionType ?? booking.sessionType,
+            sessionDate: booking.payment.sessionDate ?? booking.date,
+            sessionTime: booking.payment.sessionTime ?? booking.time,
+          }
+        : booking.payment,
+    ),
     notes: typeof booking.notes === "string" && booking.notes ? booking.notes : undefined,
     isExplorationCall: Boolean(booking.isExplorationCall),
     emails: Array.isArray(booking.emails) ? booking.emails : [],

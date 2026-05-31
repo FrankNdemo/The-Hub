@@ -761,7 +761,12 @@ class PaidBookingCheckoutApiTests(APITestCase):
         self.assertEqual(kelvin_dashboard.status_code, status.HTTP_200_OK)
         self.assertEqual(len(kelvin_dashboard.data["bookings"]), 1)
         self.assertEqual(kelvin_dashboard.data["bookings"][0]["therapistId"], "kelvin-kagiri")
+        self.assertEqual(kelvin_dashboard.data["bookings"][0]["payment"]["transactionId"], "QWE123ABC")
+        self.assertEqual(kelvin_dashboard.data["bookings"][0]["payment"]["payerName"], "Manual Payer")
         self.assertEqual(kelvin_dashboard.data["transactions"][0]["transactionId"], "QWE123ABC")
+        self.assertEqual(kelvin_dashboard.data["transactions"][0]["clientName"], "Manual Client")
+        self.assertEqual(kelvin_dashboard.data["transactions"][0]["clientEmail"], "manual-client@example.com")
+        self.assertEqual(kelvin_dashboard.data["transactions"][0]["phoneNumber"], "+254700444777")
         self.client.force_authenticate(user=None)
 
     def test_selected_therapist_receives_email_and_dashboard_scope(self):

@@ -35,6 +35,7 @@ const TherapistPortalAccess = () => {
   const [isLoggingIn, setIsLoggingIn] = useState(false);
   const [isResettingPassword, setIsResettingPassword] = useState(false);
   const passphraseInputRef = useRef<HTMLInputElement | null>(null);
+  const emailInputRef = useRef<HTMLInputElement | null>(null);
   const passwordInputRef = useRef<HTMLInputElement | null>(null);
 
   const formatPassphraseError = (message: string) => {
@@ -80,8 +81,19 @@ const TherapistPortalAccess = () => {
       return;
     }
 
+    setEmail("");
+    setPassword("");
+
     const frame = window.requestAnimationFrame(() => {
-      passwordInputRef.current?.focus();
+      if (emailInputRef.current) {
+        emailInputRef.current.value = "";
+      }
+
+      if (passwordInputRef.current) {
+        passwordInputRef.current.value = "";
+      }
+
+      emailInputRef.current?.focus();
     });
 
     return () => window.cancelAnimationFrame(frame);
@@ -253,12 +265,18 @@ const TherapistPortalAccess = () => {
             </DialogHeader>
 
             {mode === "login" ? (
-              <form onSubmit={handleLogin} className="mt-5 space-y-4 sm:mt-6 sm:space-y-4.5">
+              <form onSubmit={handleLogin} className="mt-5 space-y-4 sm:mt-6 sm:space-y-4.5" autoComplete="off">
                 <div>
                   <Label htmlFor="therapist-email">Email</Label>
                   <Input
                     id="therapist-email"
+                    ref={emailInputRef}
                     type="email"
+                    name="therapist-login-email-manual"
+                    autoComplete="off"
+                    autoCorrect="off"
+                    autoCapitalize="none"
+                    spellCheck={false}
                     value={email}
                     onChange={(event) => setEmail(event.target.value)}
                     className="mt-2"
@@ -271,6 +289,8 @@ const TherapistPortalAccess = () => {
                     id="therapist-password"
                     ref={passwordInputRef}
                     type="password"
+                    name="therapist-login-password-manual"
+                    autoComplete="new-password"
                     value={password}
                     onChange={(event) => setPassword(event.target.value)}
                     className="mt-2"
@@ -293,13 +313,18 @@ const TherapistPortalAccess = () => {
                 </button>
               </form>
             ) : (
-              <form onSubmit={handlePasswordReset} className="mt-5 space-y-4 sm:mt-6 sm:space-y-4">
+              <form onSubmit={handlePasswordReset} className="mt-5 space-y-4 sm:mt-6 sm:space-y-4" autoComplete="off">
                 <div className="grid gap-4">
                   <div>
                     <Label htmlFor="forgot-email">Therapist email</Label>
                     <Input
                       id="forgot-email"
                       type="email"
+                      name="therapist-reset-email-manual"
+                      autoComplete="off"
+                      autoCorrect="off"
+                      autoCapitalize="none"
+                      spellCheck={false}
                       value={email}
                       onChange={(event) => setEmail(event.target.value)}
                       className="mt-2"
@@ -310,6 +335,8 @@ const TherapistPortalAccess = () => {
                     <Label htmlFor="forgot-secret">Secret passphrase</Label>
                     <Input
                       id="forgot-secret"
+                      name="therapist-reset-secret-manual"
+                      autoComplete="off"
                       value={forgotSecret}
                       onChange={(event) => setForgotSecret(event.target.value)}
                       className="mt-2"
@@ -321,6 +348,8 @@ const TherapistPortalAccess = () => {
                     <Input
                       id="reset-password"
                       type="password"
+                      name="therapist-reset-password-manual"
+                      autoComplete="new-password"
                       value={resetPassword}
                       onChange={(event) => setResetPassword(event.target.value)}
                       className="mt-2"
@@ -332,6 +361,8 @@ const TherapistPortalAccess = () => {
                     <Input
                       id="confirm-reset-password"
                       type="password"
+                      name="therapist-confirm-reset-password-manual"
+                      autoComplete="new-password"
                       value={confirmResetPassword}
                       onChange={(event) => setConfirmResetPassword(event.target.value)}
                       className="mt-2"
