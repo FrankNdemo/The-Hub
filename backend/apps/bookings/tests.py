@@ -709,6 +709,61 @@ class PaidBookingCheckoutApiTests(APITestCase):
         self.assertEqual(dashboard_response.data["bookings"][0]["payment"]["transactionId"], payment.transaction_id)
         self.client.force_authenticate(user=None)
 
+    def test_manual_payment_checkout_confirms_booking_and_sends_selected_therapist_emails(self):
+        response = self.client.post(
+            "/api/v1/bookings/checkout/manual/",
+            {
+                "clientName": "Manual Client",
+                "clientEmail": "manual-client@example.com",
+                "clientPhone": "+254700444777",
+                "therapistId": "kelvin-kagiri",
+                "date": "2026-07-04",
+                "time": "10:00",
+                "serviceType": "individual",
+                "sessionType": "virtual",
+                "notes": "Manual payment session",
+                "mpesaConfirmationCode": "qwe123abc",
+                "paidMobileName": "Manual Payer",
+                "sendMoneyNumber": "0726759850",
+            },
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(response.data["booking"]["status"], Booking.Status.UPCOMING)
+        self.assertIsNotNone(response.data["booking"]["confirmedAt"])
+        self.assertEqual(response.data["payment"]["status"], BookingPayment.Status.SUCCESS)
+        self.assertEqual(response.data["payment"]["paymentMethod"], "M-Pesa Send Money")
+        self.assertEqual(response.data["payment"]["transactionId"], "QWE123ABC")
+        self.assertEqual(response.data["payment"]["payerName"], "Manual Payer")
+        self.assertNotIn("review", response.data["payment"]["resultDescription"].lower())
+
+        booking = Booking.objects.select_related("therapist__user").get(pk=response.data["booking"]["id"])
+        payment = booking.payments.get()
+        self.assertEqual(booking.therapist.public_id, "kelvin-kagiri")
+        self.assertEqual(booking.status, Booking.Status.UPCOMING)
+        self.assertIsNotNone(booking.confirmed_at)
+        self.assertEqual(payment.status, BookingPayment.Status.SUCCESS)
+        self.assertEqual(len(mail.outbox), 2)
+        self.assertEqual(mail.outbox[0].to, ["manual-client@example.com"])
+        self.assertIn("Kelvin Kagiri", mail.outbox[0].body)
+        self.assertEqual(mail.outbox[1].to, ["ndemojnrr@gmail.com"])
+
+        caroline = TherapistProfile.objects.select_related("user").get(public_id="caroline-gichia")
+        self.client.force_authenticate(user=caroline.user)
+        caroline_dashboard = self.client.get("/api/v1/dashboard/")
+        self.assertEqual(caroline_dashboard.status_code, status.HTTP_200_OK)
+        self.assertEqual(caroline_dashboard.data["bookings"], [])
+        self.assertEqual(caroline_dashboard.data["transactions"], [])
+
+        self.client.force_authenticate(user=booking.therapist.user)
+        kelvin_dashboard = self.client.get("/api/v1/dashboard/")
+        self.assertEqual(kelvin_dashboard.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(kelvin_dashboard.data["bookings"]), 1)
+        self.assertEqual(kelvin_dashboard.data["bookings"][0]["therapistId"], "kelvin-kagiri")
+        self.assertEqual(kelvin_dashboard.data["transactions"][0]["transactionId"], "QWE123ABC")
+        self.client.force_authenticate(user=None)
+
     def test_selected_therapist_receives_email_and_dashboard_scope(self):
         booking, payment = self.confirm_paid_booking(
             client_name="Kelvin Client",

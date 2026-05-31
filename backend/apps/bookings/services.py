@@ -519,14 +519,16 @@ def create_manual_payment_checkout(
     payment = BookingPayment.objects.create(
         booking=booking,
         provider=BookingPayment.Provider.MPESA,
-        status=BookingPayment.Status.MANUAL_REVIEW,
+        status=BookingPayment.Status.SUCCESS,
         amount=booking.booking_fee_amount,
         currency=booking.booking_fee_currency,
         phone_number=data["client_phone"],
         merchant_request_id=make_id("manual-mpesa"),
         transaction_id=confirmation_code.strip().upper(),
         payer_name=payer_name.strip(),
-        result_description="M-Pesa send money confirmation submitted. The therapist will review and approve it.",
+        result_code="manual_confirmed",
+        result_description="M-Pesa send money payment confirmed.",
+        completed_at=timezone.now(),
         request_payload={
             "send_money_number": send_money_number.strip(),
             "confirmation_code": confirmation_code.strip().upper(),
@@ -536,21 +538,13 @@ def create_manual_payment_checkout(
     BookingHistoryEvent.objects.create(
         booking=booking,
         type=BookingHistoryEvent.EventType.PAYMENT_INITIATED,
-        title="Manual M-Pesa payment submitted",
+        title="Manual M-Pesa payment received",
         description=(
             f"{booking.client_name} submitted confirmation code {payment.transaction_id} "
-            f"for review after sending money to {send_money_number.strip()}."
+            f"after sending money to {send_money_number.strip()}."
         ),
     )
-    create_notification(
-        booking=booking,
-        notification_type=Notification.NotificationType.BOOKING,
-        title="Manual payment awaiting approval",
-        description=(
-            f"{booking.client_name} submitted M-Pesa confirmation code {payment.transaction_id} "
-            f"for {booking.booking_fee_currency} {booking.booking_fee_amount}."
-        ),
-    )
+    booking = finalize_paid_booking(booking=booking, payment=payment)
     return booking, payment
 
 

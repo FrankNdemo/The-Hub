@@ -45,7 +45,7 @@ def get_payment_status_label(payment: BookingPayment) -> str:
 
 
 def get_payment_method_label(payment: BookingPayment) -> str:
-    if payment.status == BookingPayment.Status.MANUAL_REVIEW:
+    if payment.status == BookingPayment.Status.MANUAL_REVIEW or payment.merchant_request_id.startswith("manual-mpesa"):
         return "M-Pesa Send Money"
 
     if payment.provider == BookingPayment.Provider.MPESA:

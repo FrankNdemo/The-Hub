@@ -87,7 +87,7 @@ const Footer = () => {
           </div>
         </div>
 
-        <div className="mt-12">
+        <div className="mt-12" data-mobile-contact-hide>
           <div className="mb-4 text-center">
             <h4 className="font-heading text-lg font-medium text-primary-foreground">Find us</h4>
             <p className="mt-2 text-sm text-primary-foreground/65">Your path to care starts here. Tap for directions.</p>

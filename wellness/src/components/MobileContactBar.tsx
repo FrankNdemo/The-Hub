@@ -29,6 +29,8 @@ const WhatsAppIcon = ({ className, ...props }: SVGProps<SVGSVGElement>) => (
 const MobileContactBar = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [hasPassedHomeHero, setHasPassedHomeHero] = useState(true);
+  const [isTherapistAccessActive, setIsTherapistAccessActive] = useState(false);
+  const [isFooterMapVisible, setIsFooterMapVisible] = useState(false);
   const [tone, setTone] = useState<"default" | "inverse">("default");
   const barRef = useRef<HTMLElement | null>(null);
   const location = useLocation();
@@ -37,6 +39,8 @@ const MobileContactBar = () => {
   const isActiveBookingFlow = location.pathname === "/booking" && bookingDraft.step !== "details";
   const shouldHide =
     isMenuOpen ||
+    isTherapistAccessActive ||
+    isFooterMapVisible ||
     isActiveBookingFlow ||
     location.pathname.startsWith("/therapist") ||
     location.pathname === "/exploration-call" ||
@@ -51,6 +55,38 @@ const MobileContactBar = () => {
     window.addEventListener("wellness-mobile-menu-state", handleMenuState);
     return () => window.removeEventListener("wellness-mobile-menu-state", handleMenuState);
   }, []);
+
+  useEffect(() => {
+    const handleTherapistAccessState = (event: Event) => {
+      const detail = (event as CustomEvent<{ active?: boolean }>).detail;
+      setIsTherapistAccessActive(Boolean(detail?.active));
+    };
+
+    window.addEventListener("wellness-therapist-access-state", handleTherapistAccessState);
+    return () => window.removeEventListener("wellness-therapist-access-state", handleTherapistAccessState);
+  }, []);
+
+  useEffect(() => {
+    const footerHideTargets = Array.from(document.querySelectorAll<HTMLElement>("[data-mobile-contact-hide]"));
+
+    if (!footerHideTargets.length) {
+      setIsFooterMapVisible(false);
+      return;
+    }
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        setIsFooterMapVisible(entries.some((entry) => entry.isIntersecting));
+      },
+      {
+        threshold: 0.08,
+      },
+    );
+
+    footerHideTargets.forEach((target) => observer.observe(target));
+
+    return () => observer.disconnect();
+  }, [location.pathname]);
 
   useEffect(() => {
     if (!isHomePage) {

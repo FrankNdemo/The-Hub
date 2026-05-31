@@ -82,6 +82,10 @@ const DEFAULT_BOOKING_FEE_AMOUNT = 200;
 const MANUAL_PAYMENT_PAYBILL = "714777";
 const MANUAL_PAYMENT_ACCOUNT = "0726759850";
 const MANUAL_PAYMENT_SEND_MONEY_NUMBER = "0726759850";
+const BOOKING_OPEN_MINUTES = 10 * 60;
+const BOOKING_LAST_START_MINUTES = 18 * 60;
+const BOOKING_DATE_ERROR = "Adjust the date - we operate Tuesday to Saturday.";
+const BOOKING_TIME_ERROR = "Choose a time from 10:00 AM to 6:00 PM. Sessions end by 7:00 PM.";
 
 const FINAL_PAYMENT_STATUSES: BookingPaymentRecord["status"][] = [
   "success",
@@ -138,6 +142,45 @@ const sessionCards: {
 ];
 
 const CHECKOUT_STAGE_COPY = [{ label: "Review" }, { label: "Pay" }, { label: "Confirm" }];
+
+const parseDateInput = (value: string) => {
+  const [year, month, day] = value.split("-").map(Number);
+
+  if (!year || !month || !day) {
+    return null;
+  }
+
+  const date = new Date(year, month - 1, day);
+  return Number.isNaN(date.getTime()) ? null : date;
+};
+
+const isOperatingDate = (value: string) => {
+  const date = parseDateInput(value);
+
+  if (!date) {
+    return false;
+  }
+
+  const day = date.getDay();
+  return day >= 2 && day <= 6;
+};
+
+const timeInputToMinutes = (value: string) => {
+  const [hours, minutes = "0"] = value.split(":");
+  const numericHours = Number(hours);
+  const numericMinutes = Number(minutes);
+
+  if (!Number.isInteger(numericHours) || !Number.isInteger(numericMinutes)) {
+    return null;
+  }
+
+  return numericHours * 60 + numericMinutes;
+};
+
+const isOperatingTime = (value: string) => {
+  const minutes = timeInputToMinutes(value);
+  return minutes !== null && minutes >= BOOKING_OPEN_MINUTES && minutes <= BOOKING_LAST_START_MINUTES;
+};
 
 const STK_PROMPT_STEPS = [
   "Open the Safaricom prompt on your phone.",
@@ -676,6 +719,9 @@ const BookingSection = () => {
     selectableTherapists.find((item) => item.id === form.therapistId) ?? selectableTherapists[0] ?? therapist;
   const availableTherapistIds = useMemo(() => availableTherapists.map((item) => item.id).join("|"), [availableTherapists]);
   const todayDate = getTodayDateInputValue();
+  const bookingDateError = form.date && !isOperatingDate(form.date) ? BOOKING_DATE_ERROR : "";
+  const bookingTimeError = form.time && !isOperatingTime(form.time) ? BOOKING_TIME_ERROR : "";
+  const hasScheduleValidationError = Boolean(bookingDateError || bookingTimeError);
 
   const activePayment = checkout?.payment ?? null;
   const retryLimitReached = Boolean(
@@ -732,7 +778,7 @@ const BookingSection = () => {
     sessionType,
   ]);
   const hasNoAvailableTherapists = Boolean(form.date && form.time && slotTherapists && slotTherapists.length === 0);
-  const canSubmitDetails = !isLoadingTherapists && !hasNoAvailableTherapists;
+  const canSubmitDetails = !isLoadingTherapists && !hasNoAvailableTherapists && !hasScheduleValidationError;
 
   const updateField = (field: keyof typeof form, value: string) => {
     setBookingGuidance("");
@@ -774,6 +820,13 @@ const BookingSection = () => {
     if (!form.date || !form.time) {
       setSlotTherapists(null);
       setAvailabilityMessage("Choose a date and time to check live availability first.");
+      setIsLoadingTherapists(false);
+      return;
+    }
+
+    if (hasScheduleValidationError) {
+      setSlotTherapists(null);
+      setAvailabilityMessage("Adjust the date or time to check live availability.");
       setIsLoadingTherapists(false);
       return;
     }
@@ -824,7 +877,7 @@ const BookingSection = () => {
       isActive = false;
       window.clearTimeout(timeoutId);
     };
-  }, [form.date, form.time, step]);
+  }, [form.date, form.time, hasScheduleValidationError, step]);
 
   useEffect(() => {
     if (step !== "details" || !precheckKey || isLoadingTherapists || hasNoAvailableTherapists) {
@@ -1021,7 +1074,7 @@ const BookingSection = () => {
     }
 
     const timeoutId = window.setTimeout(() => {
-      navigate(`/manage/${checkout.booking.token}?booking=manual-review`);
+      navigate(`/manage/${checkout.booking.token}?booking=success`);
     }, 3600);
 
     return () => window.clearTimeout(timeoutId);
@@ -1062,6 +1115,11 @@ const BookingSection = () => {
     event.preventDefault();
     if (isLoadingTherapists) {
       toast.error("Please wait a moment while we finish checking this slot.");
+      return;
+    }
+
+    if (hasScheduleValidationError) {
+      toast.error("Please adjust the preferred date or time before continuing.");
       return;
     }
 
@@ -1193,8 +1251,8 @@ const BookingSection = () => {
       setCheckout(nextCheckout);
       setCurrentBookingFeeAmount(normalizeBookingFeeAmount(nextCheckout.booking.bookingFeeAmount, bookingAmount));
       rememberBookingAccess(nextCheckout.booking.token, form.clientEmail.trim());
-      setStep("manual_review");
-      toast.success("Payment confirmation submitted for therapist review.");
+      setStep("success");
+      toast.success("Your session is booked. Check your email for the session link.");
     } catch (error) {
       const message = getSafePaymentFeedback(getApiErrorMessage(error, "We could not submit this payment confirmation right now."));
       const suggestion = getSuggestedBookingSlot(error);
@@ -1312,11 +1370,11 @@ const BookingSection = () => {
         <>
           <MobileStatusSheet
             step={step}
-            tone="light"
-            eyebrow="Confirmation Submitted"
-            title="Awaiting therapist approval"
-            description="Your M-Pesa send money confirmation has been received. The therapist will review and approve it before the session is fully confirmed."
-            indicator={<ShieldCheck className="h-10 w-10" />}
+            tone="success"
+            eyebrow="Session Booked"
+            title="Your session is booked"
+            description="Your payment details were received. Check your email for the session link and calendar invite."
+            indicator={<CheckCircle2 className="h-10 w-10" />}
           >
             <div className="rounded-[1.2rem] border border-primary/12 bg-primary/8 px-4 py-4 text-left text-sm leading-6 text-muted-foreground">
               <p>
@@ -1331,7 +1389,7 @@ const BookingSection = () => {
             <Button
               variant="hero"
               className="mt-5 w-full rounded-xl"
-              onClick={() => checkout && navigate(`/manage/${checkout.booking.token}?booking=manual-review`)}
+              onClick={() => checkout && navigate(`/manage/${checkout.booking.token}?booking=success`)}
             >
               View Booking Details
             </Button>
@@ -1340,15 +1398,14 @@ const BookingSection = () => {
           <DesktopStatusDialog>
             <div className="rounded-[2rem] border border-border/60 bg-card px-6 py-8 text-center shadow-card sm:px-8">
               <StatusHalo tone="success">
-                <ShieldCheck className="h-10 w-10" />
+                <CheckCircle2 className="h-10 w-10" />
               </StatusHalo>
               <p className="mt-6 text-sm font-semibold uppercase tracking-[0.22em] text-primary/75">
-                Confirmation Submitted
+                Session Booked
               </p>
-              <h3 className="mt-3 font-heading text-3xl font-semibold text-foreground">Awaiting therapist approval</h3>
+              <h3 className="mt-3 font-heading text-3xl font-semibold text-foreground">Your session is booked</h3>
               <p className="mx-auto mt-4 max-w-md text-sm leading-8 text-muted-foreground sm:text-base">
-                Your M-Pesa send money confirmation has been received. The therapist will review and approve it, then
-                your booking confirmation will be finalized.
+                Your payment details were received. We have sent your confirmation email with the session link and calendar invite.
               </p>
               <div className="mx-auto mt-6 max-w-md rounded-[1.4rem] border border-primary/12 bg-primary/8 px-5 py-4 text-left text-sm leading-7 text-muted-foreground">
                 <p>
@@ -1363,7 +1420,7 @@ const BookingSection = () => {
               <Button
                 variant="hero"
                 className="mt-6 rounded-full"
-                onClick={() => checkout && navigate(`/manage/${checkout.booking.token}?booking=manual-review`)}
+                onClick={() => checkout && navigate(`/manage/${checkout.booking.token}?booking=success`)}
               >
                 View Booking Details
               </Button>
@@ -1746,13 +1803,20 @@ const BookingSection = () => {
                           id="booking-date"
                           type="date"
                           value={form.date}
+                          aria-invalid={Boolean(bookingDateError)}
+                          aria-describedby={bookingDateError ? "booking-date-error" : undefined}
                           onClick={showScheduleWindowNotice}
                           onFocus={showScheduleWindowNotice}
                           onChange={(event) => updateField("date", event.target.value)}
-                          className="mt-2"
+                          className={cn("mt-2", bookingDateError && "border-destructive focus-visible:ring-destructive/40")}
                           min={todayDate}
                           required
                         />
+                        {bookingDateError ? (
+                          <p id="booking-date-error" className="mt-2 text-xs font-medium leading-5 text-destructive">
+                            {bookingDateError}
+                          </p>
+                        ) : null}
                       </div>
                       <div>
                         <Label htmlFor="booking-time">Preferred Time</Label>
@@ -1760,15 +1824,22 @@ const BookingSection = () => {
                           id="booking-time"
                           type="time"
                           value={form.time}
+                          aria-invalid={Boolean(bookingTimeError)}
+                          aria-describedby={bookingTimeError ? "booking-time-error" : undefined}
                           onClick={showScheduleWindowNotice}
                           onFocus={showScheduleWindowNotice}
                           onChange={(event) => updateField("time", event.target.value)}
-                          className="mt-2"
+                          className={cn("mt-2", bookingTimeError && "border-destructive focus-visible:ring-destructive/40")}
                           min={BOOKING_OPEN_TIME}
                           max={BOOKING_LAST_START_TIME}
                           step={BOOKING_TIME_STEP_SECONDS}
                           required
                         />
+                        {bookingTimeError ? (
+                          <p id="booking-time-error" className="mt-2 text-xs font-medium leading-5 text-destructive">
+                            {bookingTimeError}
+                          </p>
+                        ) : null}
                       </div>
                     </div>
 
@@ -2378,7 +2449,7 @@ const BookingSection = () => {
                               </div>
                             </div>
                             <p className="mt-4 text-xs leading-6 text-muted-foreground">
-                              The therapist will review and approve the confirmation before the booking is fully confirmed.
+                              We will confirm your session immediately and send the session details to your email.
                             </p>
                             <Button variant="hero" size="lg" className="mt-6 w-full rounded-full" onClick={handleSubmitManualPayment} disabled={isSubmitting}>
                               {isSubmitting ? "Submitting..." : "Finalize Payment"}

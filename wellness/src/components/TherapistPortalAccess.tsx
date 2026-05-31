@@ -60,6 +60,22 @@ const TherapistPortalAccess = () => {
   }, [loginOpen, showPassphrase]);
 
   useEffect(() => {
+    window.dispatchEvent(
+      new CustomEvent("wellness-therapist-access-state", {
+        detail: { active: showPassphrase || loginOpen },
+      }),
+    );
+
+    return () => {
+      window.dispatchEvent(
+        new CustomEvent("wellness-therapist-access-state", {
+          detail: { active: false },
+        }),
+      );
+    };
+  }, [loginOpen, showPassphrase]);
+
+  useEffect(() => {
     if (!loginOpen || mode !== "login") {
       return;
     }
