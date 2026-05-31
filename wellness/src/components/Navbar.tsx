@@ -8,9 +8,9 @@ import {
   Leaf,
   LogOut,
   Mail,
-  MapPin,
   Menu,
   Phone,
+  PhoneCall,
   PenLine,
   UserRound,
   Users,
@@ -41,11 +41,48 @@ const WhatsAppIcon = ({ className, ...props }: SVGProps<SVGSVGElement>) => (
   </svg>
 );
 
+const EmailIcon = ({ className, ...props }: SVGProps<SVGSVGElement>) => (
+  <svg
+    viewBox="0 0 24 24"
+    aria-hidden="true"
+    focusable="false"
+    className={className}
+    {...props}
+  >
+    <path fill="#fff" d="M3.5 6.5h17v11h-17z" />
+    <path fill="#EA4335" d="M4.7 18.5h2.8V10L3.5 7v10.3c0 .66.54 1.2 1.2 1.2Z" />
+    <path fill="#34A853" d="M16.5 18.5h2.8c.66 0 1.2-.54 1.2-1.2V7l-4 3v8.5Z" />
+    <path fill="#FBBC04" d="M16.5 7v3l4-3V5.7c0-1.12-1.27-1.76-2.16-1.08L16.5 6Z" />
+    <path fill="#4285F4" d="M7.5 10V7L12 10.35 16.5 7v3L12 13.35 7.5 10Z" />
+    <path fill="#C5221F" d="M3.5 5.7V7l4 3V7L5.66 4.62C4.77 3.94 3.5 4.58 3.5 5.7Z" />
+  </svg>
+);
+
+const LocationIcon = ({ className, ...props }: SVGProps<SVGSVGElement>) => (
+  <svg
+    viewBox="0 0 24 24"
+    aria-hidden="true"
+    focusable="false"
+    className={className}
+    {...props}
+  >
+    <path
+      fill="#1A73E8"
+      d="M12 2.75a7.08 7.08 0 0 0-7.08 7.08c0 4.82 5.3 10.01 6.65 11.24.25.23.61.23.86 0 1.35-1.23 6.65-6.42 6.65-11.24A7.08 7.08 0 0 0 12 2.75Z"
+    />
+    <path fill="#34A853" d="M6.79 14.64c1.45 2.78 3.94 5.23 4.78 6.01.25.23.61.23.86 0 .84-.78 3.33-3.23 4.78-6.01L12 9.44l-5.21 5.2Z" />
+    <path fill="#FBBC04" d="M12 2.75v6.69l5.21 5.2a10.14 10.14 0 0 0 1.87-4.81A7.08 7.08 0 0 0 12 2.75Z" />
+    <path fill="#EA4335" d="M12 2.75a7.08 7.08 0 0 0-7.08 7.08c0 1.53.78 3.21 1.87 4.81L12 9.44V2.75Z" />
+    <circle cx="12" cy="9.92" r="2.35" fill="#fff" />
+    <circle cx="12" cy="9.92" r="1.28" fill="#1A73E8" />
+  </svg>
+);
+
 type MenuQuickAction = {
   label: string;
   href?: string;
   to?: string;
-  icon: LucideIcon | typeof WhatsAppIcon;
+  icon: LucideIcon | typeof WhatsAppIcon | typeof EmailIcon | typeof LocationIcon;
 };
 
 const navLinks = [
@@ -100,12 +137,12 @@ const Navbar = () => {
   const menuLocationQuery = therapist.location.filter(Boolean).join(", ");
   const menuMapHref = menuLocationQuery ? WELLNESS_HUB_MAP_URL : "";
   const menuQuickActions = [
-    { label: "Exploration Call", to: "/exploration-call#book-exploration-call", icon: Phone },
-    { label: "Email", href: `mailto:${therapist.email}`, icon: Mail },
+    { label: "Exploration Call", to: "/exploration-call#book-exploration-call", icon: PhoneCall },
+    { label: "Email", href: `mailto:${therapist.email}`, icon: EmailIcon },
     menuWhatsAppNumber
       ? { label: "WhatsApp", href: `https://wa.me/${menuWhatsAppNumber}`, icon: WhatsAppIcon }
       : null,
-    menuMapHref ? { label: "Directions", href: menuMapHref, icon: MapPin } : null,
+    menuMapHref ? { label: "Directions", href: menuMapHref, icon: LocationIcon } : null,
   ].filter((action): action is MenuQuickAction => Boolean(action));
 
   const clearPendingPreview = () => {
@@ -138,12 +175,14 @@ const Navbar = () => {
   };
 
   useEffect(() => {
+    window.dispatchEvent(new CustomEvent("wellness-mobile-menu-state", { detail: { open } }));
+
     if (!open) return;
-    
+
     const handleScroll = () => {
       setOpen(false);
     };
-    
+
     window.addEventListener("scroll", handleScroll, { passive: true });
     return () => {
       window.removeEventListener("scroll", handleScroll);
@@ -651,7 +690,7 @@ const Navbar = () => {
                         className="h-10 w-full rounded-full border border-white/18 bg-[linear-gradient(180deg,rgba(250,247,242,0.98)_0%,rgba(237,245,238,0.94)_100%)] px-5 text-[0.88rem] font-normal text-[#173c2d] shadow-[0_26px_44px_-28px_rgba(234,245,234,0.66)] transition-all duration-300 hover:bg-[linear-gradient(180deg,rgba(252,249,245,1)_0%,rgba(243,248,243,0.96)_100%)] hover:text-[#10271d] sm:h-11 sm:text-[0.96rem] md:h-13 md:text-[1.08rem]"
                         asChild
                       >
-                        <Link to="/booking" onClick={handleLinkClick}>
+                        <Link to="/booking#schedule-appointment" onClick={handleLinkClick}>
                           <CalendarDays className="h-[1rem] w-[1rem] md:h-[1.35rem] md:w-[1.35rem]" />
                           Book a Session
                         </Link>
@@ -666,7 +705,10 @@ const Navbar = () => {
                     >
                       {menuQuickActions.map((action) => {
                         const ActionIcon = action.icon;
+                        const isExplorationAction = action.label === "Exploration Call";
                         const isWhatsAppAction = action.label === "WhatsApp";
+                        const isEmailAction = action.label === "Email";
+                        const isDirectionsAction = action.label === "Directions";
                         const shouldOpenNewTab = action.href?.startsWith("http");
 
                         if (action.to) {
@@ -675,10 +717,21 @@ const Navbar = () => {
                               key={action.label}
                               to={action.to}
                               onClick={handleLinkClick}
-                              className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-white/10 bg-white/[0.05] text-white/82 transition-colors duration-200 hover:bg-white/12 hover:text-white sm:h-11 sm:w-11"
+                              className={cn(
+                                "flex h-10 w-10 shrink-0 items-center justify-center rounded-full border transition-colors duration-200 sm:h-11 sm:w-11",
+                                isExplorationAction
+                                  ? "border-[#5e8673]/45 bg-white/[0.03] text-[#5e8673] hover:bg-[#5e8673]/10 hover:text-[#5e8673]"
+                                  : "border-white/10 bg-white/[0.05] text-white/82 hover:bg-white/12 hover:text-white",
+                              )}
                               aria-label={action.label}
                             >
-                              <ActionIcon className="h-4 w-4 sm:h-[1.05rem] sm:w-[1.05rem]" strokeWidth={2.05} />
+                              <ActionIcon
+                                className={cn(
+                                  "h-4 w-4 sm:h-[1.05rem] sm:w-[1.05rem]",
+                                  isExplorationAction && "h-[1.25rem] w-[1.25rem] sm:h-[1.35rem] sm:w-[1.35rem]",
+                                )}
+                                strokeWidth={isExplorationAction ? 2.45 : 2.05}
+                              />
                             </Link>
                           );
                         }
@@ -693,7 +746,9 @@ const Navbar = () => {
                             className={cn(
                               "flex h-10 w-10 shrink-0 items-center justify-center rounded-full border transition-colors duration-200 sm:h-11 sm:w-11",
                               isWhatsAppAction
-                                ? "border-[#25D366]/80 bg-[#25D366] text-white shadow-[0_16px_30px_-20px_rgba(37,211,102,0.72)] hover:bg-[#1ebe5d] hover:text-white"
+                                ? "border-[#5e8673]/80 bg-[#5e8673] text-primary-foreground shadow-[0_16px_30px_-20px_rgba(94,134,115,0.72)] hover:bg-[#4e7c68] hover:text-primary-foreground"
+                                : isEmailAction || isDirectionsAction
+                                  ? "border-primary/55 bg-white/[0.05] text-white/82 shadow-[0_0_0_1px_rgba(35,72,61,0.18)] hover:bg-primary/10 hover:text-white"
                                 : "border-white/10 bg-white/[0.05] text-white/82 hover:bg-white/12 hover:text-white",
                             )}
                             aria-label={action.label}
@@ -702,6 +757,8 @@ const Navbar = () => {
                               className={cn(
                                 "h-4 w-4 sm:h-[1.05rem] sm:w-[1.05rem]",
                                 isWhatsAppAction && "h-[1.1rem] w-[1.1rem] sm:h-[1.2rem] sm:w-[1.2rem]",
+                                isEmailAction && "h-[1.9rem] w-[1.9rem] sm:h-[2rem] sm:w-[2rem]",
+                                isDirectionsAction && "h-[1.9rem] w-[1.9rem] sm:h-[2rem] sm:w-[2rem]",
                               )}
                               strokeWidth={2.05}
                             />

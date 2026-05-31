@@ -190,6 +190,9 @@ const StoryPage = () => {
           <motion.img
             src={storyHeroImage}
             alt="Soft morning light over a calm therapy-inspired space"
+            loading="eager"
+            fetchPriority="high"
+            decoding="async"
             className="absolute inset-0 h-full w-full object-cover object-[center_45%]"
             style={desktopImageEffects ? { y: heroImageY, scale: heroImageScale } : undefined}
           />

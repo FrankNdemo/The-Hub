@@ -327,6 +327,7 @@ BOOKING_PAYMENT_REQUIRED_FOR_SESSIONS = env("BOOKING_PAYMENT_REQUIRED_FOR_SESSIO
 BOOKING_PAYMENT_HOLD_MINUTES = int(env("BOOKING_PAYMENT_HOLD_MINUTES", "15") or "15")
 BOOKING_FEE_AMOUNT = Decimal(env("BOOKING_FEE_AMOUNT", "200") or "200").quantize(Decimal("0.01"))
 BOOKING_FEE_CURRENCY = env("BOOKING_FEE_CURRENCY", "KES").upper()
+BOOKING_SEND_MONEY_NUMBER = env("BOOKING_SEND_MONEY_NUMBER", "")
 BOOKING_CALENDAR_UID_DOMAIN = env("BOOKING_CALENDAR_UID_DOMAIN", "wellnesshub.local")
 BOOKING_CALENDAR_ORGANIZER_NAME = env("BOOKING_CALENDAR_ORGANIZER_NAME", "The Wellness Hub")
 VIRTUAL_SESSION_BASE_URL = env("VIRTUAL_SESSION_BASE_URL", "https://meet.jit.si").rstrip("/")
@@ -366,7 +367,22 @@ REST_FRAMEWORK = {
     "DEFAULT_PERMISSION_CLASSES": (
         "rest_framework.permissions.AllowAny",
     ),
+    "DEFAULT_THROTTLE_CLASSES": [
+        "rest_framework.throttling.AnonRateThrottle",
+        "rest_framework.throttling.UserRateThrottle",
+    ],
+    "DEFAULT_THROTTLE_RATES": {
+        "anon": "60/minute",
+        "user": "120/minute",
+    },
     "EXCEPTION_HANDLER": "apps.common.exceptions.api_exception_handler",
+}
+
+CACHES = {
+    "default": {
+        "BACKEND": "django.core.cache.backends.locmem.LocMemCache",
+        "LOCATION": "wellness-hub-rate-limit",
+    }
 }
 
 SIMPLE_JWT = {

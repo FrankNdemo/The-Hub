@@ -3,9 +3,19 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Route, Routes, useLocation } from "react-router-dom";
 
 import Navbar from "@/components/Navbar";
+import MobileContactBar from "@/components/MobileContactBar";
+import DesktopWhatsAppFloat from "@/components/DesktopWhatsAppFloat";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import NavigationImagePreloader from "@/components/NavigationImagePreloader";
+import {
+  createBookingDraft,
+  createExplorationCallDraft,
+  emptyContactDraft,
+  FormDraftProvider,
+  useFormDrafts,
+} from "@/context/FormDraftContext";
 import { NavigationPreviewProvider, useNavigationPreview } from "@/context/NavigationPreviewContext";
 import { WellnessHubProvider } from "@/context/WellnessHubContext";
 import AboutPage from "./pages/AboutPage";
@@ -113,13 +123,49 @@ const PreviewRoutes = () => {
   );
 };
 
+const NavigationDraftResetter = () => {
+  const location = useLocation();
+  const { setBookingDraft, setContactDraft, setExplorationCallDraft } = useFormDrafts();
+  const previousPathRef = useRef(location.pathname);
+
+  useEffect(() => {
+    const previousPath = previousPathRef.current;
+
+    if (previousPath === location.pathname) {
+      return;
+    }
+
+    if (previousPath === "/contact") {
+      setContactDraft(emptyContactDraft);
+    }
+
+    if (previousPath === "/booking") {
+      setBookingDraft(createBookingDraft());
+    }
+
+    if (previousPath === "/exploration-call") {
+      setExplorationCallDraft(createExplorationCallDraft());
+    }
+
+    previousPathRef.current = location.pathname;
+  }, [location.pathname, setBookingDraft, setContactDraft, setExplorationCallDraft]);
+
+  return null;
+};
+
 const AppRouter = () => (
   <BrowserRouter>
     <WellnessHubProvider>
       <NavigationPreviewProvider>
-        <ScrollAndPreviewManager />
-        <Navbar />
-        <PreviewRoutes />
+        <FormDraftProvider>
+          <ScrollAndPreviewManager />
+          <NavigationDraftResetter />
+          <NavigationImagePreloader />
+          <Navbar />
+          <PreviewRoutes />
+          <DesktopWhatsAppFloat />
+          <MobileContactBar />
+        </FormDraftProvider>
       </NavigationPreviewProvider>
     </WellnessHubProvider>
   </BrowserRouter>

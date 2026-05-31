@@ -218,7 +218,9 @@ class BookingApiTests(APITestCase):
         self.assertEqual(reschedule_response.data["status"], Booking.Status.RESCHEDULED)
         self.assertEqual(len(mail.outbox), 4)
         self.assertEqual(mail.outbox[2].subject, "Your Session Has Been Rescheduled | The Wellness Hub")
+        self.assertEqual(mail.outbox[2].to, ["client@example.com"])
         self.assertEqual(mail.outbox[3].subject, "Session Rescheduled | The Wellness Hub")
+        self.assertEqual(mail.outbox[3].to, ["likentnerg@gmail.com"])
         self.assertEqual(mail.outbox[2].attachments[0][0], "wellness-session-updated.ics")
         self.assertIn("METHOD:REQUEST", mail.outbox[2].attachments[0][1])
         self.assertIn(create_response.data["calendarEventId"], mail.outbox[2].attachments[0][1])
@@ -234,13 +236,49 @@ class BookingApiTests(APITestCase):
         self.assertEqual(cancel_response.data["status"], Booking.Status.CANCELLED)
         self.assertEqual(len(mail.outbox), 6)
         self.assertEqual(mail.outbox[4].subject, "Your Session Has Been Cancelled | The Wellness Hub")
+        self.assertEqual(mail.outbox[4].to, ["client@example.com"])
         self.assertEqual(mail.outbox[5].subject, "Session Cancellation Notice | The Wellness Hub")
+        self.assertEqual(mail.outbox[5].to, ["likentnerg@gmail.com"])
         self.assertEqual(mail.outbox[4].attachments[0][0], "wellness-session-cancelled.ics")
         self.assertIn("METHOD:CANCEL", mail.outbox[4].attachments[0][1])
         self.assertIn(create_response.data["calendarEventId"], mail.outbox[4].attachments[0][1])
         self.assertIn("SEQUENCE:2", mail.outbox[4].attachments[0][1])
+        booking.refresh_from_db()
+        self.assertIsNotNone(booking.deleted_at)
+        self.assertEqual(booking.deleted_reason, "Cancelled by client.")
 
+        self.client.force_authenticate(user=booking.therapist.user)
+        dashboard_after_cancel_response = self.client.get("/api/v1/dashboard/")
+        self.assertEqual(dashboard_after_cancel_response.status_code, status.HTTP_200_OK)
+        self.assertEqual(dashboard_after_cancel_response.data["bookings"], [])
+        self.client.force_authenticate(user=None)
         self.assertEqual(Notification.objects.count(), 3)
+
+        deleted_detail_response = self.client.post(
+            f"/api/v1/bookings/manage/{token}/",
+            {"email": "client@example.com"},
+            format="json",
+        )
+        self.assertEqual(deleted_detail_response.status_code, status.HTTP_404_NOT_FOUND)
+
+        replacement_response = self.client.post(
+            "/api/v1/bookings/",
+            {
+                "clientName": "Test Client",
+                "clientEmail": "client@example.com",
+                "clientPhone": "+254700000000",
+                "therapistId": "caroline-gichia",
+                "date": "2028-04-19",
+                "time": "12:15",
+                "serviceType": "individual",
+                "sessionType": "virtual",
+                "notes": "Replacement session",
+            },
+            format="json",
+        )
+        self.assertEqual(replacement_response.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(replacement_response.data["status"], Booking.Status.UPCOMING)
+        self.assertEqual(Notification.objects.count(), 4)
 
     def test_physical_calendar_uses_actual_location_without_site_url(self):
         response = self.client.post(

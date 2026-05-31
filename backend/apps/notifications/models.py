@@ -10,6 +10,7 @@ class Notification(TimeStampedUUIDModel):
         CANCEL = "cancel", "Cancel"
         COMPLETION = "completion", "Completion"
         BLOG = "blog", "Blog"
+        INQUIRY = "inquiry", "Inquiry"
 
     therapist = models.ForeignKey(
         "therapists.TherapistProfile",
@@ -34,9 +35,44 @@ class Notification(TimeStampedUUIDModel):
         on_delete=models.CASCADE,
         related_name="notifications",
     )
+    inquiry = models.ForeignKey(
+        "notifications.ContactInquiry",
+        null=True,
+        blank=True,
+        on_delete=models.CASCADE,
+        related_name="notifications",
+    )
 
     class Meta:
         ordering = ["-created_at"]
 
     def __str__(self) -> str:
         return f"{self.type}: {self.title}"
+
+
+class ContactInquiry(TimeStampedUUIDModel):
+    class Status(models.TextChoices):
+        OPEN = "open", "Open"
+        REPLIED = "replied", "Replied"
+
+    name = models.CharField(max_length=120)
+    email = models.EmailField()
+    whatsapp_mobile = models.CharField(max_length=40)
+    subject = models.CharField(max_length=160, blank=True)
+    message = models.TextField()
+    status = models.CharField(max_length=20, choices=Status.choices, default=Status.OPEN)
+    replied_by = models.ForeignKey(
+        "therapists.TherapistProfile",
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="replied_contact_inquiries",
+    )
+    reply_message = models.TextField(blank=True)
+    replied_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+
+    def __str__(self) -> str:
+        return f"{self.name}: {self.subject or 'General enquiry'}"

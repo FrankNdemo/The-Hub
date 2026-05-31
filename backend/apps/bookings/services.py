@@ -465,6 +465,14 @@ def start_booking_payment(*, booking: Booking, mpesa_phone_number: str) -> tuple
     return booking, payment
 
 
+def get_send_money_number(therapist=None) -> str:
+    configured_number = settings.BOOKING_SEND_MONEY_NUMBER.strip()
+    if configured_number:
+        return configured_number
+
+    return getattr(therapist, "phone", "") or ""
+
+
 @transaction.atomic
 def create_booking(*, therapist, data: dict) -> Booking:
     validate_booking_request(therapist=therapist, data=data)
@@ -489,6 +497,94 @@ def create_paid_booking_checkout(*, therapist, data: dict, mpesa_phone_number: s
         payment_expires_at=get_payment_hold_expiry(),
     )
     return start_booking_payment(booking=booking, mpesa_phone_number=mpesa_phone_number)
+
+
+@transaction.atomic
+def create_manual_payment_checkout(
+    *,
+    therapist,
+    data: dict,
+    confirmation_code: str,
+    payer_name: str,
+    send_money_number: str,
+) -> tuple[Booking, BookingPayment]:
+    validate_booking_request(therapist=therapist, data=data)
+
+    booking = create_booking_record(
+        therapist=therapist,
+        data=data,
+        status=Booking.Status.PAYMENT_PENDING,
+        payment_expires_at=None,
+    )
+    payment = BookingPayment.objects.create(
+        booking=booking,
+        provider=BookingPayment.Provider.MPESA,
+        status=BookingPayment.Status.MANUAL_REVIEW,
+        amount=booking.booking_fee_amount,
+        currency=booking.booking_fee_currency,
+        phone_number=data["client_phone"],
+        merchant_request_id=make_id("manual-mpesa"),
+        transaction_id=confirmation_code.strip().upper(),
+        payer_name=payer_name.strip(),
+        result_description="M-Pesa send money confirmation submitted. The therapist will review and approve it.",
+        request_payload={
+            "send_money_number": send_money_number.strip(),
+            "confirmation_code": confirmation_code.strip().upper(),
+            "payer_name": payer_name.strip(),
+        },
+    )
+    BookingHistoryEvent.objects.create(
+        booking=booking,
+        type=BookingHistoryEvent.EventType.PAYMENT_INITIATED,
+        title="Manual M-Pesa payment submitted",
+        description=(
+            f"{booking.client_name} submitted confirmation code {payment.transaction_id} "
+            f"for review after sending money to {send_money_number.strip()}."
+        ),
+    )
+    create_notification(
+        booking=booking,
+        notification_type=Notification.NotificationType.BOOKING,
+        title="Manual payment awaiting approval",
+        description=(
+            f"{booking.client_name} submitted M-Pesa confirmation code {payment.transaction_id} "
+            f"for {booking.booking_fee_currency} {booking.booking_fee_amount}."
+        ),
+    )
+    return booking, payment
+
+
+@transaction.atomic
+def approve_manual_payment(*, booking: Booking, therapist) -> Booking:
+    if booking.therapist_id != therapist.id:
+        raise ValueError("You can only approve payments for your own bookings.")
+
+    if booking.confirmed_at:
+        raise ValueError("This booking has already been confirmed.")
+
+    payment = booking.payments.select_for_update().filter(status=BookingPayment.Status.MANUAL_REVIEW).first()
+    if not payment:
+        raise ValueError("This booking does not have a manual payment awaiting review.")
+
+    payment.status = BookingPayment.Status.SUCCESS
+    payment.result_code = "manual_approved"
+    payment.result_description = f"Manual M-Pesa payment approved by {therapist.name}."
+    payment.completed_at = timezone.now()
+    payment.save(update_fields=["status", "result_code", "result_description", "completed_at", "updated_at"])
+
+    booking.status = Booking.Status.UPCOMING
+    booking.confirmed_at = timezone.now()
+    booking.payment_expires_at = None
+    booking.save(update_fields=["status", "confirmed_at", "payment_expires_at", "updated_at"])
+
+    BookingHistoryEvent.objects.create(
+        booking=booking,
+        type=BookingHistoryEvent.EventType.PAYMENT_INITIATED,
+        title="Manual payment approved",
+        description=f"{therapist.name} approved the submitted M-Pesa send money confirmation.",
+    )
+    create_booking_confirmation_artifacts(booking)
+    return booking
 
 
 @transaction.atomic
@@ -747,7 +843,8 @@ def cancel_booking(*, booking: Booking) -> Booking:
         raise ValueError("Booking is already cancelled.")
 
     booking.status = Booking.Status.CANCELLED
-    booking.save(update_fields=["status", "updated_at"])
+    booking.mark_deleted(reason="Cancelled by client.")
+    booking.save(update_fields=["status", "deleted_at", "deleted_reason", "updated_at"])
 
     BookingHistoryEvent.objects.create(
         booking=booking,

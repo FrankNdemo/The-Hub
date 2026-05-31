@@ -4,6 +4,7 @@ import { seedBlogPosts } from "@/data/blogPosts";
 import { primaryTherapist, publicTherapists } from "@/data/siteData";
 import {
   ApiError,
+  approveManualPaymentRequest,
   clearStoredAuthTokens,
   createBooking as createBookingRequest,
   deleteBookingRequest,
@@ -23,6 +24,7 @@ import {
   markClientStorySeenRequest,
   markNotificationsReadRequest,
   publishClientStoryRequest,
+  replyToContactInquiryRequest,
   rescheduleManageBooking,
   cancelManageBooking as cancelManageBookingRequest,
   completeBookingRequest,
@@ -64,6 +66,7 @@ interface WellnessHubContextValue extends WellnessHubState {
   rescheduleBooking: (input: { token: string; clientEmail: string; date: string; time: string }) => Promise<BookingRecord>;
   cancelBooking: (token: string, email: string) => Promise<BookingRecord>;
   markBookingCompleted: (id: string) => Promise<BookingRecord>;
+  approveManualPayment: (id: string) => Promise<BookingRecord>;
   deleteBooking: (id: string, reason: string) => Promise<void>;
   saveBlogPost: (draft: BlogPostDraft) => Promise<BlogPost>;
   deleteBlogPost: (id: string) => Promise<void>;
@@ -74,6 +77,7 @@ interface WellnessHubContextValue extends WellnessHubState {
   deleteClientStory: (id: string) => Promise<void>;
   dismissNotification: (id: string) => Promise<void>;
   markNotificationsRead: () => Promise<void>;
+  replyToContactInquiry: (id: string, replyMessage: string) => Promise<NotificationItem>;
   updateTherapistProfile: (profile: TherapistProfile) => Promise<TherapistProfile>;
   verifyTherapistPassphrase: (passphrase: string) => Promise<ActionResult>;
   loginTherapist: (email: string, password: string) => Promise<ActionResult>;
@@ -195,6 +199,31 @@ const normalizeNotification = (notification?: Partial<NotificationItem> | null):
       ? notification.type
       : "booking";
 
+  const rawInquiry = notification.inquiry;
+  const inquiry =
+    rawInquiry &&
+    typeof rawInquiry.id === "string" &&
+    typeof rawInquiry.name === "string" &&
+    typeof rawInquiry.email === "string" &&
+    typeof rawInquiry.whatsappMobile === "string" &&
+    typeof rawInquiry.subject === "string" &&
+    typeof rawInquiry.message === "string" &&
+    typeof rawInquiry.createdAt === "string"
+      ? {
+          id: rawInquiry.id,
+          name: rawInquiry.name,
+          email: rawInquiry.email,
+          whatsappMobile: rawInquiry.whatsappMobile,
+          subject: rawInquiry.subject,
+          message: rawInquiry.message,
+          status: rawInquiry.status === "replied" ? "replied" : "open",
+          replyMessage: typeof rawInquiry.replyMessage === "string" ? rawInquiry.replyMessage : "",
+          repliedBy: typeof rawInquiry.repliedBy === "string" ? rawInquiry.repliedBy : null,
+          repliedAt: typeof rawInquiry.repliedAt === "string" ? rawInquiry.repliedAt : null,
+          createdAt: rawInquiry.createdAt,
+        }
+      : null;
+
   return {
     id: notification.id,
     type,
@@ -202,6 +231,7 @@ const normalizeNotification = (notification?: Partial<NotificationItem> | null):
     description: notification.description,
     createdAt: notification.createdAt,
     read: Boolean(notification.read),
+    inquiry,
   };
 };
 
@@ -271,7 +301,10 @@ const normalizeClientStory = (story?: Partial<ClientStory> | null): ClientStory 
         : typeof story.editedStory === "string" && story.editedStory.trim()
           ? story.editedStory
           : story.story,
-    status: story.status === "published" ? "published" : "pending",
+    status:
+      story.status === "published" || story.status === "reviewed"
+        ? story.status
+        : "pending",
     createdAt: story.createdAt,
     updatedAt: story.updatedAt,
     publishedAt:
@@ -720,6 +753,18 @@ export const WellnessHubProvider = ({ children }: { children: React.ReactNode })
     return booking;
   };
 
+  const approveManualPayment = async (id: string) => {
+    const booking = normalizeBookingRecord(await approveManualPaymentRequest(id));
+
+    setState((current) => ({
+      ...current,
+      bookings: upsertById(current.bookings, booking),
+      transactions: booking.payment ? upsertById(current.transactions, booking.payment) : current.transactions,
+    }));
+
+    return booking;
+  };
+
   const deleteBooking = async (id: string, reason: string) => {
     await deleteBookingRequest(id, reason);
     setState((current) => ({
@@ -839,6 +884,23 @@ export const WellnessHubProvider = ({ children }: { children: React.ReactNode })
         notification.read ? notification : { ...notification, read: true },
       ),
     }));
+  };
+
+  const replyToContactInquiry = async (id: string, replyMessage: string) => {
+    const notification = normalizeNotification(await replyToContactInquiryRequest(id, replyMessage));
+
+    if (!notification) {
+      throw new Error("The inquiry reply response was incomplete.");
+    }
+
+    setState((current) => ({
+      ...current,
+      notifications: current.notifications.map((item) =>
+        item.inquiry?.id === id ? { ...item, read: true, inquiry: notification.inquiry } : item,
+      ),
+    }));
+
+    return notification;
   };
 
   const updateTherapistProfile = async (profile: TherapistProfile) => {
@@ -994,6 +1056,7 @@ export const WellnessHubProvider = ({ children }: { children: React.ReactNode })
     rescheduleBooking,
     cancelBooking,
     markBookingCompleted,
+    approveManualPayment,
     deleteBooking,
     saveBlogPost,
     deleteBlogPost,
@@ -1004,6 +1067,7 @@ export const WellnessHubProvider = ({ children }: { children: React.ReactNode })
     deleteClientStory,
     dismissNotification,
     markNotificationsRead,
+    replyToContactInquiry,
     updateTherapistProfile,
     verifyTherapistPassphrase,
     loginTherapist,

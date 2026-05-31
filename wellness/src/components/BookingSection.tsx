@@ -1,4 +1,4 @@
-import { Fragment, type ReactNode, useEffect, useMemo, useRef, useState } from "react";
+import { Fragment, type ReactNode, type SetStateAction, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { createPortal } from "react-dom";
 import {
@@ -10,11 +10,14 @@ import {
   CheckCircle2,
   CircleAlert,
   Clock3,
+  Copy,
   Home,
   LoaderCircle,
   Mail,
   MapPin,
+  Landmark,
   ShieldCheck,
+  Smartphone,
   User,
   Users,
   Video,
@@ -22,16 +25,19 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 
+import { useFormDrafts, type BookingDraft, type BookingDraftForm, type BookingStep } from "@/context/FormDraftContext";
 import { useWellnessHub } from "@/context/WellnessHubContext";
 import { rememberBookingAccess } from "@/lib/bookingAccess";
 import {
   ApiError,
+  fetchAvailableBookingTherapists,
   fetchBookingPaymentStatus,
   getApiErrorMessage,
   getSuggestedBookingSlot,
   precheckBooking,
   retryBookingCheckout,
   startBookingCheckout,
+  submitManualBookingPayment,
 } from "@/lib/api";
 import {
   BOOKING_AVAILABILITY_DETAIL,
@@ -50,6 +56,7 @@ import type {
   BookingPaymentRecord,
   ServiceType,
   SessionType,
+  TherapistProfile,
 } from "@/types/wellness";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -62,15 +69,19 @@ import { cn } from "@/lib/utils";
 import leafDecor from "@/assets/leaf-decoration.png";
 
 const REVIEW_GARDEN_IMAGE_URL =
-  "https://images.unsplash.com/photo-1501004318641-b39e6451bec6?auto=format&fit=crop&w=900&q=88";
+  "https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=1200&q=80";
 
-type BookingStep = "details" | "summary" | "payment" | "stk_sent" | "processing" | "success" | "failed";
+const resolveStateUpdate = <T,>(value: SetStateAction<T>, current: T) =>
+  typeof value === "function" ? (value as (current: T) => T)(current) : value;
 
 const STK_SENT_PROMOTE_DELAY_MS = 900;
 const PAYMENT_STATUS_FAST_POLL_INTERVAL_MS = 1000;
 const PAYMENT_STATUS_SLOW_POLL_INTERVAL_MS = 2500;
 const PAYMENT_STATUS_FAST_POLL_WINDOW_MS = 18000;
 const DEFAULT_BOOKING_FEE_AMOUNT = 200;
+const MANUAL_PAYMENT_PAYBILL = "714777";
+const MANUAL_PAYMENT_ACCOUNT = "0726759850";
+const MANUAL_PAYMENT_SEND_MONEY_NUMBER = "0726759850";
 
 const FINAL_PAYMENT_STATUSES: BookingPaymentRecord["status"][] = [
   "success",
@@ -150,7 +161,7 @@ const getCheckoutStageIndex = (step: BookingStep) => {
     return 0;
   }
 
-  if (step === "payment") {
+  if (step === "payment" || step === "mpesa_payment" || step === "send_money" || step === "send_money_confirmation") {
     return 1;
   }
 
@@ -171,6 +182,41 @@ const MpesaWordmark = ({ className }: { className?: string }) => (
     </span>
     <span className="font-black leading-none tracking-[-0.05em] text-[1.7rem]">pesa</span>
   </div>
+);
+
+const copyPaymentDetail = async (label: string, value: string) => {
+  try {
+    if (navigator.clipboard?.writeText) {
+      await navigator.clipboard.writeText(value);
+    } else {
+      const textArea = document.createElement("textarea");
+      textArea.value = value;
+      textArea.setAttribute("readonly", "");
+      textArea.style.position = "fixed";
+      textArea.style.left = "-9999px";
+      textArea.style.top = "0";
+      document.body.appendChild(textArea);
+      textArea.select();
+      document.execCommand("copy");
+      document.body.removeChild(textArea);
+    }
+    toast.success(`${label} copied.`);
+  } catch {
+    toast.error(`Could not copy ${label.toLowerCase()}.`);
+  }
+};
+
+const CopyDetailButton = ({ label, value }: { label: string; value: string }) => (
+  <Button
+    type="button"
+    variant="ghost"
+    size="icon"
+    className="h-8 w-8 rounded-full border border-primary/15 bg-white/80 text-primary hover:bg-white"
+    onClick={() => void copyPaymentDetail(label, value)}
+    aria-label={`Copy ${label}`}
+  >
+    <Copy className="h-3.5 w-3.5" />
+  </Button>
 );
 
 const CheckoutStageRail = ({ step }: { step: BookingStep }) => {
@@ -572,6 +618,7 @@ const getApiErrorCode = (error: unknown) => {
 
 const BookingSection = () => {
   const { therapist, therapists } = useWellnessHub();
+  const { bookingDraft, setBookingDraft } = useFormDrafts();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const requestedTherapistId = searchParams.get("therapist");
@@ -581,32 +628,52 @@ const BookingSection = () => {
       ? requestedTherapistId
       : availableTherapists[0]?.id) ?? therapist.id;
   const sectionRef = useRef<HTMLElement | null>(null);
-  const [serviceType, setServiceType] = useState<ServiceType>("individual");
-  const [sessionType, setSessionType] = useState<SessionType>("virtual");
-  const [step, setStep] = useState<BookingStep>("details");
-  const [checkout, setCheckout] = useState<BookingCheckoutResponse | null>(null);
+  const lastScheduleNoticeRef = useRef(0);
+  const {
+    serviceType,
+    sessionType,
+    step,
+    checkout,
+    bookingGuidance,
+    paymentFeedback,
+    sendMoneyNumber,
+    mpesaConfirmationCode,
+    paidMobileName,
+    currentBookingFeeAmount,
+    retryStartOverRequired,
+    form,
+    paymentPhone,
+  } = bookingDraft;
+  const setBookingDraftField = <K extends keyof BookingDraft>(field: K, value: SetStateAction<BookingDraft[K]>) => {
+    setBookingDraft((current) => ({
+      ...current,
+      [field]: resolveStateUpdate(value, current[field]),
+    }));
+  };
+  const setServiceType = (value: SetStateAction<ServiceType>) => setBookingDraftField("serviceType", value);
+  const setSessionType = (value: SetStateAction<SessionType>) => setBookingDraftField("sessionType", value);
+  const setStep = (value: SetStateAction<BookingStep>) => setBookingDraftField("step", value);
+  const setCheckout = (value: SetStateAction<BookingCheckoutResponse | null>) => setBookingDraftField("checkout", value);
+  const setBookingGuidance = (value: SetStateAction<string>) => setBookingDraftField("bookingGuidance", value);
+  const setPaymentFeedback = (value: SetStateAction<string>) => setBookingDraftField("paymentFeedback", value);
+  const setSendMoneyNumber = (value: SetStateAction<string>) => setBookingDraftField("sendMoneyNumber", value);
+  const setMpesaConfirmationCode = (value: SetStateAction<string>) => setBookingDraftField("mpesaConfirmationCode", value);
+  const setPaidMobileName = (value: SetStateAction<string>) => setBookingDraftField("paidMobileName", value);
+  const setCurrentBookingFeeAmount = (value: SetStateAction<number>) => setBookingDraftField("currentBookingFeeAmount", value);
+  const setRetryStartOverRequired = (value: SetStateAction<boolean>) => setBookingDraftField("retryStartOverRequired", value);
+  const setForm = (value: SetStateAction<BookingDraftForm>) => setBookingDraftField("form", value);
+  const setPaymentPhone = (value: SetStateAction<string>) => setBookingDraftField("paymentPhone", value);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isCheckingAvailability, setIsCheckingAvailability] = useState(false);
-  const [bookingGuidance, setBookingGuidance] = useState("");
-  const [paymentFeedback, setPaymentFeedback] = useState("");
-  const [currentBookingFeeAmount, setCurrentBookingFeeAmount] = useState(DEFAULT_BOOKING_FEE_AMOUNT);
-  const [retryStartOverRequired, setRetryStartOverRequired] = useState(false);
+  const [isLoadingTherapists, setIsLoadingTherapists] = useState(false);
+  const [preparedPrecheck, setPreparedPrecheck] = useState<{ key: string; amount: number } | null>(null);
+  const [availabilityMessage, setAvailabilityMessage] = useState("Choose a date and time to check live availability first.");
+  const [slotTherapists, setSlotTherapists] = useState<TherapistProfile[] | null>(null);
   const [serviceDescriptionText, setServiceDescriptionText] = useState("");
   const [isDeletingServiceDescription, setIsDeletingServiceDescription] = useState(false);
-  const [form, setForm] = useState({
-    clientName: "",
-    clientEmail: "",
-    clientPhone: "",
-    therapistId: initialTherapistId,
-    date: "",
-    time: "",
-    participantCount: "",
-    notes: "",
-  });
-  const [paymentPhone, setPaymentPhone] = useState("");
   const activeServiceCard = serviceCards.find((item) => item.type === serviceType) ?? serviceCards[0];
+  const selectableTherapists = slotTherapists ?? availableTherapists;
   const selectedTherapist =
-    availableTherapists.find((item) => item.id === form.therapistId) ?? availableTherapists[0] ?? therapist;
+    selectableTherapists.find((item) => item.id === form.therapistId) ?? selectableTherapists[0] ?? therapist;
   const availableTherapistIds = useMemo(() => availableTherapists.map((item) => item.id).join("|"), [availableTherapists]);
   const todayDate = getTodayDateInputValue();
 
@@ -638,12 +705,45 @@ const BookingSection = () => {
     () => normalizeBookingFeeAmount(checkout?.booking.bookingFeeAmount, currentBookingFeeAmount),
     [checkout?.booking.bookingFeeAmount, currentBookingFeeAmount],
   );
+  const precheckKey = useMemo(() => {
+    const participantCount = serviceType === "corporate" ? form.participantCount.trim() : "";
+    const requiredValues = [
+      form.clientName.trim(),
+      form.clientEmail.trim(),
+      form.clientPhone.trim(),
+      form.therapistId,
+      form.date,
+      form.time,
+      serviceType,
+      sessionType,
+      participantCount,
+    ];
+
+    return requiredValues.every(Boolean) ? requiredValues.join("|") : "";
+  }, [
+    form.clientEmail,
+    form.clientName,
+    form.clientPhone,
+    form.date,
+    form.participantCount,
+    form.therapistId,
+    form.time,
+    serviceType,
+    sessionType,
+  ]);
+  const hasNoAvailableTherapists = Boolean(form.date && form.time && slotTherapists && slotTherapists.length === 0);
+  const canSubmitDetails = !isLoadingTherapists && !hasNoAvailableTherapists;
 
   const updateField = (field: keyof typeof form, value: string) => {
     setBookingGuidance("");
     setCheckout(null);
     setPaymentFeedback("");
     setRetryStartOverRequired(false);
+    setPreparedPrecheck(null);
+    if (field === "date" || field === "time") {
+      setAvailabilityMessage("Checking live availability first...");
+      setSlotTherapists(null);
+    }
     setForm((current) => ({ ...current, [field]: value }));
   };
 
@@ -665,6 +765,127 @@ const BookingSection = () => {
     setServiceDescriptionText("");
     setIsDeletingServiceDescription(false);
   }, [serviceType]);
+
+  useEffect(() => {
+    if (step !== "details") {
+      return;
+    }
+
+    if (!form.date || !form.time) {
+      setSlotTherapists(null);
+      setAvailabilityMessage("Choose a date and time to check live availability first.");
+      setIsLoadingTherapists(false);
+      return;
+    }
+
+    let isActive = true;
+    const timeoutId = window.setTimeout(() => {
+      setIsLoadingTherapists(true);
+      setAvailabilityMessage("Checking live availability first...");
+
+      fetchAvailableBookingTherapists(form.date, form.time)
+        .then((response) => {
+          if (!isActive) {
+            return;
+          }
+
+          const available = response.therapists.length ? response.therapists : [];
+          setSlotTherapists(available);
+          setForm((current) => {
+            if (available.some((item) => item.id === current.therapistId)) {
+              return current;
+            }
+
+            return { ...current, therapistId: available[0]?.id ?? "" };
+          });
+
+          setAvailabilityMessage(
+            available.length
+              ? `${available.length} therapist${available.length === 1 ? "" : "s"} available for this slot.`
+              : "No therapist is available for this exact time. Please choose another slot.",
+          );
+        })
+        .catch(() => {
+          if (!isActive) {
+            return;
+          }
+
+          setSlotTherapists(null);
+          setAvailabilityMessage("We could not refresh live availability. You can still submit, and we will confirm before payment.");
+        })
+        .finally(() => {
+          if (isActive) {
+            setIsLoadingTherapists(false);
+          }
+        });
+    }, 300);
+
+    return () => {
+      isActive = false;
+      window.clearTimeout(timeoutId);
+    };
+  }, [form.date, form.time, step]);
+
+  useEffect(() => {
+    if (step !== "details" || !precheckKey || isLoadingTherapists || hasNoAvailableTherapists) {
+      return;
+    }
+
+    let isActive = true;
+    const timeoutId = window.setTimeout(() => {
+      const participantCount =
+        serviceType === "corporate" && form.participantCount
+          ? Number.parseInt(form.participantCount, 10)
+          : undefined;
+
+      precheckBooking({
+        clientName: form.clientName,
+        clientEmail: form.clientEmail,
+        clientPhone: form.clientPhone,
+        therapistId: form.therapistId,
+        date: form.date,
+        time: form.time,
+        serviceType,
+        participantCount,
+        sessionType,
+        notes: form.notes,
+      })
+        .then((precheck) => {
+          if (!isActive) {
+            return;
+          }
+
+          setCurrentBookingFeeAmount(normalizeBookingFeeAmount(precheck.bookingFeeAmount, currentBookingFeeAmount));
+          setPreparedPrecheck({ key: precheckKey, amount: normalizeBookingFeeAmount(precheck.bookingFeeAmount, currentBookingFeeAmount) });
+        })
+        .catch(() => {
+          if (isActive) {
+            setPreparedPrecheck(null);
+          }
+        });
+    }, 450);
+
+    return () => {
+      isActive = false;
+      window.clearTimeout(timeoutId);
+    };
+  }, [
+    currentBookingFeeAmount,
+    form.clientEmail,
+    form.clientName,
+    form.clientPhone,
+    form.date,
+    form.notes,
+    form.participantCount,
+    form.therapistId,
+    form.time,
+    hasNoAvailableTherapists,
+    isLoadingTherapists,
+    precheckKey,
+    serviceType,
+    sessionType,
+    step,
+  ]);
 
   useEffect(() => {
     const target = activeServiceCard.description;
@@ -795,6 +1016,18 @@ const BookingSection = () => {
   }, [checkout?.booking.token, navigate, step]);
 
   useEffect(() => {
+    if (step !== "manual_review" || !checkout?.booking.token) {
+      return;
+    }
+
+    const timeoutId = window.setTimeout(() => {
+      navigate(`/manage/${checkout.booking.token}?booking=manual-review`);
+    }, 3600);
+
+    return () => window.clearTimeout(timeoutId);
+  }, [checkout?.booking.token, navigate, step]);
+
+  useEffect(() => {
     if (step === "details") {
       return;
     }
@@ -814,54 +1047,43 @@ const BookingSection = () => {
     }));
   };
 
+  const showScheduleWindowNotice = () => {
+    const now = Date.now();
+
+    if (now - lastScheduleNoticeRef.current < 4500) {
+      return;
+    }
+
+    lastScheduleNoticeRef.current = now;
+    toast.info("Sessions begin from 10:00 AM, finish by 7:00 PM, and the last available start time is 6:00 PM. Start times can be chosen in 5-minute increments.");
+  };
+
   const handleDetailsSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
-    const participantCount =
-      serviceType === "corporate" && form.participantCount
-        ? Number.parseInt(form.participantCount, 10)
-        : undefined;
+    if (isLoadingTherapists) {
+      toast.error("Please wait a moment while we finish checking this slot.");
+      return;
+    }
 
-    setIsCheckingAvailability(true);
+    if (hasNoAvailableTherapists) {
+      toast.error("No therapist is available for this exact time. Please choose another date or time.");
+      return;
+    }
+
     setBookingGuidance("");
     setPaymentFeedback("");
     setRetryStartOverRequired(false);
+    setCheckout(null);
+    setPaymentPhone(form.clientPhone);
+    setSendMoneyNumber(MANUAL_PAYMENT_SEND_MONEY_NUMBER);
+    setMpesaConfirmationCode("");
+    setPaidMobileName("");
 
-    try {
-      const precheck = await precheckBooking({
-        clientName: form.clientName,
-        clientEmail: form.clientEmail,
-        clientPhone: form.clientPhone,
-        therapistId: form.therapistId,
-        date: form.date,
-        time: form.time,
-        serviceType,
-        participantCount,
-        sessionType,
-        notes: form.notes,
-      });
-      setCurrentBookingFeeAmount(normalizeBookingFeeAmount(precheck.bookingFeeAmount, currentBookingFeeAmount));
-      setCheckout(null);
-      setPaymentPhone(form.clientPhone);
-      setStep("summary");
-    } catch (error) {
-      const message = getApiErrorMessage(error, "We could not confirm availability right now.");
-      const suggestion = getSuggestedBookingSlot(error);
-
-      if (suggestion) {
-        setForm((current) => ({
-          ...current,
-          date: suggestion.date,
-          time: suggestion.time,
-        }));
-        setBookingGuidance(`${message} We prefilled the next available option so you can continue quickly.`);
-        toast.error(`${message} We prefilled ${formatDisplayDate(suggestion.date)} at ${formatDisplayTime(suggestion.time)}.`);
-      } else {
-        setBookingGuidance(message);
-        toast.error(message);
-      }
-    } finally {
-      setIsCheckingAvailability(false);
+    if (preparedPrecheck?.key === precheckKey) {
+      setCurrentBookingFeeAmount(preparedPrecheck.amount);
     }
+
+    setStep("summary");
   };
 
   const handleStartPayment = async () => {
@@ -925,7 +1147,69 @@ const BookingSection = () => {
         toast.error(`${message} We prefilled ${formatDisplayDate(suggestion.date)} at ${formatDisplayTime(suggestion.time)}.`);
       } else {
         setPaymentFeedback(message);
-        setStep("payment");
+        setStep("mpesa_payment");
+        toast.error(message);
+      }
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleSubmitManualPayment = async () => {
+    const confirmationCode = mpesaConfirmationCode.trim();
+    const payerName = paidMobileName.trim();
+    const recipient = sendMoneyNumber.trim() || MANUAL_PAYMENT_SEND_MONEY_NUMBER;
+
+    if (!confirmationCode || !payerName) {
+      toast.error("Enter the M-PESA transaction code and the paid mobile name before finalizing payment.");
+      return;
+    }
+
+    const participantCount =
+      serviceType === "corporate" && form.participantCount
+        ? Number.parseInt(form.participantCount, 10)
+        : undefined;
+
+    setIsSubmitting(true);
+    setPaymentFeedback("");
+
+    try {
+      const nextCheckout = await submitManualBookingPayment({
+        clientName: form.clientName,
+        clientEmail: form.clientEmail,
+        clientPhone: form.clientPhone,
+        therapistId: form.therapistId,
+        date: form.date,
+        time: form.time,
+        serviceType,
+        participantCount,
+        sessionType,
+        notes: form.notes,
+        mpesaConfirmationCode: confirmationCode,
+        paidMobileName: payerName,
+        sendMoneyNumber: recipient,
+      });
+
+      setCheckout(nextCheckout);
+      setCurrentBookingFeeAmount(normalizeBookingFeeAmount(nextCheckout.booking.bookingFeeAmount, bookingAmount));
+      rememberBookingAccess(nextCheckout.booking.token, form.clientEmail.trim());
+      setStep("manual_review");
+      toast.success("Payment confirmation submitted for therapist review.");
+    } catch (error) {
+      const message = getSafePaymentFeedback(getApiErrorMessage(error, "We could not submit this payment confirmation right now."));
+      const suggestion = getSuggestedBookingSlot(error);
+
+      if (suggestion) {
+        setForm((current) => ({
+          ...current,
+          date: suggestion.date,
+          time: suggestion.time,
+        }));
+        setBookingGuidance(`${message} We prefilled the next available option so you can continue quickly.`);
+        setStep("details");
+        toast.error(`${message} We prefilled ${formatDisplayDate(suggestion.date)} at ${formatDisplayTime(suggestion.time)}.`);
+      } else {
+        setPaymentFeedback(message);
         toast.error(message);
       }
     } finally {
@@ -936,13 +1220,13 @@ const BookingSection = () => {
   const resetToPaymentStep = () => {
     setPaymentFeedback("");
     setRetryStartOverRequired(false);
-    setStep("payment");
+    setStep("mpesa_payment");
   };
 
   const startFreshBooking = () => {
     setCheckout(null);
     setPaymentFeedback("");
-    setBookingGuidance("Please review your session details, then continue to payment again.");
+    toast.info("Please review your session details, then continue to payment again.");
     setRetryStartOverRequired(false);
     setStep("details");
   };
@@ -1023,6 +1307,72 @@ const BookingSection = () => {
       );
     }
 
+    if (step === "manual_review") {
+      return (
+        <>
+          <MobileStatusSheet
+            step={step}
+            tone="light"
+            eyebrow="Confirmation Submitted"
+            title="Awaiting therapist approval"
+            description="Your M-Pesa send money confirmation has been received. The therapist will review and approve it before the session is fully confirmed."
+            indicator={<ShieldCheck className="h-10 w-10" />}
+          >
+            <div className="rounded-[1.2rem] border border-primary/12 bg-primary/8 px-4 py-4 text-left text-sm leading-6 text-muted-foreground">
+              <p>
+                <span className="font-semibold text-foreground">Code:</span>{" "}
+                {checkout?.payment.transactionId || mpesaConfirmationCode || "Submitted"}
+              </p>
+              <p className="mt-2">
+                <span className="font-semibold text-foreground">Paid mobile name:</span>{" "}
+                {checkout?.payment.payerName || paidMobileName || "Submitted"}
+              </p>
+            </div>
+            <Button
+              variant="hero"
+              className="mt-5 w-full rounded-xl"
+              onClick={() => checkout && navigate(`/manage/${checkout.booking.token}?booking=manual-review`)}
+            >
+              View Booking Details
+            </Button>
+          </MobileStatusSheet>
+
+          <DesktopStatusDialog>
+            <div className="rounded-[2rem] border border-border/60 bg-card px-6 py-8 text-center shadow-card sm:px-8">
+              <StatusHalo tone="success">
+                <ShieldCheck className="h-10 w-10" />
+              </StatusHalo>
+              <p className="mt-6 text-sm font-semibold uppercase tracking-[0.22em] text-primary/75">
+                Confirmation Submitted
+              </p>
+              <h3 className="mt-3 font-heading text-3xl font-semibold text-foreground">Awaiting therapist approval</h3>
+              <p className="mx-auto mt-4 max-w-md text-sm leading-8 text-muted-foreground sm:text-base">
+                Your M-Pesa send money confirmation has been received. The therapist will review and approve it, then
+                your booking confirmation will be finalized.
+              </p>
+              <div className="mx-auto mt-6 max-w-md rounded-[1.4rem] border border-primary/12 bg-primary/8 px-5 py-4 text-left text-sm leading-7 text-muted-foreground">
+                <p>
+                  <span className="font-semibold text-foreground">Confirmation code:</span>{" "}
+                  {checkout?.payment.transactionId || mpesaConfirmationCode || "Submitted"}
+                </p>
+                <p>
+                  <span className="font-semibold text-foreground">Paid mobile name:</span>{" "}
+                  {checkout?.payment.payerName || paidMobileName || "Submitted"}
+                </p>
+              </div>
+              <Button
+                variant="hero"
+                className="mt-6 rounded-full"
+                onClick={() => checkout && navigate(`/manage/${checkout.booking.token}?booking=manual-review`)}
+              >
+                View Booking Details
+              </Button>
+            </div>
+          </DesktopStatusDialog>
+        </>
+      );
+    }
+
     if (step === "processing") {
       return (
         <>
@@ -1038,11 +1388,6 @@ const BookingSection = () => {
             <div className="rounded-[1.2rem] border border-white/10 bg-white/5 px-4 py-4 text-center text-sm leading-6 text-white/78">
               <p>This usually takes a few seconds.</p>
             </div>
-            {paymentFeedback ? (
-              <div className="mt-3 rounded-[1.1rem] border border-white/10 bg-white/5 px-4 py-3 text-sm leading-6 text-white/72">
-                {paymentFeedback}
-              </div>
-            ) : null}
           </MobileStatusSheet>
 
           <DesktopStatusDialog>
@@ -1062,11 +1407,6 @@ const BookingSection = () => {
               <p className="mt-2">We are checking the Safaricom response, updating your booking, and preparing the confirmation details.</p>
               <p className="mt-2 text-white/58">This usually takes a few seconds.</p>
             </div>
-            {paymentFeedback ? (
-              <div className="mt-3 rounded-[1.1rem] border border-white/10 bg-white/5 px-4 py-3 text-sm leading-6 text-white/72">
-                {paymentFeedback}
-              </div>
-            ) : null}
           </div>
           </DesktopStatusDialog>
         </>
@@ -1151,11 +1491,6 @@ const BookingSection = () => {
             indicator={<CircleAlert className="h-10 w-10" />}
             onClose={resetToPaymentStep}
           >
-          {paymentFeedback ? (
-            <div className="rounded-[1.1rem] border border-destructive/15 bg-destructive/10 px-4 py-3 text-sm leading-6 text-foreground">
-              {paymentFeedback}
-            </div>
-          ) : null}
           <div className="mt-4 grid gap-3">
             <Button variant="hero" className="w-full rounded-xl" onClick={handleStartPayment} disabled={isSubmitting}>
               {retryButtonLabel}
@@ -1185,11 +1520,6 @@ const BookingSection = () => {
           <p className="mt-3 text-xs font-semibold uppercase tracking-[0.22em] text-primary/75">Payment Failed</p>
           <h3 className="mt-2 font-heading text-3xl font-semibold leading-tight text-foreground">{failureCopy.title}</h3>
           <p className="mt-3 text-sm leading-7 text-muted-foreground sm:text-[0.95rem]">{failureCopy.description}</p>
-          {paymentFeedback ? (
-            <div className="mt-4 rounded-[1.1rem] border border-destructive/15 bg-destructive/10 px-4 py-3 text-sm leading-6 text-foreground">
-              {paymentFeedback}
-            </div>
-          ) : null}
           <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:justify-center">
             <Button variant="hero" className="rounded-full" onClick={handleStartPayment} disabled={isSubmitting}>
               {retryButtonLabel}
@@ -1206,6 +1536,14 @@ const BookingSection = () => {
 
   return (
     <section id="booking" ref={sectionRef} className="py-24">
+      {isLoadingTherapists
+        ? createPortal(
+            <div className="pointer-events-none fixed left-1/2 top-1/2 z-[120] flex h-16 w-16 -translate-x-1/2 -translate-y-1/2 items-center justify-center">
+              <div className="h-16 w-16 rounded-full border-[5px] border-primary/20 border-t-primary animate-spin" />
+            </div>,
+            document.body,
+          )
+        : null}
       <div className="container mx-auto px-4">
         <div className="mx-auto max-w-6xl">
           <div className={step === "details" ? "grid gap-12 lg:grid-cols-[0.92fr_1.08fr]" : "grid gap-12"}>
@@ -1279,7 +1617,11 @@ const BookingSection = () => {
                   </div>
                 ) : null}
                 {step === "details" ? (
-                  <form onSubmit={handleDetailsSubmit} className="overflow-hidden rounded-[2rem] border border-border/60 bg-card p-6 shadow-card sm:p-8">
+                  <form
+                    id="schedule-appointment"
+                    onSubmit={handleDetailsSubmit}
+                    className="scroll-mt-24 overflow-hidden rounded-[2rem] border border-border/60 bg-card p-6 shadow-card sm:p-8"
+                  >
                     <LeafBannerHeading
                       title="Schedule your appointment"
                       titleTag="h3"
@@ -1397,13 +1739,15 @@ const BookingSection = () => {
                       />
                     </div>
 
-                    <div className="mt-5 grid gap-5 sm:grid-cols-2">
+                    <div className="mt-5 grid grid-cols-2 gap-3 sm:gap-5">
                       <div>
                         <Label htmlFor="booking-date">Preferred Date</Label>
                         <Input
                           id="booking-date"
                           type="date"
                           value={form.date}
+                          onClick={showScheduleWindowNotice}
+                          onFocus={showScheduleWindowNotice}
                           onChange={(event) => updateField("date", event.target.value)}
                           className="mt-2"
                           min={todayDate}
@@ -1416,6 +1760,8 @@ const BookingSection = () => {
                           id="booking-time"
                           type="time"
                           value={form.time}
+                          onClick={showScheduleWindowNotice}
+                          onFocus={showScheduleWindowNotice}
                           onChange={(event) => updateField("time", event.target.value)}
                           className="mt-2"
                           min={BOOKING_OPEN_TIME}
@@ -1426,16 +1772,6 @@ const BookingSection = () => {
                       </div>
                     </div>
 
-                    <div className="mt-4 rounded-[1.25rem] bg-primary/8 px-4 py-3 text-sm leading-7 text-muted-foreground">
-                      {BOOKING_AVAILABILITY_DETAIL}
-                    </div>
-
-                    {bookingGuidance ? (
-                      <div className="mt-4 rounded-[1.25rem] border border-primary/20 bg-primary/8 px-4 py-3 text-sm leading-7 text-foreground">
-                        {bookingGuidance}
-                      </div>
-                    ) : null}
-
                     <div className="mt-5">
                       <Label htmlFor="booking-therapist">Preferred Therapist</Label>
                       <select
@@ -1444,7 +1780,7 @@ const BookingSection = () => {
                         value={form.therapistId}
                         onChange={(event) => updateField("therapistId", event.target.value)}
                       >
-                        {availableTherapists.map((item) => (
+                        {selectableTherapists.map((item) => (
                           <option key={item.id} value={item.id}>
                             {item.name} - {item.title}
                           </option>
@@ -1520,12 +1856,14 @@ const BookingSection = () => {
                       <span>Your booking details remain private, and your follow-up session link is unique to you.</span>
                     </div>
 
-                    <Button variant="hero" size="lg" type="submit" className="mt-7 w-full rounded-full" disabled={isCheckingAvailability}>
-                      {isCheckingAvailability ? (
+                    <Button variant="hero" size="lg" type="submit" className="mt-7 w-full rounded-full" disabled={!canSubmitDetails}>
+                      {isLoadingTherapists ? (
                         <>
                           <LoaderCircle className="h-4 w-4 animate-spin" />
-                          Checking Availability...
+                          Checking Slot...
                         </>
+                      ) : hasNoAvailableTherapists ? (
+                        "Choose Another Slot"
                       ) : (
                         "Book Your First Session"
                       )}
@@ -1640,19 +1978,418 @@ const BookingSection = () => {
                           >
                             Continue to Payment
                           </Button>
-                          <div className="overflow-hidden border border-border/60 bg-secondary/20 shadow-[0_18px_40px_-34px_rgba(33,49,40,0.5)]">
+                          <div className="group/payment relative h-56 overflow-hidden rounded-[1.35rem] border border-border/60 bg-primary/10 shadow-[0_18px_40px_-34px_rgba(33,49,40,0.5)]">
                             <img
                               src={REVIEW_GARDEN_IMAGE_URL}
-                              alt="Calm green garden path"
-                              className="h-28 w-full object-cover object-center"
+                              alt="Calm green valley landscape"
+                              className="h-full w-full scale-[1.05] object-cover object-center animate-payment-image-pan"
                               loading="lazy"
                             />
+                            <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(105deg,transparent_0%,rgba(255,255,255,0.18)_45%,transparent_64%)] animate-payment-sheen" />
+                            <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(180deg,rgba(33,49,40,0.08),rgba(33,49,40,0.26))]" />
+                            <div className="pointer-events-none absolute left-4 top-4 flex h-12 w-12 items-center justify-center rounded-full border border-white/35 bg-white/82 text-primary shadow-soft backdrop-blur-md animate-payment-float">
+                              <Wallet className="h-5 w-5" />
+                            </div>
+                            <div className="pointer-events-none absolute bottom-4 right-4 flex items-center gap-2 rounded-full border border-white/35 bg-white/86 px-3.5 py-2 text-sm font-semibold text-primary shadow-soft backdrop-blur-md animate-payment-float animation-delay-400">
+                              <ShieldCheck className="h-4 w-4" />
+                              <span>{formatCurrencyAmount(bookingAmount, "KES")}</span>
+                            </div>
                           </div>
                         </div>
                       </div>
                     </div>
                   </>
                 ) : step === "payment" ? (
+                  <>
+                    <div className="relative mx-auto max-w-[21.9rem] overflow-hidden rounded-[1.85rem] border border-border/60 bg-card p-4 shadow-card sm:hidden">
+                      <MobileSheetLeaves />
+                      <div className="relative z-10 flex items-start gap-3">
+                        <Button variant="ghost" size="icon" className="h-9 w-9 rounded-full border border-border/60" onClick={() => setStep("summary")}>
+                          <ArrowLeft className="h-4 w-4" />
+                        </Button>
+                        <div className="min-w-0 flex-1">
+                          <div className="mt-3">
+                            <MobileStageDots step={step} />
+                          </div>
+                        </div>
+                      </div>
+                      <div className="relative z-10 mt-5 overflow-hidden rounded-[1.6rem] border border-border/60 bg-[linear-gradient(155deg,rgba(255,255,255,0.98),rgba(244,249,245,0.94))] px-4 py-5 shadow-soft">
+                        <img
+                          src={leafDecor}
+                          alt=""
+                          aria-hidden="true"
+                          className="pointer-events-none absolute -right-10 -top-10 w-44 rotate-[18deg] opacity-[0.18] mix-blend-multiply saturate-125"
+                        />
+                        <img
+                          src={leafDecor}
+                          alt=""
+                          aria-hidden="true"
+                          className="pointer-events-none absolute -bottom-12 right-8 w-36 rotate-[42deg] opacity-[0.12] mix-blend-multiply saturate-125"
+                        />
+                        <div className="relative flex items-start gap-2.5">
+                          <img src={leafDecor} alt="" aria-hidden="true" className="mt-1 w-9 shrink-0 opacity-75 mix-blend-multiply saturate-125" />
+                          <div>
+                            <h3 className="text-lg font-semibold leading-tight text-primary">Choose your payment method</h3>
+                            <p className="mt-1 text-[11px] leading-5 text-muted-foreground">Pick the option that works best for you.</p>
+                          </div>
+                        </div>
+                        <div className="relative mt-4 grid gap-2.5">
+                          <button
+                            type="button"
+                            onClick={() => setStep("send_money")}
+                            className="relative overflow-hidden rounded-[1.15rem] border border-primary/15 bg-white/88 p-3 text-left shadow-soft transition hover:-translate-y-0.5 hover:border-primary/35 hover:bg-secondary/25"
+                          >
+                            <img src={leafDecor} alt="" aria-hidden="true" className="pointer-events-none absolute -right-8 bottom-0 w-32 rotate-[28deg] opacity-[0.12] mix-blend-multiply" />
+                            <div className="flex items-start gap-2.5">
+                              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[0.9rem] bg-primary/10 text-primary">
+                                <Smartphone className="h-4.5 w-4.5" />
+                              </span>
+                              <span className="min-w-0">
+                                <span className="block whitespace-nowrap text-[13px] font-semibold leading-5 text-primary">1. Pay Manually (Paybill/Till)</span>
+                                <span className="mt-0.5 block text-[11px] leading-5 text-muted-foreground">Send money or use Paybill to complete your payment manually.</span>
+                              </span>
+                            </div>
+                          </button>
+                          <div className="relative overflow-hidden rounded-[1.15rem] border border-border/50 bg-white/55 p-3 text-left opacity-50">
+                            <img src={leafDecor} alt="" aria-hidden="true" className="pointer-events-none absolute -right-8 bottom-0 w-32 rotate-[28deg] opacity-[0.12] mix-blend-multiply" />
+                            <div className="flex items-start gap-2.5">
+                              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[0.9rem] bg-primary/10 text-primary">
+                                <Smartphone className="h-4.5 w-4.5" />
+                              </span>
+                              <span className="min-w-0">
+                                <span className="block whitespace-nowrap text-[13px] font-semibold leading-5 text-primary">2. Pay with M-Pesa (STK)</span>
+                                <span className="mt-0.5 block text-[11px] leading-5 text-muted-foreground">Get a prompt on your phone and enter your PIN to complete the payment.</span>
+                              </span>
+                            </div>
+                          </div>
+                          <div className="relative overflow-hidden rounded-[1.15rem] border border-border/50 bg-white/55 p-3 text-left opacity-50">
+                            <img src={leafDecor} alt="" aria-hidden="true" className="pointer-events-none absolute -right-8 bottom-0 w-32 rotate-[28deg] opacity-[0.12] mix-blend-multiply" />
+                            <div className="flex items-start gap-2.5">
+                              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[0.9rem] bg-primary/8 text-primary">
+                                <Landmark className="h-4.5 w-4.5" />
+                              </span>
+                              <span>
+                                <span className="block text-[13px] font-semibold leading-5 text-primary">3. Bank Transfer</span>
+                                <span className="mt-0.5 block text-[11px] leading-5 text-muted-foreground">Coming soon.</span>
+                              </span>
+                            </div>
+                          </div>
+                          <div className="relative overflow-hidden rounded-[1.15rem] border border-border/50 bg-white/55 p-3 text-left opacity-50">
+                            <img src={leafDecor} alt="" aria-hidden="true" className="pointer-events-none absolute -right-8 bottom-0 w-32 rotate-[28deg] opacity-[0.12] mix-blend-multiply" />
+                            <div className="flex items-start gap-2.5">
+                              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[0.9rem] bg-primary/8 text-primary">
+                                <Wallet className="h-4.5 w-4.5" />
+                              </span>
+                              <span>
+                                <span className="block text-[13px] font-semibold leading-5 text-primary">4. Pay with Wallet</span>
+                                <span className="mt-0.5 block text-[11px] leading-5 text-muted-foreground">Coming soon.</span>
+                              </span>
+                            </div>
+                          </div>
+                          <div className="rounded-[1rem] border border-primary/10 bg-primary/5 p-3">
+                            <div className="flex items-center gap-3">
+                              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[0.85rem] bg-primary text-primary-foreground">
+                                <ShieldCheck className="h-4 w-4" />
+                              </div>
+                              <div>
+                                <p className="text-sm font-semibold text-primary">Secure & Trusted</p>
+                                <p className="mt-0.5 text-xs leading-5 text-muted-foreground">Your payments are encrypted and secure.</p>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="relative mt-5 hidden rounded-[2rem] border border-border/60 bg-card p-6 pt-8 shadow-card sm:block sm:p-8 sm:pt-9">
+                      <CheckoutStageRail step={step} />
+                      <div className="relative flex min-h-11 items-center justify-center gap-4 px-28">
+                        <div className="text-center">
+                          <h3 className="font-heading text-3xl font-semibold text-foreground">Choose payment option</h3>
+                          <p className="mt-2 text-sm text-muted-foreground">Your booking fee is {formatCurrencyAmount(bookingAmount, "KES")}.</p>
+                        </div>
+                        <Button variant="heroBorder" className="absolute right-0 top-1/2 -translate-y-1/2 rounded-full" onClick={() => setStep("summary")}>
+                          <ArrowLeft className="h-4 w-4" />
+                          Back
+                        </Button>
+                      </div>
+                      <div className="mt-8 grid gap-5 lg:grid-cols-[0.95fr_1.05fr] lg:items-start">
+                        <SummaryCard
+                          serviceType={serviceType}
+                          sessionType={sessionType}
+                          date={form.date}
+                          time={form.time}
+                          therapistName={selectedTherapist.name}
+                          bookingAmount={bookingAmount}
+                        />
+                        <div className="relative overflow-hidden rounded-[1.8rem] border border-border/60 bg-[linear-gradient(155deg,rgba(255,255,255,0.98),rgba(244,249,245,0.94))] p-6 shadow-soft">
+                          <img
+                            src={leafDecor}
+                            alt=""
+                            aria-hidden="true"
+                            className="pointer-events-none absolute -right-14 -top-16 w-60 rotate-[18deg] opacity-[0.18] mix-blend-multiply saturate-125"
+                          />
+                          <img
+                            src={leafDecor}
+                            alt=""
+                            aria-hidden="true"
+                            className="pointer-events-none absolute bottom-8 right-16 w-44 rotate-[42deg] opacity-[0.12] mix-blend-multiply saturate-125"
+                          />
+                          <div className="relative flex items-start gap-4">
+                            <img src={leafDecor} alt="" aria-hidden="true" className="mt-1 w-14 shrink-0 opacity-75 mix-blend-multiply saturate-125" />
+                            <div>
+                              <h3 className="text-2xl font-semibold leading-tight text-primary">Choose your payment method</h3>
+                              <p className="mt-2 text-sm leading-6 text-muted-foreground">Pick the option that works best for you.</p>
+                            </div>
+                          </div>
+                          <div className="relative mt-6 grid gap-4">
+                          <button
+                            type="button"
+                            onClick={() => setStep("send_money")}
+                            className="relative overflow-hidden rounded-[1.55rem] border border-primary/15 bg-white/88 p-5 text-left shadow-soft transition hover:-translate-y-0.5 hover:border-primary/35 hover:bg-secondary/25"
+                          >
+                            <img src={leafDecor} alt="" aria-hidden="true" className="pointer-events-none absolute -right-10 bottom-0 w-40 rotate-[28deg] opacity-[0.12] mix-blend-multiply" />
+                            <div className="flex items-center gap-5">
+                              <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-[1.15rem] bg-primary/8 text-primary">
+                                <Smartphone className="h-7 w-7" />
+                              </div>
+                              <div className="min-w-0">
+                                <h4 className="text-lg font-semibold text-primary">1. Pay Manually (Paybill/Till)</h4>
+                                <p className="mt-1.5 max-w-xl text-sm leading-6 text-muted-foreground">
+                                  Send money or use Paybill to complete your payment manually.
+                                </p>
+                              </div>
+                            </div>
+                          </button>
+                          <div className="relative overflow-hidden rounded-[1.55rem] border border-border/55 bg-white/55 p-5 text-left opacity-50">
+                            <img src={leafDecor} alt="" aria-hidden="true" className="pointer-events-none absolute -right-10 bottom-0 w-40 rotate-[28deg] opacity-[0.12] mix-blend-multiply" />
+                            <div className="flex items-center gap-5">
+                              <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-[1.15rem] bg-primary/8 text-primary">
+                                <Smartphone className="h-7 w-7" />
+                              </div>
+                              <div className="min-w-0">
+                                <h4 className="text-lg font-semibold text-primary">2. Pay with M-Pesa (STK)</h4>
+                                <p className="mt-1.5 max-w-xl text-sm leading-6 text-muted-foreground">
+                                  Get a prompt on your phone and enter your PIN to complete the payment.
+                                </p>
+                              </div>
+                            </div>
+                          </div>
+                          <div className="relative overflow-hidden rounded-[1.55rem] border border-border/55 bg-white/55 p-5 text-left opacity-50">
+                            <img src={leafDecor} alt="" aria-hidden="true" className="pointer-events-none absolute -right-10 bottom-0 w-40 rotate-[28deg] opacity-[0.12] mix-blend-multiply" />
+                            <div className="flex items-center gap-5">
+                              <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-[1.15rem] bg-primary/8 text-primary">
+                                <Landmark className="h-7 w-7" />
+                              </div>
+                              <div>
+                                <h4 className="text-lg font-semibold text-primary">3. Bank Transfer</h4>
+                                <p className="mt-1.5 max-w-xl text-sm leading-6 text-muted-foreground">
+                                  Transfer directly from your bank to our account securely.
+                                </p>
+                              </div>
+                            </div>
+                          </div>
+                          <div className="relative overflow-hidden rounded-[1.55rem] border border-border/55 bg-white/55 p-5 text-left opacity-50">
+                            <img src={leafDecor} alt="" aria-hidden="true" className="pointer-events-none absolute -right-10 bottom-0 w-40 rotate-[28deg] opacity-[0.12] mix-blend-multiply" />
+                            <div className="flex items-center gap-5">
+                              <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-[1.15rem] bg-primary/8 text-primary">
+                                <Wallet className="h-7 w-7" />
+                              </div>
+                              <div>
+                                <h4 className="text-lg font-semibold text-primary">4. Pay with Wallet</h4>
+                                <p className="mt-1.5 max-w-xl text-sm leading-6 text-muted-foreground">
+                                  Use your e-wallet balance to make the payment instantly.
+                                </p>
+                              </div>
+                            </div>
+                          </div>
+                          <div className="rounded-[1.25rem] border border-primary/10 bg-primary/5 p-4">
+                            <div className="flex items-center gap-4">
+                              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-[1rem] bg-primary text-primary-foreground">
+                                <ShieldCheck className="h-5 w-5" />
+                              </div>
+                              <div>
+                                <p className="font-semibold text-primary">Secure & Trusted</p>
+                                <p className="mt-1 text-sm text-muted-foreground">Your booking fee is {formatCurrencyAmount(bookingAmount, "KES")}.</p>
+                              </div>
+                            </div>
+                          </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </>
+                ) : step === "send_money" ? (
+                  <>
+                    <div className="relative mx-auto max-w-[21.9rem] overflow-hidden rounded-[1.85rem] border border-border/60 bg-card p-4 shadow-card sm:hidden">
+                      <MobileSheetLeaves />
+                      <div className="relative z-10 flex items-start gap-3">
+                        <Button variant="ghost" size="icon" className="h-9 w-9 rounded-full border border-border/60" onClick={() => setStep("payment")}>
+                          <ArrowLeft className="h-4 w-4" />
+                        </Button>
+                        <div className="mt-3 min-w-0 flex-1">
+                          <MobileStageDots step={step} />
+                        </div>
+                      </div>
+                      <div className="relative z-10 mt-5 rounded-[1.6rem] border border-border/60 bg-background/95 px-5 py-6 text-center shadow-soft">
+                        <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-primary/70">Pay manually</p>
+                        <p className="mt-2 text-2xl font-semibold tracking-tight text-primary">{formatCurrencyAmount(bookingAmount, "KES")}</p>
+                        <div className="mt-4 space-y-3 text-left">
+                          <div className="rounded-[1.1rem] border border-primary/12 bg-primary/8 px-4 py-3">
+                            <div className="flex items-start justify-between gap-3">
+                              <div>
+                                <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-primary/70">Paybill</p>
+                                <p className="mt-1.5 text-sm font-medium leading-6 text-foreground">{MANUAL_PAYMENT_PAYBILL}</p>
+                                <p className="mt-1 text-sm font-normal leading-6 text-muted-foreground">Account {MANUAL_PAYMENT_ACCOUNT}</p>
+                              </div>
+                              <CopyDetailButton label="Paybill" value={MANUAL_PAYMENT_PAYBILL} />
+                            </div>
+                          </div>
+                          <div className="rounded-[1.1rem] border border-border/60 bg-white px-4 py-3">
+                            <div className="flex items-start justify-between gap-3">
+                              <div>
+                                <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-primary/70">Send money to</p>
+                                <p className="mt-1.5 text-sm font-medium leading-6 text-foreground">{MANUAL_PAYMENT_SEND_MONEY_NUMBER}</p>
+                              </div>
+                              <CopyDetailButton label="Send money number" value={MANUAL_PAYMENT_SEND_MONEY_NUMBER} />
+                            </div>
+                          </div>
+                        </div>
+                        <div className="mt-4 rounded-[1.1rem] bg-primary/8 px-4 py-3 text-xs leading-6 text-foreground/85">
+                          After paying, continue to enter your M-PESA transaction code and paid mobile name.
+                        </div>
+                        <Button variant="hero" size="lg" className="mt-6 w-full rounded-xl" onClick={() => setStep("send_money_confirmation")}>
+                          Proceed
+                        </Button>
+                      </div>
+                    </div>
+
+                    <div className="relative mt-5 hidden rounded-[2rem] border border-border/60 bg-card p-6 pt-8 shadow-card sm:block sm:p-8 sm:pt-9">
+                      <CheckoutStageRail step={step} />
+                      <div className="relative flex min-h-11 items-center justify-center gap-4 px-28">
+                        <div className="text-center">
+                          <h3 className="font-heading text-3xl font-semibold text-foreground">Pay manually</h3>
+                        </div>
+                        <Button variant="heroBorder" className="absolute right-0 top-1/2 -translate-y-1/2 rounded-full" onClick={() => setStep("payment")}>
+                          <ArrowLeft className="h-4 w-4" />
+                          Back
+                        </Button>
+                      </div>
+                      <div className="mt-8 grid gap-5 lg:grid-cols-[0.95fr_1.05fr] lg:items-start">
+                        <div className="order-2 lg:order-1">
+                          <SummaryCard serviceType={serviceType} sessionType={sessionType} date={form.date} time={form.time} therapistName={selectedTherapist.name} bookingAmount={bookingAmount} />
+                        </div>
+                        <div className="order-1 space-y-5 lg:order-2">
+                          <div className="rounded-[1.6rem] border border-border/60 bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(247,249,246,0.96))] p-5 shadow-soft sm:p-6">
+                            <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-primary/70">Pay manually</p>
+                            <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                              <div className="rounded-[1.25rem] border border-primary/12 bg-primary/8 p-4">
+                                <div className="flex items-start justify-between gap-3">
+                                  <div>
+                                    <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-primary/70">Paybill</p>
+                                    <p className="mt-2 text-sm font-medium leading-6 text-foreground">{MANUAL_PAYMENT_PAYBILL}</p>
+                                    <p className="mt-2 text-sm font-normal leading-6 text-muted-foreground">Account {MANUAL_PAYMENT_ACCOUNT}</p>
+                                  </div>
+                                  <CopyDetailButton label="Paybill" value={MANUAL_PAYMENT_PAYBILL} />
+                                </div>
+                              </div>
+                              <div className="rounded-[1.25rem] border border-border/60 bg-background/95 p-4">
+                                <div className="flex items-start justify-between gap-3">
+                                  <div>
+                                    <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-primary/70">Send money to</p>
+                                    <p className="mt-2 text-sm font-medium leading-6 text-foreground">{MANUAL_PAYMENT_SEND_MONEY_NUMBER}</p>
+                                    <p className="mt-2 text-sm font-normal leading-6 text-muted-foreground">Amount {formatCurrencyAmount(bookingAmount, "KES")}</p>
+                                  </div>
+                                  <CopyDetailButton label="Send money number" value={MANUAL_PAYMENT_SEND_MONEY_NUMBER} />
+                                </div>
+                              </div>
+                            </div>
+                            <p className="mt-5 rounded-[1.2rem] bg-secondary/35 px-4 py-3 text-xs leading-6 text-muted-foreground">
+                              After paying, continue to enter your M-PESA transaction code and paid mobile name.
+                            </p>
+                            <Button variant="hero" size="lg" className="mt-6 w-full rounded-full" onClick={() => setStep("send_money_confirmation")}>
+                              Proceed
+                            </Button>
+                          </div>
+                          <WhyPayCard />
+                        </div>
+                      </div>
+                    </div>
+                  </>
+                ) : step === "send_money_confirmation" ? (
+                  <>
+                    <div className="relative mx-auto max-w-[21.9rem] overflow-hidden rounded-[1.85rem] border border-border/60 bg-card p-4 shadow-card sm:hidden">
+                      <MobileSheetLeaves />
+                      <div className="relative z-10 flex items-start gap-3">
+                        <Button variant="ghost" size="icon" className="h-9 w-9 rounded-full border border-border/60" onClick={() => setStep("send_money")}>
+                          <ArrowLeft className="h-4 w-4" />
+                        </Button>
+                        <div className="mt-3 min-w-0 flex-1">
+                          <MobileStageDots step={step} />
+                        </div>
+                      </div>
+                      <div className="relative z-10 mt-5 rounded-[1.6rem] border border-border/60 bg-background/95 px-5 py-6 text-center shadow-soft">
+                        <p className="text-xs font-semibold uppercase tracking-[0.22em] text-primary/70">Payment confirmation</p>
+                        <p className="mt-3 text-sm leading-7 text-muted-foreground">
+                          Enter the M-PESA transaction code and the paid mobile name exactly as shown after payment.
+                        </p>
+                        <div className="mt-5 space-y-3 text-left">
+                          <div>
+                            <Label htmlFor="manual-code-mobile">M-PESA transaction code</Label>
+                            <Input id="manual-code-mobile" value={mpesaConfirmationCode} onChange={(event) => setMpesaConfirmationCode(event.target.value)} className="mt-2 h-12 rounded-2xl bg-white" placeholder="e.g. QWE123ABC" />
+                          </div>
+                          <div>
+                            <Label htmlFor="manual-name-mobile">Paid mobile name</Label>
+                            <Input id="manual-name-mobile" value={paidMobileName} onChange={(event) => setPaidMobileName(event.target.value)} className="mt-2 h-12 rounded-2xl bg-white" placeholder="Name shown by M-Pesa" />
+                          </div>
+                        </div>
+                        <Button variant="hero" size="lg" className="mt-6 w-full rounded-xl" onClick={handleSubmitManualPayment} disabled={isSubmitting}>
+                          {isSubmitting ? "Submitting..." : "Finalize Payment"}
+                        </Button>
+                      </div>
+                    </div>
+
+                    <div className="relative mt-5 hidden rounded-[2rem] border border-border/60 bg-card p-6 pt-8 shadow-card sm:block sm:p-8 sm:pt-9">
+                      <CheckoutStageRail step={step} />
+                      <div className="relative flex min-h-11 items-center justify-center gap-4 px-28">
+                        <div className="text-center">
+                          <h3 className="font-heading text-3xl font-semibold text-foreground">Confirm send money payment</h3>
+                        </div>
+                        <Button variant="heroBorder" className="absolute right-0 top-1/2 -translate-y-1/2 rounded-full" onClick={() => setStep("send_money")}>
+                          <ArrowLeft className="h-4 w-4" />
+                          Back
+                        </Button>
+                      </div>
+                      <div className="mt-8 grid gap-5 lg:grid-cols-[0.95fr_1.05fr] lg:items-start">
+                        <div className="order-2 lg:order-1">
+                          <SummaryCard serviceType={serviceType} sessionType={sessionType} date={form.date} time={form.time} therapistName={selectedTherapist.name} bookingAmount={bookingAmount} />
+                        </div>
+                        <div className="order-1 space-y-5 lg:order-2">
+                          <div className="rounded-[1.9rem] border border-border/60 bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(247,249,246,0.96))] p-5 shadow-soft sm:p-7">
+                            <p className="text-xs font-semibold uppercase tracking-[0.22em] text-primary/70">Payment confirmation</p>
+                            <div className="mt-5 grid gap-4 sm:grid-cols-2">
+                              <div>
+                              <Label htmlFor="manual-code">M-PESA transaction code</Label>
+                                <Input id="manual-code" value={mpesaConfirmationCode} onChange={(event) => setMpesaConfirmationCode(event.target.value)} className="mt-2 h-12 rounded-2xl" placeholder="e.g. QWE123ABC" />
+                              </div>
+                              <div>
+                                <Label htmlFor="manual-name">Paid mobile name</Label>
+                                <Input id="manual-name" value={paidMobileName} onChange={(event) => setPaidMobileName(event.target.value)} className="mt-2 h-12 rounded-2xl" placeholder="Name shown by M-Pesa" />
+                              </div>
+                            </div>
+                            <p className="mt-4 text-xs leading-6 text-muted-foreground">
+                              The therapist will review and approve the confirmation before the booking is fully confirmed.
+                            </p>
+                            <Button variant="hero" size="lg" className="mt-6 w-full rounded-full" onClick={handleSubmitManualPayment} disabled={isSubmitting}>
+                              {isSubmitting ? "Submitting..." : "Finalize Payment"}
+                            </Button>
+                          </div>
+                          <WhyPayCard />
+                        </div>
+                      </div>
+                    </div>
+                  </>
+                ) : step === "mpesa_payment" ? (
                   <>
                     <div className="relative mx-auto max-w-[21.9rem] overflow-hidden rounded-[1.85rem] border border-border/60 bg-card p-4 shadow-card sm:hidden">
                       <MobileSheetLeaves />
@@ -1689,12 +2426,6 @@ const BookingSection = () => {
                           <ShieldCheck className="h-4 w-4 text-primary" />
                           <p>Your payment is secure</p>
                         </div>
-
-                        {paymentFeedback ? (
-                          <div className="mt-4 rounded-[1.2rem] border border-destructive/20 bg-destructive/10 px-4 py-3 text-sm leading-7 text-foreground">
-                            {paymentFeedback}
-                          </div>
-                        ) : null}
 
                         <Button
                           variant="hero"
@@ -1783,12 +2514,6 @@ const BookingSection = () => {
                                 <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
                                 <p>Your payment is secure and only used to send the Safaricom STK prompt and record the transaction.</p>
                               </div>
-
-                              {paymentFeedback ? (
-                                <div className="rounded-[1.2rem] border border-destructive/20 bg-destructive/10 px-4 py-3 text-sm leading-7 text-foreground">
-                                  {paymentFeedback}
-                                </div>
-                              ) : null}
 
                               <Button
                                 variant="hero"

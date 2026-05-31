@@ -108,6 +108,18 @@ const ManageBookingPage = () => {
     setSearchParams(nextParams, { replace: true });
   }, [booking, searchParams, setSearchParams]);
 
+  useEffect(() => {
+    if (!booking || searchParams.get("booking") !== "manual-review") {
+      return;
+    }
+
+    toast.success("Your payment confirmation has been submitted for therapist review.");
+
+    const nextParams = new URLSearchParams(searchParams);
+    nextParams.delete("booking");
+    setSearchParams(nextParams, { replace: true });
+  }, [booking, searchParams, setSearchParams]);
+
   const statusLabel = useMemo(() => {
     if (!booking) {
       return "";
@@ -313,12 +325,18 @@ const ManageBookingPage = () => {
               <div className="mt-4 flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
                 <div>
                   <h1 className="font-heading text-4xl font-semibold text-foreground md:text-5xl">
-                    {booking.isExplorationCall ? "Reschedule or cancel your request" : "My booking"}
+                    {booking.isExplorationCall
+                      ? "Reschedule or cancel your request"
+                      : booking.status === "payment_pending"
+                        ? "Booking awaiting approval"
+                        : "My booking"}
                   </h1>
                   <p className="mt-4 max-w-2xl text-muted-foreground leading-8">
                     {booking.isExplorationCall
                       ? "Review the request details below or adjust the timing if you need to."
-                      : "Your session is confirmed. Review the summary, payment reference, and calendar tools below."}
+                      : booking.status === "payment_pending"
+                        ? "Your session details are saved while the therapist reviews your M-Pesa send money confirmation."
+                        : "Your session is confirmed. Review the summary, payment reference, and calendar tools below."}
                   </p>
                 </div>
                 <div className="inline-flex rounded-full bg-primary/10 px-4 py-2 text-sm font-medium text-primary">
@@ -331,7 +349,11 @@ const ManageBookingPage = () => {
               <ScrollReveal direction="left">
               <div className="rounded-[2rem] border border-border/60 bg-card p-7 shadow-card">
                 <h2 className="font-heading text-3xl font-semibold text-foreground">
-                  {booking.isExplorationCall ? "Your request details" : "You booked this session"}
+                  {booking.isExplorationCall
+                    ? "Your request details"
+                    : booking.status === "payment_pending"
+                      ? "Your session is pending approval"
+                      : "You booked this session"}
                 </h2>
                 <div className="mt-7 grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
                   <div className="wellness-panel rounded-[1.5rem] border border-border/60 p-5">
@@ -421,10 +443,15 @@ const ManageBookingPage = () => {
                     </p>
                     {!booking.isExplorationCall ? (
                       <div className="mt-3 flex flex-wrap gap-2">
-                        {booking.sessionType === "physical" ? (
+                        {booking.status === "payment_pending" ? (
+                          <p className="w-full text-sm leading-7 text-muted-foreground">
+                            Calendar and session access links will become active after the therapist approves your
+                            payment confirmation.
+                          </p>
+                        ) : booking.sessionType === "physical" ? (
                           <p className="w-full text-sm leading-7 text-muted-foreground">{booking.locationSummary}</p>
                         ) : null}
-                        {booking.addToCalendarUrl ? (
+                        {booking.status !== "payment_pending" && booking.addToCalendarUrl ? (
                           <a
                             href={booking.addToCalendarUrl}
                             target="_blank"
@@ -435,7 +462,7 @@ const ManageBookingPage = () => {
                             <ExternalLink className="h-4 w-4" />
                           </a>
                         ) : null}
-                        {booking.sessionType === "virtual" && booking.joinUrl ? (
+                        {booking.status !== "payment_pending" && booking.sessionType === "virtual" && booking.joinUrl ? (
                           <a
                             href={booking.joinUrl}
                             target="_blank"
@@ -447,7 +474,9 @@ const ManageBookingPage = () => {
                           </a>
                         ) : null}
                         <p className="w-full text-xs leading-6 text-muted-foreground">
-                          {booking.sessionType === "virtual"
+                          {booking.status === "payment_pending"
+                            ? "We will email the full confirmation once your payment is approved."
+                            : booking.sessionType === "virtual"
                             ? "Use the same private session link sent by email and saved in your calendar event."
                             : "Add your confirmed session to your calendar so your reserved time stays protected."}
                         </p>

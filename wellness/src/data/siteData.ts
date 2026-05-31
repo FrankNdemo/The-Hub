@@ -1,6 +1,6 @@
 import type { TherapistProfile } from "@/types/wellness";
 
-import therapistImage from "@/assets/therapist-caroline.jpg";
+import carolineGichiaImage from "@/assets/caroline-gichia.jpeg";
 
 export const primaryTherapist: TherapistProfile = {
   id: "caroline-gichia",
@@ -32,7 +32,7 @@ export const primaryTherapist: TherapistProfile = {
     "Real Lite by Broadcom",
     "Nairobi, Westlands",
   ],
-  image: therapistImage,
+  image: carolineGichiaImage,
 };
 
 export const kelvinTherapist: TherapistProfile = {

@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { emptyContactDraft, useFormDrafts } from "@/context/FormDraftContext";
 import { useWellnessHub } from "@/context/WellnessHubContext";
 import { getApiErrorMessage, sendContactInquiry } from "@/lib/api";
 import { pageHeaderBackgrounds, softPageBackgroundStyle } from "@/lib/pageBackground";
@@ -19,10 +20,9 @@ const WELLNESS_HUB_MAP_URL = "https://maps.app.goo.gl/CzPK4ad5eeTAANLP6?g_st=aw"
 const contactGardenImage =
   "https://images.pexels.com/photos/8121670/pexels-photo-8121670.jpeg?auto=compress&cs=tinysrgb&w=1400&h=650&fit=crop";
 
-const getFormValue = (formData: FormData, key: string) => String(formData.get(key) ?? "").trim();
-
 const ContactPage = () => {
   const { therapist } = useWellnessHub();
+  const { contactDraft, setContactDraft } = useFormDrafts();
   const [sent, setSent] = useState(false);
   const [showMobileSentPopup, setShowMobileSentPopup] = useState(false);
   const [isSending, setIsSending] = useState(false);
@@ -57,16 +57,17 @@ const ContactPage = () => {
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    const formData = new FormData(event.currentTarget);
-    const name = getFormValue(formData, "name");
-    const mobile = getFormValue(formData, "whatsappMobile");
-    const subject = getFormValue(formData, "subject") || "General enquiry";
-    const message = getFormValue(formData, "message");
+    const name = contactDraft.name.trim();
+    const email = contactDraft.email.trim();
+    const mobile = contactDraft.whatsappMobile.trim();
+    const subject = contactDraft.subject.trim() || "General enquiry";
+    const message = contactDraft.message.trim();
 
     setIsSending(true);
     try {
-      await sendContactInquiry({ name, whatsappMobile: mobile, subject, message });
+      await sendContactInquiry({ name, email, whatsappMobile: mobile, subject, message });
       setSent(true);
+      setContactDraft(emptyContactDraft);
       const isDesktop = typeof window !== "undefined" && window.matchMedia("(min-width: 640px)").matches;
 
       if (isDesktop) {
@@ -103,7 +104,7 @@ const ContactPage = () => {
       <section className="pb-8">
         <div className="container mx-auto px-4">
           <div className="mx-auto grid max-w-6xl gap-8 lg:grid-cols-[0.9fr_1.1fr]">
-            <div className="space-y-5">
+            <div className="hidden space-y-5 lg:block">
               <div className="text-center lg:text-left">
                 <LeafBannerHeading
                   eyebrow="Contact details"
@@ -169,7 +170,7 @@ const ContactPage = () => {
 
             <div
               id="contact-message-area"
-              className="scroll-mt-28 overflow-hidden rounded-[2rem] border border-border/60 bg-card p-6 shadow-card sm:p-8"
+              className="scroll-mt-28 overflow-hidden rounded-none border border-border/60 bg-card p-6 shadow-card sm:p-8"
             >
               <div className="text-center">
                 <LeafBannerHeading
@@ -192,7 +193,8 @@ const ContactPage = () => {
                   </div>
                   <h3 className="mt-5 font-heading text-3xl font-semibold text-foreground">Inquiry sent</h3>
                   <p className="mt-3 text-muted-foreground leading-8">
-                    Your message has been sent to the practice. We will get back to you as soon as possible.
+                    Your message has been sent to the therapist team. The first therapist to reply will mark it as
+                    replied for everyone else.
                   </p>
                 </div>
               ) : (
@@ -200,7 +202,15 @@ const ContactPage = () => {
                   <div className="grid gap-5 sm:grid-cols-2">
                     <div>
                       <Label htmlFor="contact-name" className="text-primary">Your name</Label>
-                      <Input id="contact-name" name="name" className="mt-2" placeholder="Full name" required />
+                      <Input
+                        id="contact-name"
+                        name="name"
+                        value={contactDraft.name}
+                        onChange={(event) => setContactDraft((current) => ({ ...current, name: event.target.value }))}
+                        className="mt-2"
+                        placeholder="Full name"
+                        required
+                      />
                     </div>
                     <div>
                       <Label htmlFor="contact-mobile" className="text-primary">WhatsApp mobile number</Label>
@@ -208,27 +218,53 @@ const ContactPage = () => {
                         id="contact-mobile"
                         name="whatsappMobile"
                         type="tel"
+                        value={contactDraft.whatsappMobile}
+                        onChange={(event) => setContactDraft((current) => ({ ...current, whatsappMobile: event.target.value }))}
                         className="mt-2"
                         placeholder="+254 7XX XXX XXX"
                         required
                       />
                     </div>
                   </div>
-                  <div>
-                    <Label htmlFor="contact-subject" className="text-primary">Subject</Label>
-                    <Input id="contact-subject" name="subject" className="mt-2" placeholder="How can we help?" />
+                  <div className="grid gap-5 sm:grid-cols-2">
+                    <div>
+                      <Label htmlFor="contact-subject" className="text-primary">Subject</Label>
+                      <Input
+                        id="contact-subject"
+                        name="subject"
+                        value={contactDraft.subject}
+                        onChange={(event) => setContactDraft((current) => ({ ...current, subject: event.target.value }))}
+                        className="mt-2"
+                        placeholder="How can we help?"
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="contact-email" className="text-primary">Email address</Label>
+                      <Input
+                        id="contact-email"
+                        name="email"
+                        type="email"
+                        value={contactDraft.email}
+                        onChange={(event) => setContactDraft((current) => ({ ...current, email: event.target.value }))}
+                        className="mt-2"
+                        placeholder="you@example.com"
+                        required
+                      />
+                    </div>
                   </div>
                   <div>
                     <Label htmlFor="contact-message" className="text-primary">Message</Label>
                     <Textarea
                       id="contact-message"
                       name="message"
+                      value={contactDraft.message}
+                      onChange={(event) => setContactDraft((current) => ({ ...current, message: event.target.value }))}
                       className="mt-2 min-h-[170px]"
                       placeholder="Tell us a little about what you are looking for."
                       required
                     />
                   </div>
-                  <Button variant="hero" size="lg" className="w-full rounded-full" type="submit" disabled={isSending}>
+                  <Button variant="hero" size="lg" className="w-full rounded-none" type="submit" disabled={isSending}>
                     {isSending ? "Sending..." : "Send Inquiry"}
                   </Button>
                   <div className="hidden overflow-hidden lg:block">
@@ -236,7 +272,7 @@ const ContactPage = () => {
                       src={contactGardenImage}
                       alt="People sitting together in a green park"
                       loading="lazy"
-                      className="h-40 w-full object-cover object-center"
+                      className="h-48 w-full object-cover object-center"
                     />
                   </div>
                 </form>
@@ -248,7 +284,7 @@ const ContactPage = () => {
               src={contactGardenImage}
               alt="People sitting together in a green park"
               loading="lazy"
-              className="h-36 w-full object-cover object-center sm:h-40 lg:h-44"
+              className="h-44 w-full object-cover object-center sm:h-52 lg:h-56"
             />
           </div>
         </div>
@@ -285,7 +321,7 @@ const ContactPage = () => {
                 Inquiry sent
               </h3>
               <p className="mt-3 text-sm leading-7 text-muted-foreground">
-                Your message has been sent to the practice. We will get back to you as soon as possible.
+                Your message has been sent to the therapist team. The first therapist to reply will mark it as replied.
               </p>
               <Button
                 type="button"

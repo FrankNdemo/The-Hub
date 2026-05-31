@@ -11,11 +11,13 @@ from .views import (
     PublicBookingCreateView,
     PublicBookingCheckoutRetryView,
     PublicBookingCheckoutView,
+    PublicBookingManualPaymentCheckoutView,
     PublicBookingAvailabilityView,
     PublicBookingPrecheckView,
     PublicBookingPaymentStatusView,
     TherapistBookingCompleteView,
     TherapistBookingDeleteView,
+    TherapistManualPaymentApproveView,
     TherapistBookingListView,
 )
 
@@ -25,6 +27,7 @@ urlpatterns = [
     path("bookings/availability/", PublicBookingAvailabilityView.as_view(), name="public-booking-availability"),
     path("bookings/precheck/", PublicBookingPrecheckView.as_view(), name="public-booking-precheck"),
     path("bookings/checkout/", PublicBookingCheckoutView.as_view(), name="public-booking-checkout"),
+    path("bookings/checkout/manual/", PublicBookingManualPaymentCheckoutView.as_view(), name="public-booking-manual-checkout"),
     path("bookings/checkout/retry/", PublicBookingCheckoutRetryView.as_view(), name="public-booking-checkout-retry"),
     path(
         "bookings/checkout/<str:token>/payments/<uuid:payment_id>/status/",
@@ -55,6 +58,11 @@ urlpatterns = [
         "dashboard/bookings/<uuid:pk>/complete/",
         TherapistBookingCompleteView.as_view(),
         name="dashboard-booking-complete",
+    ),
+    path(
+        "dashboard/bookings/<uuid:pk>/approve-manual-payment/",
+        TherapistManualPaymentApproveView.as_view(),
+        name="dashboard-booking-approve-manual-payment",
     ),
     path(
         "dashboard/bookings/<uuid:pk>/delete/",

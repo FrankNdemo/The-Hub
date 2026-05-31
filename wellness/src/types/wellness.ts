@@ -23,6 +23,7 @@ export type PaymentStatus =
   | "initiated"
   | "stk_push_sent"
   | "processing"
+  | "manual_review"
   | "success"
   | "failed"
   | "cancelled"
@@ -129,6 +130,7 @@ export interface BookingPaymentRecord {
   amount: number;
   currency: string;
   phoneNumber: string;
+  payerName?: string;
   merchantRequestId: string;
   checkoutRequestId?: string | null;
   transactionId?: string;
@@ -206,6 +208,21 @@ export interface NotificationItem {
   description: string;
   createdAt: string;
   read: boolean;
+  inquiry?: ContactInquiryRecord | null;
+}
+
+export interface ContactInquiryRecord {
+  id: string;
+  name: string;
+  email: string;
+  whatsappMobile: string;
+  subject: string;
+  message: string;
+  status: "open" | "replied";
+  replyMessage: string;
+  repliedBy?: string | null;
+  repliedAt?: string | null;
+  createdAt: string;
 }
 
 export interface TherapistSession {
@@ -242,6 +259,12 @@ export interface BookingCheckoutInput extends BookingInput {
   mpesaPhoneNumber: string;
 }
 
+export interface BookingManualPaymentInput extends BookingInput {
+  mpesaConfirmationCode: string;
+  paidMobileName: string;
+  sendMoneyNumber: string;
+}
+
 export interface BookingCheckoutResponse {
   booking: BookingRecord;
   payment: BookingPaymentRecord;
@@ -252,6 +275,7 @@ export interface BookingPrecheckResponse {
   requiresPayment: boolean;
   bookingFeeAmount: number;
   bookingFeeCurrency: string;
+  sendMoneyNumber?: string;
 }
 
 export interface RescheduleInput {

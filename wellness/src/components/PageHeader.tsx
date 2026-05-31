@@ -61,6 +61,9 @@ const PageHeader = ({
                 src={backgroundImage}
                 alt=""
                 aria-hidden="true"
+                loading="eager"
+                fetchpriority="high"
+                decoding="async"
                 className={cn("absolute inset-0 h-full w-full object-cover", backgroundImageClassName)}
                 style={{
                   ...(backgroundImageClassName ? {} : { objectPosition: backgroundPosition }),

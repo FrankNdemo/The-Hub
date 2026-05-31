@@ -19,6 +19,7 @@ from .serializers import (
     BookingDeleteSerializer,
     BookingDetailSerializer,
     BookingJoinSerializer,
+    BookingManualPaymentCheckoutSerializer,
     BookingPaymentRetrySerializer,
     BookingPaymentSummarySerializer,
     BookingRescheduleSerializer,
@@ -27,10 +28,13 @@ from .delivery import BookingDeliveryError, verify_therapist_session_access_toke
 from .payments import BookingPaymentError
 from .services import (
     cancel_booking,
+    approve_manual_payment,
     complete_booking,
     create_booking,
+    create_manual_payment_checkout,
     create_paid_booking_checkout,
     delete_booking,
+    get_send_money_number,
     handle_mpesa_callback,
     retry_paid_booking_checkout,
     reschedule_booking,
@@ -66,8 +70,8 @@ def get_public_booking(token: str) -> Booking:
         deleted_at__isnull=True,
         status__in=[
             Booking.Status.UPCOMING,
+            Booking.Status.PAYMENT_PENDING,
             Booking.Status.RESCHEDULED,
-            Booking.Status.CANCELLED,
             Booking.Status.COMPLETED,
         ],
     )
@@ -150,6 +154,7 @@ class PublicBookingPrecheckView(APIView):
                 ),
                 "bookingFeeAmount": settings.BOOKING_FEE_AMOUNT,
                 "bookingFeeCurrency": settings.BOOKING_FEE_CURRENCY,
+                "sendMoneyNumber": get_send_money_number(serializer.validated_data["therapist"]),
             }
         )
 
@@ -204,6 +209,34 @@ class PublicBookingCheckoutView(APIView):
             return Response(exc.as_response(), status=exc.status_code)
         except BookingPaymentError as exc:
             return Response({"detail": exc.detail, "code": exc.code}, status=get_payment_error_status(exc))
+
+        return Response(
+            {
+                "booking": BookingDetailSerializer(booking).data,
+                "payment": BookingPaymentSummarySerializer(payment).data,
+            },
+            status=status.HTTP_201_CREATED,
+        )
+
+
+class PublicBookingManualPaymentCheckoutView(APIView):
+    permission_classes = [AllowAny]
+    authentication_classes = []
+
+    def post(self, request):
+        serializer = BookingManualPaymentCheckoutSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        try:
+            booking, payment = create_manual_payment_checkout(
+                therapist=serializer.validated_data["therapist"],
+                data=serializer.validated_data,
+                confirmation_code=serializer.validated_data["mpesaConfirmationCode"],
+                payer_name=serializer.validated_data["paidMobileName"],
+                send_money_number=serializer.validated_data["sendMoneyNumber"],
+            )
+        except BookingAvailabilityError as exc:
+            return Response(exc.as_response(), status=exc.status_code)
 
         return Response(
             {
@@ -401,8 +434,8 @@ class TherapistBookingListView(APIView):
                 deleted_at__isnull=True,
                 status__in=[
                     Booking.Status.UPCOMING,
+                    Booking.Status.PAYMENT_PENDING,
                     Booking.Status.RESCHEDULED,
-                    Booking.Status.CANCELLED,
                     Booking.Status.COMPLETED,
                 ],
             )
@@ -436,6 +469,26 @@ class TherapistBookingCompleteView(APIView):
             updated_booking = complete_booking(booking=booking)
         except ValueError as exc:
             return Response({"detail": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
+        return Response(BookingDetailSerializer(updated_booking).data)
+
+
+class TherapistManualPaymentApproveView(APIView):
+    permission_classes = [IsTherapistAuthenticated]
+
+    def post(self, request, pk):
+        booking = generics.get_object_or_404(
+            Booking.objects.select_related("therapist").prefetch_related("emails", "history", "payments"),
+            pk=pk,
+            therapist=request.user.therapist_profile,
+            deleted_at__isnull=True,
+        )
+        try:
+            updated_booking = approve_manual_payment(booking=booking, therapist=request.user.therapist_profile)
+        except BookingDeliveryError as exc:
+            return Response({"detail": str(exc)}, status=status.HTTP_503_SERVICE_UNAVAILABLE)
+        except ValueError as exc:
+            return Response({"detail": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
+
         return Response(BookingDetailSerializer(updated_booking).data)
 
 

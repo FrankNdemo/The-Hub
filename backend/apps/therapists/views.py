@@ -85,7 +85,7 @@ class ClientStorySubmitView(APIView):
             therapist=therapist,
             type="inquiry",
             title=f"New story from {story.display_name}",
-            description="A client story is waiting for review before it can be shared publicly.",
+            description="You have a new client story ready to review.",
         )
 
         return Response(ClientStorySerializer(story).data, status=status.HTTP_201_CREATED)
@@ -200,19 +200,21 @@ class DashboardOverviewView(APIView):
         from apps.blog.models import BlogPost
         from apps.blog.serializers import BlogPostSerializer
         from apps.bookings.models import Booking, BookingPayment
+        from apps.bookings.retention import run_dashboard_retention_cleanup
         from apps.bookings.serializers import BookingDetailSerializer, BookingPaymentSerializer
         from apps.notifications.models import Notification
         from apps.notifications.serializers import NotificationSerializer
 
         therapist = request.user.therapist_profile
+        run_dashboard_retention_cleanup(therapist=therapist)
         bookings = (
             Booking.objects.filter(
                 therapist=therapist,
                 deleted_at__isnull=True,
                 status__in=[
                     Booking.Status.UPCOMING,
+                    Booking.Status.PAYMENT_PENDING,
                     Booking.Status.RESCHEDULED,
-                    Booking.Status.CANCELLED,
                     Booking.Status.COMPLETED,
                 ],
             )

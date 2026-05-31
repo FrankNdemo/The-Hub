@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { createExplorationCallDraft, useFormDrafts } from "@/context/FormDraftContext";
 import { useWellnessHub } from "@/context/WellnessHubContext";
 import { fetchAvailableBookingTherapists, getApiErrorMessage, getSuggestedBookingSlot } from "@/lib/api";
 import {
@@ -36,6 +37,7 @@ const buildExplorationNotes = (note: string) => {
 
 const ExplorationCallPage = () => {
   const { submitBooking, therapist, therapists } = useWellnessHub();
+  const { explorationCallDraft: form, setExplorationCallDraft: setForm } = useFormDrafts();
   const allTherapists = useMemo(() => (therapists.length ? therapists : [therapist]), [therapist, therapists]);
   const [submittedBooking, setSubmittedBooking] = useState<BookingRecord | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -43,16 +45,6 @@ const ExplorationCallPage = () => {
   const [bookingGuidance, setBookingGuidance] = useState("");
   const [availabilityMessage, setAvailabilityMessage] = useState("");
   const [slotTherapists, setSlotTherapists] = useState<TherapistProfile[] | null>(null);
-  const [form, setForm] = useState({
-    clientName: "",
-    clientEmail: "",
-    clientPhone: "",
-    therapistId: allTherapists[0]?.id ?? therapist.id,
-    date: "",
-    time: "",
-    notes: "",
-  });
-
   const todayDate = getTodayDateInputValue();
   const selectableTherapists = slotTherapists ?? allTherapists;
   const selectedTherapist =
@@ -93,6 +85,10 @@ const ExplorationCallPage = () => {
 
   useEffect(() => {
     setForm((current) => {
+      if (!current.therapistId) {
+        return createExplorationCallDraft(allTherapists[0]?.id ?? therapist.id);
+      }
+
       if (allTherapists.some((item) => item.id === current.therapistId)) {
         return current;
       }

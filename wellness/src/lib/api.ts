@@ -3,6 +3,7 @@ import type {
   BlogPostDraft,
   BookingCheckoutInput,
   BookingCheckoutResponse,
+  BookingManualPaymentInput,
   BookingInput,
   BookingJoinRecord,
   BookingPaymentRecord,
@@ -196,6 +197,7 @@ interface SuccessResponse {
 
 export interface ContactInquiryInput {
   name: string;
+  email: string;
   whatsappMobile: string;
   subject: string;
   message: string;
@@ -204,6 +206,7 @@ export interface ContactInquiryInput {
 export interface ContactInquiryResponse {
   success: boolean;
   whatsappSent: boolean;
+  inquiryId: string;
 }
 
 export interface BookingSuggestion {
@@ -624,6 +627,16 @@ export const startBookingCheckout = (input: BookingCheckoutInput) =>
     { auth: false },
   );
 
+export const submitManualBookingPayment = (input: BookingManualPaymentInput) =>
+  request<BookingCheckoutResponse>(
+    "/bookings/checkout/manual/",
+    {
+      method: "POST",
+      body: JSON.stringify(input),
+    },
+    { auth: false },
+  );
+
 export const retryBookingCheckout = (bookingToken: string, mpesaPhoneNumber: string) =>
   request<BookingCheckoutResponse>(
     "/bookings/checkout/retry/",
@@ -817,6 +830,15 @@ export const completeBookingRequest = (id: string) =>
     },
   );
 
+export const approveManualPaymentRequest = (id: string) =>
+  request<BookingRecord>(
+    `/dashboard/bookings/${id}/approve-manual-payment/`,
+    {
+      method: "POST",
+      body: JSON.stringify({}),
+    },
+  );
+
 export const deleteBookingRequest = (id: string, reason: string) =>
   request<SuccessResponse>(
     `/dashboard/bookings/${id}/delete/`,
@@ -905,5 +927,14 @@ export const markNotificationsReadRequest = () =>
     {
       method: "POST",
       body: JSON.stringify({}),
+    },
+  );
+
+export const replyToContactInquiryRequest = (id: string, replyMessage: string) =>
+  request<NotificationItem>(
+    `/dashboard/inquiries/${encodeURIComponent(id)}/reply/`,
+    {
+      method: "POST",
+      body: JSON.stringify({ replyMessage }),
     },
   );

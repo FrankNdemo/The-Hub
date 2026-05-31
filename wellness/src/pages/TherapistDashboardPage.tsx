@@ -219,6 +219,7 @@ const getPaymentStatusBadgeClassName = (status: BookingPaymentRecord["status"]) 
     case "stk_push_sent":
     case "processing":
     case "initiated":
+    case "manual_review":
       return "bg-amber-100 text-amber-800 border border-amber-200";
     case "cancelled":
       return "bg-rose-100 text-rose-800 border border-rose-200";
@@ -356,6 +357,7 @@ const TherapistDashboardPage = () => {
     isInitializing,
     isTherapistAuthenticated,
     markBookingCompleted,
+    approveManualPayment,
     deleteBooking,
     saveBlogPost,
     deleteBlogPost,
@@ -365,6 +367,7 @@ const TherapistDashboardPage = () => {
     deleteClientStory,
     dismissNotification,
     markNotificationsRead,
+    replyToContactInquiry,
     updateTherapistProfile,
   } = useWellnessHub();
 
@@ -387,8 +390,11 @@ const TherapistDashboardPage = () => {
   const [profileDraft, setProfileDraft] = useState<TherapistProfileFormState>(() => makeProfileDraft(therapist));
   const [bookingToComplete, setBookingToComplete] = useState<BookingRecord | null>(null);
   const [isCompletingBooking, setIsCompletingBooking] = useState(false);
+  const [approvingManualPaymentId, setApprovingManualPaymentId] = useState<string | null>(null);
   const [bookingToDelete, setBookingToDelete] = useState<BookingRecord | null>(null);
   const [isDeletingBooking, setIsDeletingBooking] = useState(false);
+  const [replyDrafts, setReplyDrafts] = useState<Record<string, string>>({});
+  const [replyingInquiryId, setReplyingInquiryId] = useState<string | null>(null);
   const [loaderProgress, setLoaderProgress] = useState(12);
   const dashboardTabsRef = useRef<HTMLDivElement | null>(null);
   const showStoryReview = canReviewClientStories(therapist);
@@ -470,7 +476,7 @@ const TherapistDashboardPage = () => {
   const sortedTransactions = useMemo(
     () =>
       [...transactions]
-        .filter((transaction) => transaction.status === "success")
+        .filter((transaction) => transaction.status === "success" || transaction.status === "manual_review")
         .sort((left, right) => right.updatedAt.localeCompare(left.updatedAt)),
     [transactions],
   );
@@ -539,7 +545,7 @@ const TherapistDashboardPage = () => {
     () => [...clientStories].sort((left, right) => right.createdAt.localeCompare(left.createdAt)),
     [clientStories],
   );
-  const pendingStoryCount = useMemo(
+  const newStoryCount = useMemo(
     () => sortedClientStories.filter((story) => story.status === "pending").length,
     [sortedClientStories],
   );
@@ -547,6 +553,7 @@ const TherapistDashboardPage = () => {
     () => sortedClientStories.find((story) => story.id === selectedStoryId) ?? null,
     [selectedStoryId, sortedClientStories],
   );
+  const focusedInquiryId = searchParams.get("inquiry");
 
   useEffect(() => {
     if (!selectedStoryId || sortedClientStories.some((story) => story.id === selectedStoryId)) {
@@ -838,6 +845,31 @@ const TherapistDashboardPage = () => {
     }
   };
 
+  const setInquiryReplyDraft = (id: string, value: string) => {
+    setReplyDrafts((current) => ({ ...current, [id]: value }));
+  };
+
+  const handleSendInquiryReply = async (inquiryId: string) => {
+    const replyMessage = (replyDrafts[inquiryId] ?? "").trim();
+
+    if (!replyMessage) {
+      toast.error("Please write a reply before sending.");
+      return;
+    }
+
+    setReplyingInquiryId(inquiryId);
+
+    try {
+      await replyToContactInquiry(inquiryId, replyMessage);
+      setReplyDrafts((current) => ({ ...current, [inquiryId]: "" }));
+      toast.success("Reply sent and inquiry marked as replied.");
+    } catch (error) {
+      toast.error(getApiErrorMessage(error, "This inquiry could not be replied to right now."));
+    } finally {
+      setReplyingInquiryId(null);
+    }
+  };
+
   const openCompleteBookingDialog = (booking: BookingRecord) => {
     setBookingToComplete(booking);
   };
@@ -865,6 +897,24 @@ const TherapistDashboardPage = () => {
       toast.error(getApiErrorMessage(error, "This booking could not be marked as completed."));
     } finally {
       setIsCompletingBooking(false);
+    }
+  };
+
+  const handleApproveManualPayment = async (bookingId?: string) => {
+    if (!bookingId) {
+      toast.error("This payment is missing its booking reference.");
+      return;
+    }
+
+    setApprovingManualPaymentId(bookingId);
+
+    try {
+      await approveManualPayment(bookingId);
+      toast.success("Manual payment approved. The client confirmation has been sent.");
+    } catch (error) {
+      toast.error(getApiErrorMessage(error, "This manual payment could not be approved right now."));
+    } finally {
+      setApprovingManualPaymentId(null);
     }
   };
 
@@ -1030,7 +1080,7 @@ const TherapistDashboardPage = () => {
               </div>
             </div>
 
-            <div className="mt-8 grid gap-6 sm:gap-8 xl:grid-cols-[1.3fr_0.7fr]">
+            <div className="mt-8 flex flex-col gap-6 sm:gap-8">
               <div className="min-w-0 space-y-8">
                 <div className="grid grid-cols-2 gap-2.5 md:grid-cols-4 md:gap-3">
                   {[
@@ -1138,9 +1188,9 @@ const TherapistDashboardPage = () => {
                         <span className="inline-flex items-center gap-2">
                           <BookOpen className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
                           <span>Stories</span>
-                          {pendingStoryCount > 0 ? (
+                          {newStoryCount > 0 ? (
                             <span className="rounded-full bg-primary px-1.5 text-[9px] font-semibold leading-4 text-primary-foreground">
-                              {pendingStoryCount > 99 ? "99+" : pendingStoryCount}
+                              {newStoryCount > 99 ? "99+" : newStoryCount}
                             </span>
                           ) : null}
                         </span>
@@ -1530,7 +1580,7 @@ const TherapistDashboardPage = () => {
                       <div>
                         <h2 className="font-heading text-xl font-semibold text-foreground sm:text-2xl">Transaction Review</h2>
                         <p className="mt-2 text-sm leading-7 text-muted-foreground">
-                          Review successful booking fee payments, transaction IDs, and methods in one place.
+                          Review successful booking fee payments, manual confirmations, transaction IDs, and methods in one place.
                         </p>
                       </div>
 
@@ -1596,10 +1646,30 @@ const TherapistDashboardPage = () => {
                               <p className="break-all">
                                 <span className="font-medium text-foreground">Phone:</span> {transaction.phoneNumber}
                               </p>
+                              {transaction.payerName ? (
+                                <p>
+                                  <span className="font-medium text-foreground">Paid mobile name:</span> {transaction.payerName}
+                                </p>
+                              ) : null}
                               {transaction.resultDescription ? (
                                 <p>
                                   <span className="font-medium text-foreground">Notes:</span> {transaction.resultDescription}
                                 </p>
+                              ) : null}
+                              {transaction.status === "manual_review" ? (
+                                <Button
+                                  type="button"
+                                  variant="hero"
+                                  size="sm"
+                                  className="mt-2 w-full rounded-full"
+                                  disabled={approvingManualPaymentId === transaction.bookingId}
+                                  onClick={(event) => {
+                                    event.stopPropagation();
+                                    void handleApproveManualPayment(transaction.bookingId);
+                                  }}
+                                >
+                                  {approvingManualPaymentId === transaction.bookingId ? "Approving..." : "Approve Payment"}
+                                </Button>
                               ) : null}
                             </div>
                           </div>
@@ -1607,7 +1677,7 @@ const TherapistDashboardPage = () => {
                         })}
                         {filteredTransactions.length === 0 ? (
                           <div className="rounded-[1.5rem] bg-secondary/45 p-4 text-sm text-muted-foreground">
-                            Successful payments will appear here after clients complete the booking fee.
+                            Payments and manual confirmations will appear here after clients submit the booking fee.
                           </div>
                         ) : null}
                       </div>
@@ -1687,10 +1757,30 @@ const TherapistDashboardPage = () => {
                                         <p className="mt-1 text-muted-foreground">
                                           {transaction.resultDescription || "Payment completed successfully."}
                                         </p>
+                                        {transaction.payerName ? (
+                                          <p className="mt-1 text-muted-foreground">
+                                            <span className="font-medium text-foreground">Paid mobile name:</span> {transaction.payerName}
+                                          </p>
+                                        ) : null}
                                       </div>
                                       <div>
                                         <p className="text-xs font-semibold uppercase tracking-[0.18em] text-primary/70">Last Updated</p>
                                         <p className="mt-1 text-muted-foreground">{new Date(transaction.updatedAt).toLocaleString()}</p>
+                                        {transaction.status === "manual_review" ? (
+                                          <Button
+                                            type="button"
+                                            variant="hero"
+                                            size="sm"
+                                            className="mt-3 rounded-full"
+                                            disabled={approvingManualPaymentId === transaction.bookingId}
+                                            onClick={(event) => {
+                                              event.stopPropagation();
+                                              void handleApproveManualPayment(transaction.bookingId);
+                                            }}
+                                          >
+                                            {approvingManualPaymentId === transaction.bookingId ? "Approving..." : "Approve Payment"}
+                                          </Button>
+                                        ) : null}
                                       </div>
                                     </div>
                                   </TableCell>
@@ -1702,7 +1792,7 @@ const TherapistDashboardPage = () => {
                             {filteredTransactions.length === 0 ? (
                               <TableRow>
                                 <TableCell colSpan={6} className="text-center text-muted-foreground">
-                                  Successful payments will appear here after clients complete the booking fee.
+                                  Payments and manual confirmations will appear here after clients submit the booking fee.
                                 </TableCell>
                               </TableRow>
                             ) : null}
@@ -1727,7 +1817,7 @@ const TherapistDashboardPage = () => {
                         </Badge>
                       </div>
 
-                      <div className="mt-5 flex flex-wrap gap-2">
+                      <div className="mt-5 flex max-w-2xl flex-col gap-2">
                         {callRequests.map((booking) => {
                           const isExpanded = expandedCallBookingId === booking.id;
 
@@ -1736,13 +1826,16 @@ const TherapistDashboardPage = () => {
                               key={booking.id}
                               type="button"
                               onClick={() => toggleCallBooking(booking.id)}
-                              className={`rounded-full border px-3 py-2 text-sm font-medium transition-colors ${
+                              className={`w-full rounded-[1.2rem] border px-4 py-3 text-left text-sm font-medium transition-colors ${
                                 isExpanded
                                   ? "border-primary bg-primary text-primary-foreground"
                                   : "border-border/70 bg-secondary/30 text-foreground hover:border-primary/40 hover:bg-primary/5"
                               }`}
                             >
-                              {booking.clientName}
+                              <span className="block text-[11px] font-semibold uppercase tracking-[0.18em] opacity-75">
+                                {booking.notes || "No note provided"}
+                              </span>
+                              <span className="mt-1 block">{booking.clientName}</span>
                             </button>
                           );
                         })}
@@ -2082,13 +2175,13 @@ const TherapistDashboardPage = () => {
                     <div className="rounded-[1.75rem] border border-border/60 bg-secondary/25 p-4 shadow-card sm:p-5">
                       <div className="flex items-center justify-between gap-3">
                         <div>
-                          <h2 className="font-heading text-2xl font-semibold text-foreground">Story Queue</h2>
+                          <h2 className="font-heading text-2xl font-semibold text-foreground">Story Inbox</h2>
                           <p className="mt-1 text-sm text-muted-foreground">
-                            Review submissions before they appear publicly.
+                            New stories land here before they appear publicly.
                           </p>
                         </div>
                         <Badge variant="secondary" className="rounded-full bg-primary/10 px-3 py-1 text-primary">
-                          {pendingStoryCount} pending
+                          {newStoryCount} new
                         </Badge>
                       </div>
 
@@ -2116,7 +2209,9 @@ const TherapistDashboardPage = () => {
                                   Seen
                                 </span>
                               ) : (
-                                <span className="h-2.5 w-2.5 shrink-0 rounded-full bg-amber-400" aria-label="Pending" />
+                                <span className="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-amber-100 px-2.5 py-1 text-[0.68rem] font-semibold uppercase tracking-[0.14em] text-amber-800">
+                                  New story
+                                </span>
                               )}
                             </button>
                           );
@@ -2150,7 +2245,7 @@ const TherapistDashboardPage = () => {
                                     ? "Published"
                                     : selectedStory.status === "reviewed"
                                       ? "Seen"
-                                      : "Pending Review"}
+                                      : "New Story"}
                                 </Badge>
                                 <span className="text-xs uppercase tracking-[0.2em] text-primary/65">
                                   Submitted {new Date(selectedStory.createdAt).toLocaleDateString()}
@@ -2165,7 +2260,7 @@ const TherapistDashboardPage = () => {
                                 {selectedStory.displayName}
                               </DialogTitle>
                               <DialogDescription>
-                                View the full submission, mark it as seen, edit the public version, delete it, or publish it later.
+                                View the full submission, mark it as seen, edit the public version, delete it, or publish it when you're ready.
                               </DialogDescription>
                             </DialogHeader>
 
@@ -2537,7 +2632,11 @@ const TherapistDashboardPage = () => {
                           <div
                             key={notification.id}
                             className={`rounded-[1.5rem] p-4 transition-colors ${
-                              notification.read ? "bg-secondary/35" : "bg-primary/8 ring-1 ring-primary/12"
+                              notification.inquiry?.id === focusedInquiryId
+                                ? "bg-primary/10 ring-2 ring-primary/25"
+                                : notification.read
+                                  ? "bg-secondary/35"
+                                  : "bg-primary/8 ring-1 ring-primary/12"
                             }`}
                           >
                             <div className="flex items-start justify-between gap-3">
@@ -2547,6 +2646,17 @@ const TherapistDashboardPage = () => {
                                   {!notification.read ? (
                                     <span className="rounded-full bg-primary/12 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.16em] text-primary">
                                       Unread
+                                    </span>
+                                  ) : null}
+                                  {notification.inquiry ? (
+                                    <span
+                                      className={`rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.16em] ${
+                                        notification.inquiry.status === "replied"
+                                          ? "bg-emerald-100 text-emerald-800"
+                                          : "bg-amber-100 text-amber-800"
+                                      }`}
+                                    >
+                                      {notification.inquiry.status === "replied" ? "Replied" : "Open"}
                                     </span>
                                   ) : null}
                                 </div>
@@ -2560,7 +2670,66 @@ const TherapistDashboardPage = () => {
                                 <X className="h-4 w-4" />
                               </button>
                             </div>
-                            <p className="mt-2 text-sm leading-7 text-muted-foreground">{notification.description}</p>
+                            {notification.inquiry ? (
+                              <div className="mt-4 space-y-4 rounded-[1.25rem] border border-border/60 bg-background/75 p-4">
+                                <div className="grid gap-3 text-sm leading-6 text-muted-foreground sm:grid-cols-2">
+                                  <p>
+                                    <span className="font-semibold text-primary">Client:</span> {notification.inquiry.name}
+                                  </p>
+                                  <p>
+                                    <span className="font-semibold text-primary">Email:</span>{" "}
+                                    <a className="break-all text-primary underline-offset-4 hover:underline" href={`mailto:${notification.inquiry.email}`}>
+                                      {notification.inquiry.email}
+                                    </a>
+                                  </p>
+                                  <p>
+                                    <span className="font-semibold text-primary">WhatsApp:</span> {notification.inquiry.whatsappMobile}
+                                  </p>
+                                  <p>
+                                    <span className="font-semibold text-primary">Subject:</span> {notification.inquiry.subject || "General enquiry"}
+                                  </p>
+                                </div>
+                                <div className="rounded-[1rem] bg-secondary/35 p-3 text-sm leading-7 text-muted-foreground">
+                                  {notification.inquiry.message}
+                                </div>
+                                {notification.inquiry.status === "replied" ? (
+                                  <div className="rounded-[1rem] bg-primary/8 p-3 text-sm leading-7 text-muted-foreground">
+                                    <p className="font-semibold text-primary">
+                                      Replied by {notification.inquiry.repliedBy ?? "a therapist"}
+                                      {notification.inquiry.repliedAt
+                                        ? ` on ${new Date(notification.inquiry.repliedAt).toLocaleString()}`
+                                        : ""}
+                                    </p>
+                                    {notification.inquiry.replyMessage ? <p className="mt-2">{notification.inquiry.replyMessage}</p> : null}
+                                  </div>
+                                ) : (
+                                  <div className="space-y-3">
+                                    <Label htmlFor={`inquiry-reply-${notification.inquiry.id}`} className="text-primary">
+                                      Reply to client
+                                    </Label>
+                                    <Textarea
+                                      id={`inquiry-reply-${notification.inquiry.id}`}
+                                      value={replyDrafts[notification.inquiry.id] ?? ""}
+                                      onChange={(event) => setInquiryReplyDraft(notification.inquiry!.id, event.target.value)}
+                                      className="min-h-[130px]"
+                                      placeholder="Write the email reply that will be sent to the client."
+                                    />
+                                    <Button
+                                      type="button"
+                                      variant="hero"
+                                      className="w-full rounded-full sm:w-auto"
+                                      disabled={replyingInquiryId === notification.inquiry.id}
+                                      onClick={() => handleSendInquiryReply(notification.inquiry!.id)}
+                                    >
+                                      <Mail className="h-4 w-4" />
+                                      {replyingInquiryId === notification.inquiry.id ? "Sending reply..." : "Send Reply"}
+                                    </Button>
+                                  </div>
+                                )}
+                              </div>
+                            ) : (
+                              <p className="mt-2 text-sm leading-7 text-muted-foreground">{notification.description}</p>
+                            )}
                             <p className="mt-2 text-xs uppercase tracking-[0.2em] text-primary/65">
                               {new Date(notification.createdAt).toLocaleString()}
                             </p>
@@ -2714,7 +2883,7 @@ const TherapistDashboardPage = () => {
               <aside className="min-w-0 space-y-6">
                 <div className="rounded-[2rem] border border-border/60 bg-card p-5 shadow-card sm:p-6">
                   <p className="text-sm font-semibold uppercase tracking-[0.24em] text-primary/75">Live profile</p>
-                  <div className="mt-5 flex flex-col items-start gap-4 sm:flex-row sm:items-center">
+                  <div className="mt-5 flex flex-col items-start gap-4">
                     <img
                       src={therapist.image}
                       alt={therapist.name}

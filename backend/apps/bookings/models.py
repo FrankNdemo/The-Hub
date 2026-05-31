@@ -122,6 +122,7 @@ class BookingPayment(TimeStampedUUIDModel):
         INITIATED = "initiated", "Initiated"
         STK_PUSH_SENT = "stk_push_sent", "STK Push Sent"
         PROCESSING = "processing", "Processing"
+        MANUAL_REVIEW = "manual_review", "Manual Review"
         SUCCESS = "success", "Success"
         FAILED = "failed", "Failed"
         CANCELLED = "cancelled", "Cancelled"
@@ -140,6 +141,7 @@ class BookingPayment(TimeStampedUUIDModel):
     result_code = models.CharField(max_length=32, blank=True)
     result_description = models.TextField(blank=True)
     transaction_id = models.CharField(max_length=128, blank=True)
+    payer_name = models.CharField(max_length=255, blank=True)
     callback_received_at = models.DateTimeField(null=True, blank=True)
     completed_at = models.DateTimeField(null=True, blank=True)
     last_status_check_at = models.DateTimeField(null=True, blank=True)

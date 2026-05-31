@@ -45,6 +45,9 @@ def get_payment_status_label(payment: BookingPayment) -> str:
 
 
 def get_payment_method_label(payment: BookingPayment) -> str:
+    if payment.status == BookingPayment.Status.MANUAL_REVIEW:
+        return "M-Pesa Send Money"
+
     if payment.provider == BookingPayment.Provider.MPESA:
         return "M-Pesa STK Push"
 
@@ -67,6 +70,7 @@ class BookingPaymentSummarySerializer(serializers.ModelSerializer):
     resultCode = serializers.CharField(source="result_code", allow_blank=True)
     resultDescription = serializers.CharField(source="result_description", allow_blank=True)
     phoneNumber = serializers.CharField(source="phone_number")
+    payerName = serializers.CharField(source="payer_name", allow_blank=True)
     createdAt = serializers.DateTimeField(source="created_at")
     updatedAt = serializers.DateTimeField(source="updated_at")
     completedAt = serializers.DateTimeField(source="completed_at", allow_null=True)
@@ -93,6 +97,7 @@ class BookingPaymentSummarySerializer(serializers.ModelSerializer):
             "createdAt",
             "updatedAt",
             "completedAt",
+            "payerName",
         ]
 
     def get_paymentMethod(self, obj: BookingPayment) -> str:
@@ -377,6 +382,18 @@ class BookingCreateSerializer(serializers.Serializer):
 
 class BookingCheckoutSerializer(BookingCreateSerializer):
     mpesaPhoneNumber = serializers.CharField(max_length=32)
+
+    def validate(self, attrs):
+        attrs = super().validate(attrs)
+        if is_exploration_call_notes(attrs.get("notes", "")):
+            raise serializers.ValidationError({"notes": "Exploration call requests do not use the paid booking flow."})
+        return attrs
+
+
+class BookingManualPaymentCheckoutSerializer(BookingCreateSerializer):
+    mpesaConfirmationCode = serializers.CharField(max_length=32, trim_whitespace=True)
+    paidMobileName = serializers.CharField(max_length=120, trim_whitespace=True)
+    sendMoneyNumber = serializers.CharField(max_length=64, trim_whitespace=True)
 
     def validate(self, attrs):
         attrs = super().validate(attrs)

@@ -29,7 +29,8 @@ const HeroSection = () => {
             src={heroImg}
             alt="A smiling client seated in a bright, calm wellness-inspired living room"
             loading="eager"
-            fetchpriority="high"
+            fetchPriority="high"
+            decoding="sync"
             className="absolute inset-y-0 -right-[8%] h-full w-[128%] max-w-none object-cover object-[66%_8%] brightness-[1.03] saturate-[1.03] contrast-[1.05] sm:-right-[4%] sm:w-[112%] sm:object-[82%_16%] sm:brightness-[1.06] sm:saturate-[1.02] sm:contrast-[1.08] md:-right-[5%] md:w-[110%] md:object-[79%_18%] md:brightness-[1.02] md:saturate-[0.92] md:contrast-[1.02] lg:-right-[2%] lg:w-[104%] lg:object-[77%_16%]"
             style={desktopImageEffects ? { y: heroImageY, scale: heroImageScale } : undefined}
           />
