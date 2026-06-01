@@ -1,4 +1,4 @@
-import { Fragment, type ReactNode, type SetStateAction, useEffect, useMemo, useRef, useState } from "react";
+import { Fragment, type ReactNode, type SetStateAction, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { createPortal } from "react-dom";
 import {
@@ -35,6 +35,7 @@ import {
   getApiErrorMessage,
   getSuggestedBookingSlot,
   precheckBooking,
+  precheckBookingClientEmail,
   retryBookingCheckout,
   startBookingCheckout,
   submitManualBookingPayment,
@@ -86,6 +87,9 @@ const BOOKING_OPEN_MINUTES = 10 * 60;
 const BOOKING_LAST_START_MINUTES = 18 * 60;
 const BOOKING_DATE_ERROR = "Adjust the date - we operate Tuesday to Saturday.";
 const BOOKING_TIME_ERROR = "Choose a time from 10:00 AM to 6:00 PM. Sessions end by 7:00 PM.";
+const ACTIVE_SESSION_EMAIL_ERROR =
+  "This email already has an active session. Please check your email for the reschedule link before booking another session.";
+const isLikelyCompleteEmail = (value: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim());
 
 const FINAL_PAYMENT_STATUSES: BookingPaymentRecord["status"][] = [
   "success",
@@ -708,6 +712,10 @@ const BookingSection = () => {
   const setPaymentPhone = (value: SetStateAction<string>) => setBookingDraftField("paymentPhone", value);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isLoadingTherapists, setIsLoadingTherapists] = useState(false);
+  const [isCheckingEmailSession, setIsCheckingEmailSession] = useState(false);
+  const [isCheckingBookingPrecheck, setIsCheckingBookingPrecheck] = useState(false);
+  const [activeSessionMessage, setActiveSessionMessage] = useState("");
+  const [checkedClientEmail, setCheckedClientEmail] = useState("");
   const [preparedPrecheck, setPreparedPrecheck] = useState<{ key: string; amount: number } | null>(null);
   const [availabilityMessage, setAvailabilityMessage] = useState("Choose a date and time to check live availability first.");
   const [slotTherapists, setSlotTherapists] = useState<TherapistProfile[] | null>(null);
@@ -722,6 +730,10 @@ const BookingSection = () => {
   const bookingDateError = form.date && !isOperatingDate(form.date) ? BOOKING_DATE_ERROR : "";
   const bookingTimeError = form.time && !isOperatingTime(form.time) ? BOOKING_TIME_ERROR : "";
   const hasScheduleValidationError = Boolean(bookingDateError || bookingTimeError);
+  const normalizedClientEmail = form.clientEmail.trim().toLowerCase();
+  const shouldCheckClientEmail = step === "details" && isLikelyCompleteEmail(normalizedClientEmail);
+  const isEmailSessionCheckPending =
+    shouldCheckClientEmail && checkedClientEmail !== normalizedClientEmail && !activeSessionMessage;
 
   const activePayment = checkout?.payment ?? null;
   const retryLimitReached = Boolean(
@@ -778,7 +790,14 @@ const BookingSection = () => {
     sessionType,
   ]);
   const hasNoAvailableTherapists = Boolean(form.date && form.time && slotTherapists && slotTherapists.length === 0);
-  const canSubmitDetails = !isLoadingTherapists && !hasNoAvailableTherapists && !hasScheduleValidationError;
+  const canSubmitDetails =
+    !isLoadingTherapists &&
+    !isCheckingEmailSession &&
+    !isEmailSessionCheckPending &&
+    !isCheckingBookingPrecheck &&
+    !activeSessionMessage &&
+    !hasNoAvailableTherapists &&
+    !hasScheduleValidationError;
 
   const updateField = (field: keyof typeof form, value: string) => {
     setBookingGuidance("");
@@ -786,12 +805,96 @@ const BookingSection = () => {
     setPaymentFeedback("");
     setRetryStartOverRequired(false);
     setPreparedPrecheck(null);
+    if (field === "clientEmail") {
+      setActiveSessionMessage("");
+      setCheckedClientEmail("");
+    }
     if (field === "date" || field === "time") {
       setAvailabilityMessage("Checking live availability first...");
       setSlotTherapists(null);
     }
     setForm((current) => ({ ...current, [field]: value }));
   };
+
+  const buildPrecheckInput = useCallback(() => {
+    const participantCount =
+      serviceType === "corporate" && form.participantCount
+        ? Number.parseInt(form.participantCount, 10)
+        : undefined;
+
+    return {
+      clientName: form.clientName,
+      clientEmail: form.clientEmail,
+      clientPhone: form.clientPhone,
+      therapistId: form.therapistId,
+      date: form.date,
+      time: form.time,
+      serviceType,
+      participantCount,
+      sessionType,
+      notes: form.notes,
+    };
+  }, [
+    form.clientEmail,
+    form.clientName,
+    form.clientPhone,
+    form.date,
+    form.notes,
+    form.participantCount,
+    form.therapistId,
+    form.time,
+    serviceType,
+    sessionType,
+  ]);
+
+  useEffect(() => {
+    if (step !== "details") {
+      setIsCheckingEmailSession(false);
+      return;
+    }
+
+    const clientEmail = normalizedClientEmail;
+    if (!shouldCheckClientEmail) {
+      setIsCheckingEmailSession(false);
+      setActiveSessionMessage("");
+      setCheckedClientEmail("");
+      return;
+    }
+
+    let isActive = true;
+    const timeoutId = window.setTimeout(() => {
+      setIsCheckingEmailSession(true);
+
+      precheckBookingClientEmail(clientEmail)
+        .then(() => {
+          if (!isActive) {
+            return;
+          }
+
+          setCheckedClientEmail(clientEmail);
+          setActiveSessionMessage("");
+        })
+        .catch((error) => {
+          if (!isActive) {
+            return;
+          }
+
+          const errorCode = getApiErrorCode(error);
+          setCheckedClientEmail(clientEmail);
+          setActiveSessionMessage(errorCode === "active_session_exists" ? ACTIVE_SESSION_EMAIL_ERROR : "");
+        })
+        .finally(() => {
+          if (isActive) {
+            setIsCheckingEmailSession(false);
+          }
+        });
+    }, 450);
+
+    return () => {
+      isActive = false;
+      window.clearTimeout(timeoutId);
+    };
+  }, [normalizedClientEmail, shouldCheckClientEmail]);
 
   useEffect(() => {
     setForm((current) => {
@@ -881,28 +984,15 @@ const BookingSection = () => {
 
   useEffect(() => {
     if (step !== "details" || !precheckKey || isLoadingTherapists || hasNoAvailableTherapists) {
+      setIsCheckingBookingPrecheck(false);
       return;
     }
 
     let isActive = true;
     const timeoutId = window.setTimeout(() => {
-      const participantCount =
-        serviceType === "corporate" && form.participantCount
-          ? Number.parseInt(form.participantCount, 10)
-          : undefined;
+      setIsCheckingBookingPrecheck(true);
 
-      precheckBooking({
-        clientName: form.clientName,
-        clientEmail: form.clientEmail,
-        clientPhone: form.clientPhone,
-        therapistId: form.therapistId,
-        date: form.date,
-        time: form.time,
-        serviceType,
-        participantCount,
-        sessionType,
-        notes: form.notes,
-      })
+      precheckBooking(buildPrecheckInput())
         .then((precheck) => {
           if (!isActive) {
             return;
@@ -910,10 +1000,21 @@ const BookingSection = () => {
 
           setCurrentBookingFeeAmount(normalizeBookingFeeAmount(precheck.bookingFeeAmount, currentBookingFeeAmount));
           setPreparedPrecheck({ key: precheckKey, amount: normalizeBookingFeeAmount(precheck.bookingFeeAmount, currentBookingFeeAmount) });
+          setActiveSessionMessage("");
         })
-        .catch(() => {
+        .catch((error) => {
           if (isActive) {
+            const errorCode = getApiErrorCode(error);
             setPreparedPrecheck(null);
+            if (errorCode === "active_session_exists") {
+              setCheckedClientEmail(normalizedClientEmail);
+            }
+            setActiveSessionMessage(errorCode === "active_session_exists" ? ACTIVE_SESSION_EMAIL_ERROR : "");
+          }
+        })
+        .finally(() => {
+          if (isActive) {
+            setIsCheckingBookingPrecheck(false);
           }
         });
     }, 450);
@@ -923,6 +1024,7 @@ const BookingSection = () => {
       window.clearTimeout(timeoutId);
     };
   }, [
+    buildPrecheckInput,
     currentBookingFeeAmount,
     form.clientEmail,
     form.clientName,
@@ -934,6 +1036,7 @@ const BookingSection = () => {
     form.time,
     hasNoAvailableTherapists,
     isLoadingTherapists,
+    normalizedClientEmail,
     precheckKey,
     serviceType,
     sessionType,
@@ -1118,6 +1221,16 @@ const BookingSection = () => {
       return;
     }
 
+    if (isCheckingEmailSession || isCheckingBookingPrecheck) {
+      toast.error("Please wait a moment while we finish checking these booking details.");
+      return;
+    }
+
+    if (isEmailSessionCheckPending) {
+      toast.error("Please wait a moment while we check this email.");
+      return;
+    }
+
     if (hasScheduleValidationError) {
       toast.error("Please adjust the preferred date or time before continuing.");
       return;
@@ -1125,6 +1238,11 @@ const BookingSection = () => {
 
     if (hasNoAvailableTherapists) {
       toast.error("No therapist is available for this exact time. Please choose another date or time.");
+      return;
+    }
+
+    if (activeSessionMessage) {
+      toast.error(activeSessionMessage);
       return;
     }
 
@@ -1139,6 +1257,35 @@ const BookingSection = () => {
 
     if (preparedPrecheck?.key === precheckKey) {
       setCurrentBookingFeeAmount(preparedPrecheck.amount);
+    } else if (precheckKey) {
+      setIsCheckingBookingPrecheck(true);
+
+      try {
+        const precheck = await precheckBooking(buildPrecheckInput());
+        const bookingFeeAmount = normalizeBookingFeeAmount(precheck.bookingFeeAmount, currentBookingFeeAmount);
+        setCurrentBookingFeeAmount(bookingFeeAmount);
+        setPreparedPrecheck({
+          key: precheckKey,
+          amount: bookingFeeAmount,
+        });
+      } catch (error) {
+        const errorCode = getApiErrorCode(error);
+        const message =
+          errorCode === "active_session_exists"
+            ? ACTIVE_SESSION_EMAIL_ERROR
+            : getApiErrorMessage(error, "We could not confirm these booking details yet. Please try again.");
+
+        if (errorCode === "active_session_exists") {
+          setCheckedClientEmail(normalizedClientEmail);
+          setActiveSessionMessage(message);
+        } else {
+          setBookingGuidance(message);
+        }
+        toast.error(message);
+        return;
+      } finally {
+        setIsCheckingBookingPrecheck(false);
+      }
     }
 
     setStep("summary");
@@ -1183,6 +1330,15 @@ const BookingSection = () => {
       setStep("stk_sent");
       toast.success("STK push sent. Check your phone to complete the payment.");
     } catch (error) {
+      if (getApiErrorCode(error) === "active_session_exists") {
+        setCheckedClientEmail(normalizedClientEmail);
+        setActiveSessionMessage(ACTIVE_SESSION_EMAIL_ERROR);
+        setPaymentFeedback("");
+        setStep("details");
+        toast.error(ACTIVE_SESSION_EMAIL_ERROR);
+        return;
+      }
+
       const message = getSafePaymentFeedback(getApiErrorMessage(error, "We could not start the M-Pesa payment right now."));
       const suggestion = getSuggestedBookingSlot(error);
 
@@ -1254,6 +1410,15 @@ const BookingSection = () => {
       setStep("success");
       toast.success("Your session is booked. Check your email for the session link.");
     } catch (error) {
+      if (getApiErrorCode(error) === "active_session_exists") {
+        setCheckedClientEmail(normalizedClientEmail);
+        setActiveSessionMessage(ACTIVE_SESSION_EMAIL_ERROR);
+        setPaymentFeedback("");
+        setStep("details");
+        toast.error(ACTIVE_SESSION_EMAIL_ERROR);
+        return;
+      }
+
       const message = getSafePaymentFeedback(getApiErrorMessage(error, "We could not submit this payment confirmation right now."));
       const suggestion = getSuggestedBookingSlot(error);
 
@@ -1789,11 +1954,29 @@ const BookingSection = () => {
                         id="booking-email"
                         type="email"
                         value={form.clientEmail}
+                        aria-invalid={Boolean(activeSessionMessage)}
+                        aria-describedby={
+                          activeSessionMessage
+                            ? "booking-email-error"
+                            : isCheckingEmailSession || isEmailSessionCheckPending || isCheckingBookingPrecheck
+                              ? "booking-email-checking"
+                              : undefined
+                        }
                         onChange={(event) => updateField("clientEmail", event.target.value)}
-                        className="mt-2"
+                        className={cn("mt-2", activeSessionMessage && "border-destructive focus-visible:ring-destructive/40")}
                         placeholder="you@example.com"
                         required
                       />
+                      {activeSessionMessage ? (
+                        <p id="booking-email-error" className="mt-2 text-xs font-semibold leading-5 text-destructive">
+                          {activeSessionMessage}
+                        </p>
+                      ) : isCheckingEmailSession || isEmailSessionCheckPending || isCheckingBookingPrecheck ? (
+                        <p id="booking-email-checking" className="mt-2 flex items-center gap-2 text-xs font-medium leading-5 text-muted-foreground">
+                          <LoaderCircle className="h-3.5 w-3.5 animate-spin text-primary" />
+                          {isCheckingEmailSession || isEmailSessionCheckPending ? "Checking this email..." : "Checking this email and appointment..."}
+                        </p>
+                      ) : null}
                     </div>
 
                     <div className="mt-5 grid grid-cols-2 gap-3 sm:gap-5">
@@ -1933,8 +2116,15 @@ const BookingSection = () => {
                           <LoaderCircle className="h-4 w-4 animate-spin" />
                           Checking Slot...
                         </>
+                      ) : isCheckingEmailSession || isEmailSessionCheckPending || isCheckingBookingPrecheck ? (
+                        <>
+                          <LoaderCircle className="h-4 w-4 animate-spin" />
+                          {isCheckingEmailSession || isEmailSessionCheckPending ? "Checking Email..." : "Checking Details..."}
+                        </>
                       ) : hasNoAvailableTherapists ? (
                         "Choose Another Slot"
+                      ) : activeSessionMessage ? (
+                        "Check Your Email"
                       ) : (
                         "Book Your First Session"
                       )}

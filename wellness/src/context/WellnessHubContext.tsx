@@ -1,5 +1,6 @@
 import { createContext, useContext, useEffect, useState } from "react";
 
+import { resolveBlogImage } from "@/data/blogImages";
 import { seedBlogPosts } from "@/data/blogPosts";
 import { primaryTherapist, publicTherapists } from "@/data/siteData";
 import {
@@ -17,14 +18,15 @@ import {
   fetchPublicClientStories,
   fetchPublicTherapist,
   fetchPublicTherapists,
+  fetchTherapistMe,
   getApiErrorMessage,
   getStoredAuthTokens,
   loginTherapistRequest,
   logoutTherapistRequest,
   markClientStorySeenRequest,
+  markContactInquiryEmailReplyRequest,
   markNotificationsReadRequest,
   publishClientStoryRequest,
-  replyToContactInquiryRequest,
   rescheduleManageBooking,
   cancelManageBooking as cancelManageBookingRequest,
   completeBookingRequest,
@@ -77,7 +79,7 @@ interface WellnessHubContextValue extends WellnessHubState {
   deleteClientStory: (id: string) => Promise<void>;
   dismissNotification: (id: string) => Promise<void>;
   markNotificationsRead: () => Promise<void>;
-  replyToContactInquiry: (id: string, replyMessage: string) => Promise<NotificationItem>;
+  markContactInquiryEmailReply: (id: string) => Promise<void>;
   updateTherapistProfile: (profile: TherapistProfile) => Promise<TherapistProfile>;
   verifyTherapistPassphrase: (passphrase: string) => Promise<ActionResult>;
   loginTherapist: (email: string, password: string) => Promise<ActionResult>;
@@ -263,10 +265,16 @@ const normalizeBlogPost = (post?: Partial<BlogPost> | null): BlogPost | null => 
     author: post.author,
     readTime: post.readTime,
     excerpt: post.excerpt,
-    featuredImage:
-      typeof post.featuredImage === "string" && post.featuredImage
-        ? post.featuredImage
-        : seedFallback?.featuredImage ?? "",
+    featuredImage: resolveBlogImage({
+      featuredImage:
+        typeof post.featuredImage === "string" && post.featuredImage
+          ? post.featuredImage
+          : seedFallback?.featuredImage ?? "",
+      slug: post.slug,
+      category: post.category,
+      title: post.title,
+      tags: post.tags,
+    }),
     contentHtml: post.contentHtml,
     tags: post.tags.filter((tag): tag is string => typeof tag === "string"),
   };
@@ -620,17 +628,38 @@ export const WellnessHubProvider = ({ children }: { children: React.ReactNode })
       setIsInitializing(true);
 
       try {
-        await refreshPublicContent();
+        const hasStoredSession = Boolean(getStoredAuthTokens());
 
-        if (getStoredAuthTokens()) {
-          try {
-            await refreshDashboard();
-          } catch {
-            clearStoredAuthTokens();
-            if (isActive) {
-              resetAuthenticatedState();
-            }
+        if (!hasStoredSession) {
+          await refreshPublicContent();
+          return;
+        }
+
+        const [publicContentResult, sessionResult] = await Promise.allSettled([
+          refreshPublicContent(),
+          fetchTherapistMe(),
+        ]);
+
+        if (publicContentResult.status === "rejected") {
+          // Keep the seeded public content when the public refresh is unavailable.
+        }
+
+        if (sessionResult.status === "fulfilled") {
+          if (isActive) {
+            setState((current) => ({
+              ...current,
+              therapist: normalizeTherapistProfile(sessionResult.value.therapist),
+              therapistSession: sessionResult.value.therapistSession,
+            }));
           }
+
+          void refreshDashboard().catch(() => undefined);
+          return;
+        }
+
+        clearStoredAuthTokens();
+        if (isActive) {
+          resetAuthenticatedState();
         }
       } finally {
         if (isActive) {
@@ -902,21 +931,12 @@ export const WellnessHubProvider = ({ children }: { children: React.ReactNode })
     }));
   };
 
-  const replyToContactInquiry = async (id: string, replyMessage: string) => {
-    const notification = normalizeNotification(await replyToContactInquiryRequest(id, replyMessage));
-
-    if (!notification) {
-      throw new Error("The inquiry reply response was incomplete.");
-    }
-
+  const markContactInquiryEmailReply = async (id: string) => {
+    await markContactInquiryEmailReplyRequest(id);
     setState((current) => ({
       ...current,
-      notifications: current.notifications.map((item) =>
-        item.inquiry?.id === id ? { ...item, read: true, inquiry: notification.inquiry } : item,
-      ),
+      notifications: current.notifications.filter((item) => item.inquiry?.id !== id),
     }));
-
-    return notification;
   };
 
   const updateTherapistProfile = async (profile: TherapistProfile) => {
@@ -964,19 +984,13 @@ export const WellnessHubProvider = ({ children }: { children: React.ReactNode })
     try {
       const payload = await loginTherapistRequest(email, password);
 
-      try {
-        const snapshot = await fetchDashboardOverview();
-        const nextState = applyDashboardSnapshot(snapshot);
-        cacheTherapists(nextState.therapists);
-        setState(nextState);
-      } catch {
-        // Keep the authenticated session even if the dashboard snapshot fails to hydrate immediately.
-        setState((current) => ({
-          ...current,
-          therapist: normalizeTherapistProfile(payload.therapist),
-          therapistSession: payload.therapistSession,
-        }));
-      }
+      setState((current) => ({
+        ...current,
+        therapist: normalizeTherapistProfile(payload.therapist),
+        therapistSession: payload.therapistSession,
+      }));
+
+      void refreshDashboard().catch(() => undefined);
 
       return { success: true } as const;
     } catch (error) {
@@ -1083,7 +1097,7 @@ export const WellnessHubProvider = ({ children }: { children: React.ReactNode })
     deleteClientStory,
     dismissNotification,
     markNotificationsRead,
-    replyToContactInquiry,
+    markContactInquiryEmailReply,
     updateTherapistProfile,
     verifyTherapistPassphrase,
     loginTherapist,

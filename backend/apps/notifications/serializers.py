@@ -11,10 +11,6 @@ class ContactInquirySerializer(serializers.Serializer):
     message = serializers.CharField(max_length=2000, trim_whitespace=True)
 
 
-class ContactInquiryReplySerializer(serializers.Serializer):
-    replyMessage = serializers.CharField(max_length=4000, trim_whitespace=True)
-
-
 class ContactInquiryNotificationSerializer(serializers.ModelSerializer):
     whatsappMobile = serializers.CharField(source="whatsapp_mobile")
     createdAt = serializers.DateTimeField(source="created_at")

@@ -610,6 +610,16 @@ export const precheckBooking = (input: BookingInput) =>
     { auth: false },
   );
 
+export const precheckBookingClientEmail = (clientEmail: string) =>
+  request<{ ok: boolean }>(
+    "/bookings/client-email/precheck/",
+    {
+      method: "POST",
+      body: JSON.stringify({ clientEmail }),
+    },
+    { auth: false },
+  );
+
 export const fetchAvailableBookingTherapists = (date: string, time: string) =>
   request<{ date: string; time: string; therapists: TherapistProfile[] }>(
     `/bookings/availability/?date=${encodeURIComponent(date)}&time=${encodeURIComponent(time)}`,
@@ -930,11 +940,11 @@ export const markNotificationsReadRequest = () =>
     },
   );
 
-export const replyToContactInquiryRequest = (id: string, replyMessage: string) =>
-  request<NotificationItem>(
-    `/dashboard/inquiries/${encodeURIComponent(id)}/reply/`,
+export const markContactInquiryEmailReplyRequest = (id: string) =>
+  request<SuccessResponse>(
+    `/dashboard/inquiries/${encodeURIComponent(id)}/email-reply/`,
     {
       method: "POST",
-      body: JSON.stringify({ replyMessage }),
+      body: JSON.stringify({}),
     },
   );

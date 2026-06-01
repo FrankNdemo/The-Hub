@@ -3,7 +3,6 @@ from django.db import migrations
 
 
 KELVIN_EMAIL = "ndemojnrr@gmail.com"
-KELVIN_PASSWORD = "Wellness254!"
 KELVIN_IMAGE_URL = "/kelvin.png"
 
 
@@ -22,7 +21,7 @@ def seed_kelvin_therapist(apps, schema_editor):
     user.first_name = "Kelvin"
     user.last_name = "Kagiri"
     user.is_staff = True
-    user.password = make_password(KELVIN_PASSWORD)
+    user.password = make_password(None)
     user.save()
 
     profile = TherapistProfile.objects.filter(public_id="kelvin-kagiri").first() or TherapistProfile.objects.filter(
@@ -58,7 +57,7 @@ def seed_kelvin_therapist(apps, schema_editor):
         "Team building",
     ]
     profile.email = KELVIN_EMAIL
-    profile.phone = "+254726 759 850"
+    profile.phone = "+254726759850"
     profile.location_lines = [
         "Real Lite by Broadcom",
         "Nairobi, Westlands",

@@ -7,7 +7,7 @@ from apps.therapists.models import TherapistProfile
 
 class TherapistAuthApiTests(APITestCase):
     def setUp(self):
-        call_command("bootstrap_wellness_demo")
+        call_command("bootstrap_wellness_data", with_test_credentials=True)
 
     def test_verify_passphrase_and_login(self):
         verify_response = self.client.post(

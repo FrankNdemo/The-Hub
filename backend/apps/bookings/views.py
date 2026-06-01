@@ -16,6 +16,7 @@ from .serializers import (
     BookingAvailabilityQuerySerializer,
     BookingCreateSerializer,
     BookingCheckoutSerializer,
+    BookingClientEmailPrecheckSerializer,
     BookingDeleteSerializer,
     BookingDetailSerializer,
     BookingJoinSerializer,
@@ -42,7 +43,7 @@ from .services import (
     sync_booking_payment_status,
     validate_booking_request,
 )
-from .scheduling import BookingAvailabilityError, ensure_slot_is_available
+from .scheduling import BookingAvailabilityError, ensure_client_can_book, ensure_slot_is_available
 
 
 def normalize_email(value: str) -> str:
@@ -157,6 +158,22 @@ class PublicBookingPrecheckView(APIView):
                 "sendMoneyNumber": get_send_money_number(serializer.validated_data["therapist"]),
             }
         )
+
+
+class PublicBookingClientEmailPrecheckView(APIView):
+    permission_classes = [AllowAny]
+    authentication_classes = []
+
+    def post(self, request):
+        serializer = BookingClientEmailPrecheckSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        try:
+            ensure_client_can_book(client_email=serializer.validated_data["client_email"])
+        except BookingAvailabilityError as exc:
+            return Response(exc.as_response(), status=exc.status_code)
+
+        return Response({"ok": True})
 
 
 class PublicBookingAvailabilityView(APIView):

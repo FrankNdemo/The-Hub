@@ -51,6 +51,7 @@ import type {
   BookingRecord,
   BookingStatus,
   ClientStory,
+  NotificationItem,
   StoryServiceType,
   TherapistProfile,
 } from "@/types/wellness";
@@ -367,7 +368,7 @@ const TherapistDashboardPage = () => {
     deleteClientStory,
     dismissNotification,
     markNotificationsRead,
-    replyToContactInquiry,
+    markContactInquiryEmailReply,
     updateTherapistProfile,
   } = useWellnessHub();
 
@@ -393,8 +394,7 @@ const TherapistDashboardPage = () => {
   const [approvingManualPaymentId, setApprovingManualPaymentId] = useState<string | null>(null);
   const [bookingToDelete, setBookingToDelete] = useState<BookingRecord | null>(null);
   const [isDeletingBooking, setIsDeletingBooking] = useState(false);
-  const [replyDrafts, setReplyDrafts] = useState<Record<string, string>>({});
-  const [replyingInquiryId, setReplyingInquiryId] = useState<string | null>(null);
+  const [openingInquiryId, setOpeningInquiryId] = useState<string | null>(null);
   const [loaderProgress, setLoaderProgress] = useState(12);
   const dashboardTabsRef = useRef<HTMLDivElement | null>(null);
   const showStoryReview = canReviewClientStories(therapist);
@@ -845,28 +845,35 @@ const TherapistDashboardPage = () => {
     }
   };
 
-  const setInquiryReplyDraft = (id: string, value: string) => {
-    setReplyDrafts((current) => ({ ...current, [id]: value }));
-  };
-
-  const handleSendInquiryReply = async (inquiryId: string) => {
-    const replyMessage = (replyDrafts[inquiryId] ?? "").trim();
-
-    if (!replyMessage) {
-      toast.error("Please write a reply before sending.");
+  const handleReplyToInquiryByEmail = async (notification: NotificationItem) => {
+    const inquiry = notification.inquiry;
+    if (!inquiry) {
       return;
     }
 
-    setReplyingInquiryId(inquiryId);
-
+    setOpeningInquiryId(inquiry.id);
     try {
-      await replyToContactInquiry(inquiryId, replyMessage);
-      setReplyDrafts((current) => ({ ...current, [inquiryId]: "" }));
-      toast.success("Reply sent and inquiry marked as replied.");
+      await markContactInquiryEmailReply(inquiry.id);
+      const subject = encodeURIComponent(`Re: ${inquiry.subject || "Your inquiry"}`);
+      const body = encodeURIComponent(
+        [
+          "",
+          "",
+          "----- Original inquiry -----",
+          `Name: ${inquiry.name}`,
+          `Email: ${inquiry.email}`,
+          `WhatsApp: ${inquiry.whatsappMobile}`,
+          `Subject: ${inquiry.subject || "General enquiry"}`,
+          "",
+          inquiry.message,
+        ].join("\n"),
+      );
+      window.location.href = `mailto:${inquiry.email}?subject=${subject}&body=${body}`;
+      toast.success("Opening email reply. The inquiry notification was cleared for the team.");
     } catch (error) {
-      toast.error(getApiErrorMessage(error, "This inquiry could not be replied to right now."));
+      toast.error(getApiErrorMessage(error, "This inquiry could not be opened for email reply right now."));
     } finally {
-      setReplyingInquiryId(null);
+      setOpeningInquiryId(null);
     }
   };
 
@@ -2623,7 +2630,7 @@ const TherapistDashboardPage = () => {
                         </div>
                         <div>
                           <h2 className="font-heading text-xl font-semibold text-foreground sm:text-2xl">Notifications</h2>
-                          <p className="text-sm text-muted-foreground">New bookings, cancellations, reschedules, and blog updates.</p>
+                          <p className="text-sm text-muted-foreground">New bookings, cancellations, reschedules, blog updates, and inquiry mail alerts.</p>
                         </div>
                       </div>
 
@@ -2692,40 +2699,19 @@ const TherapistDashboardPage = () => {
                                 <div className="rounded-[1rem] bg-secondary/35 p-3 text-sm leading-7 text-muted-foreground">
                                   {notification.inquiry.message}
                                 </div>
-                                {notification.inquiry.status === "replied" ? (
-                                  <div className="rounded-[1rem] bg-primary/8 p-3 text-sm leading-7 text-muted-foreground">
-                                    <p className="font-semibold text-primary">
-                                      Replied by {notification.inquiry.repliedBy ?? "a therapist"}
-                                      {notification.inquiry.repliedAt
-                                        ? ` on ${new Date(notification.inquiry.repliedAt).toLocaleString()}`
-                                        : ""}
-                                    </p>
-                                    {notification.inquiry.replyMessage ? <p className="mt-2">{notification.inquiry.replyMessage}</p> : null}
-                                  </div>
-                                ) : (
-                                  <div className="space-y-3">
-                                    <Label htmlFor={`inquiry-reply-${notification.inquiry.id}`} className="text-primary">
-                                      Reply to client
-                                    </Label>
-                                    <Textarea
-                                      id={`inquiry-reply-${notification.inquiry.id}`}
-                                      value={replyDrafts[notification.inquiry.id] ?? ""}
-                                      onChange={(event) => setInquiryReplyDraft(notification.inquiry!.id, event.target.value)}
-                                      className="min-h-[130px]"
-                                      placeholder="Write the email reply that will be sent to the client."
-                                    />
-                                    <Button
-                                      type="button"
-                                      variant="hero"
-                                      className="w-full rounded-full sm:w-auto"
-                                      disabled={replyingInquiryId === notification.inquiry.id}
-                                      onClick={() => handleSendInquiryReply(notification.inquiry!.id)}
-                                    >
-                                      <Mail className="h-4 w-4" />
-                                      {replyingInquiryId === notification.inquiry.id ? "Sending reply..." : "Send Reply"}
-                                    </Button>
-                                  </div>
-                                )}
+                                <div className="flex flex-col gap-3 rounded-[1rem] bg-primary/8 p-3 text-sm leading-7 text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
+                                  <p>Check the main email inbox for the full inquiry. Replying here opens your mail app and clears this alert for the team.</p>
+                                  <Button
+                                    type="button"
+                                    variant="hero"
+                                    className="w-full shrink-0 rounded-full sm:w-auto"
+                                    disabled={openingInquiryId === notification.inquiry.id}
+                                    onClick={() => handleReplyToInquiryByEmail(notification)}
+                                  >
+                                    <Mail className="h-4 w-4" />
+                                    {openingInquiryId === notification.inquiry.id ? "Opening..." : "Reply by Email"}
+                                  </Button>
+                                </div>
                               </div>
                             ) : (
                               <p className="mt-2 text-sm leading-7 text-muted-foreground">{notification.description}</p>

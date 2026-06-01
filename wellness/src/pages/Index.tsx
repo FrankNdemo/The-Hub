@@ -7,8 +7,8 @@ import leafDecor from "@/assets/leaf-decoration.png";
 import Footer from "@/components/Footer";
 import FAQSection from "@/components/FAQSection";
 import HeroSection from "@/components/HeroSection";
-import JourneyQuoteSection from "@/components/JourneyQuoteSection";
-import ParallaxBackgroundImage from "@/components/ParallaxBackgroundImage";
+import HomeImage from "@/components/HomeImage";
+import JourneyQuoteSection, { journeyQuoteImage } from "@/components/JourneyQuoteSection";
 import ScrollReveal from "@/components/ScrollReveal";
 import { Button } from "@/components/ui/button";
 import { useWellnessHub } from "@/context/WellnessHubContext";
@@ -18,6 +18,7 @@ import {
   homeSpecializedSupportImage,
   homepageApproachImage,
   individualServiceImage,
+  specializedServiceImage,
 } from "@/lib/serviceImages";
 
 const whyChooseUs = [
@@ -96,6 +97,41 @@ const ctaTypedPhrase = "Cherish yourself";
 const careDescriptionQuote =
   "You do not have to carry everything alone. Healing grows in spaces where you feel safe, seen, and gently supported.";
 
+const homeImageSources = [
+  aboutImg,
+  leafDecor,
+  journeyQuoteImage,
+  homepageAwarenessImage,
+  individualServiceImage,
+  familyServiceImage,
+  homeSpecializedSupportImage,
+  homepageApproachImage,
+  homepageCtaImage,
+  homepageCloserLookImage,
+];
+
+const preloadHomeImage = (src: string, priority: "high" | "auto" = "auto") => {
+  if (typeof document === "undefined") {
+    return;
+  }
+
+  if (!document.head.querySelector(`link[data-home-image-preload="${src}"]`)) {
+    const link = document.createElement("link");
+    link.rel = "preload";
+    link.as = "image";
+    link.href = src;
+    link.dataset.homeImagePreload = src;
+    link.setAttribute("fetchpriority", priority);
+    document.head.appendChild(link);
+  }
+
+  const image = new Image();
+  image.decoding = "async";
+  image.loading = "eager";
+  image.fetchPriority = priority;
+  image.src = src;
+};
+
 const Index = () => {
   const { clientStories, therapists } = useWellnessHub();
   const [typedCtaText, setTypedCtaText] = useState("");
@@ -104,6 +140,10 @@ const Index = () => {
   const featuredTherapists = therapists;
   const testimonials = useMemo(() => getClientStoryTestimonials(clientStories), [clientStories]);
   const activeTestimonial = testimonials[testimonialIndex];
+
+  useEffect(() => {
+    homeImageSources.forEach((src, index) => preloadHomeImage(src, index < 5 ? "high" : "auto"));
+  }, []);
 
   const showPreviousTestimonial = () => {
     setTestimonialIndex((current) => (current === 0 ? testimonials.length - 1 : current - 1));
@@ -178,7 +218,14 @@ const Index = () => {
             </div>
 
             <div className="mx-auto w-full max-w-xl overflow-hidden rounded-2xl shadow-soft">
-              <img src={aboutImg} alt="Peaceful therapy office" loading="lazy" className="h-auto w-full object-cover" />
+              <HomeImage
+                src={aboutImg}
+                fallbackSrc={aboutImg}
+                alt="Peaceful therapy office"
+                loading="eager"
+                decoding="async"
+                className="h-auto w-full object-cover"
+              />
             </div>
           </div>
         </ScrollReveal>
@@ -189,10 +236,13 @@ const Index = () => {
       <div className="container mx-auto px-0 sm:px-4">
         <ScrollReveal direction="up">
           <div className="relative overflow-hidden rounded-none border-y border-border/60 shadow-card sm:rounded-[2.4rem] sm:border" data-nav-theme="inverse">
-            <ParallaxBackgroundImage
+            <HomeImage
               src={homepageAwarenessImage}
+              fallbackSrc={aboutImg}
+              parallax
               alt="A woman speaking with an African man and woman in a bright, supportive office conversation"
-              loading="lazy"
+              loading="eager"
+              decoding="async"
               className="absolute inset-0 h-full w-full object-cover object-[center_50%] sm:object-[center_50%] lg:object-[center_54%]"
             />
             <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(22,39,34,0.64),rgba(22,39,34,0.32),rgba(22,39,34,0.58))]" />
@@ -269,10 +319,12 @@ const Index = () => {
                 className="overflow-hidden rounded-[2rem] border border-border/60 bg-card shadow-card transition-all hover:-translate-y-1 hover:shadow-hover"
               >
                 <div className="h-60 overflow-hidden">
-                  <img
+                  <HomeImage
                     src={service.image}
+                    fallbackSrc={service.title === "Specialized Wellness Support" ? specializedServiceImage : aboutImg}
                     alt={service.imageAlt}
-                    loading="lazy"
+                    loading="eager"
+                    decoding="async"
                     className={`h-full w-full object-cover transition-transform duration-500 hover:scale-105 ${
                       service.imageClassName ?? ""
                     }`}
@@ -316,10 +368,12 @@ const Index = () => {
                       {profile.title}
                     </div>
                     <div className="mt-4 h-[18rem] overflow-hidden rounded-lg bg-secondary/35 sm:h-[19rem]">
-                      <img
+                      <HomeImage
                         src={profile.image}
+                        fallbackSrc={aboutImg}
                         alt={profile.name}
-                        loading="lazy"
+                        loading="eager"
+                        decoding="async"
                         className="h-full w-full object-contain object-top"
                       />
                     </div>
@@ -352,10 +406,14 @@ const Index = () => {
       <div className="w-full px-0">
         <ScrollReveal direction="right">
           <div className="relative overflow-hidden border-y border-border/60 px-4 py-6 shadow-card sm:px-6 sm:py-8 lg:px-8 lg:py-10">
-            <ParallaxBackgroundImage
+            <HomeImage
               src={homepageApproachImage}
+              fallbackSrc={aboutImg}
+              parallax
               alt=""
               aria-hidden="true"
+              loading="eager"
+              decoding="async"
               className="absolute inset-0 h-full w-full object-cover object-[center_44%] opacity-[0.97] brightness-[0.99] contrast-[1.04] saturate-[1.02] sm:object-[center_50%] lg:object-[center_56%]"
             />
             <div className="absolute inset-0 bg-[linear-gradient(180deg,hsl(42_31%_98%_/_0.48),hsl(42_31%_98%_/_0.14),hsl(42_31%_97%_/_0.4))]" />
@@ -428,10 +486,12 @@ const Index = () => {
               </p>
               <div className="mt-6 flex items-center gap-4 border-t border-border/60 pt-4">
                 <div className="h-12 w-12 overflow-hidden rounded-full border border-border/60 bg-background shadow-soft">
-                  <img
+                  <HomeImage
                     src={activeTestimonial.image}
+                    fallbackSrc={aboutImg}
                     alt={activeTestimonial.name}
-                    loading="lazy"
+                    loading="eager"
+                    decoding="async"
                     className="h-full w-full object-cover"
                   />
                 </div>
@@ -488,10 +548,12 @@ const Index = () => {
                   <p className="mt-4 italic leading-8 text-muted-foreground">{testimonial.text}</p>
                   <div className="mt-6 flex items-center gap-4 border-t border-border/60 pt-4">
                     <div className="h-12 w-12 overflow-hidden rounded-full border border-border/60 bg-background shadow-soft">
-                      <img
+                      <HomeImage
                         src={testimonial.image}
+                        fallbackSrc={aboutImg}
                         alt={testimonial.name}
-                        loading="lazy"
+                        loading="eager"
+                        decoding="async"
                         className="h-full w-full object-cover"
                       />
                     </div>
@@ -512,9 +574,13 @@ const Index = () => {
       <div className="container mx-auto px-0 md:px-4">
         <ScrollReveal direction="up">
           <div className="relative min-h-[100svh] overflow-hidden shadow-hover md:min-h-0 md:rounded-[2.5rem]" data-nav-theme="inverse">
-            <ParallaxBackgroundImage
+            <HomeImage
               src={homepageCtaImage}
+              fallbackSrc={aboutImg}
+              parallax
               alt="A calm Black woman seated on a sofa near indoor plants in a bright wellness-inspired room"
+              loading="eager"
+              decoding="async"
               className="h-[100svh] w-full object-cover object-[56%_50%] brightness-[1.04] contrast-[1.04] saturate-[1.03] sm:h-[540px] sm:object-[54%_44%] md:h-[560px] md:object-[52%_40%]"
             />
             <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(26,37,31,0.24),rgba(26,37,31,0.34))] sm:bg-[linear-gradient(180deg,rgba(26,37,31,0.2),rgba(26,37,31,0.3))]" />
@@ -586,10 +652,12 @@ const Index = () => {
 
             <div className="mt-10 grid gap-6 lg:grid-cols-[1.08fr_0.92fr] lg:items-stretch">
               <div className="overflow-hidden rounded-[2.4rem] border border-border/60 bg-card shadow-card">
-                <img
+                <HomeImage
                   src={homepageCloserLookImage}
+                  fallbackSrc={aboutImg}
                   alt="Portrait of an African woman in a calm indoor setting"
-                  loading="lazy"
+                  loading="eager"
+                  decoding="async"
                   className="h-full min-h-[20rem] w-full object-cover object-[center_24%] md:min-h-[24rem]"
                 />
               </div>

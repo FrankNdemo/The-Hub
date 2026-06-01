@@ -1,8 +1,10 @@
 import { Quote } from "lucide-react";
 
+import aboutImg from "@/assets/about-therapy.jpg";
+import HomeImage from "@/components/HomeImage";
 import ScrollReveal from "@/components/ScrollReveal";
 
-const journeyQuoteImage =
+export const journeyQuoteImage =
   "https://images.pexels.com/photos/23385268/pexels-photo-23385268.jpeg?auto=compress&cs=tinysrgb&w=1400&h=700&fit=crop";
 
 const JourneyQuoteSection = () => (
@@ -23,10 +25,12 @@ const JourneyQuoteSection = () => (
           </div>
 
           <div className="relative z-0 min-h-[7.5rem] overflow-hidden sm:min-h-[8.5rem] lg:min-h-[9.5rem]">
-            <img
+            <HomeImage
               src={journeyQuoteImage}
+              fallbackSrc={aboutImg}
               alt="A lit candle beside books and a plant in soft warm light"
-              loading="lazy"
+              loading="eager"
+              decoding="async"
               className="absolute inset-0 h-full w-full object-cover object-center"
             />
             <div className="absolute inset-y-0 left-0 w-12 bg-[linear-gradient(90deg,rgba(229,238,226,0.82),rgba(229,238,226,0.44),transparent)] blur-xl sm:w-16 lg:w-24" />

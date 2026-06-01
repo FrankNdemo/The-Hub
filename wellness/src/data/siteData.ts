@@ -27,7 +27,7 @@ export const primaryTherapist: TherapistProfile = {
     "Trauma and CBT",
   ],
   email: "cgichia@gmail.com",
-  phone: "+254726 759 850",
+  phone: "+254726759850",
   location: [
     "Real Lite by Broadcom",
     "Nairobi, Westlands",
@@ -55,7 +55,7 @@ export const kelvinTherapist: TherapistProfile = {
     "Team building",
   ],
   email: "ndemojnrr@gmail.com",
-  phone: "+254726 759 850",
+  phone: "+254726759850",
   location: [
     "Real Lite by Broadcom",
     "Nairobi, Westlands",

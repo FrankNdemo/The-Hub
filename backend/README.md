@@ -17,6 +17,15 @@ This backend is designed around the current frontend flows already present in `w
 - Simple JWT for therapist authentication
 - SQLite by default for local development
 - PostgreSQL/Supabase-ready model design using standard Django fields and `JSONField`
+- Vercel-hosted backend via `api/index.py` and `vercel.json`
+
+## Deployment
+
+This backend has moved to Vercel. Configure the Vercel backend project with the production values from `.env.example`, then point the frontend `VITE_API_BASE_URL` to:
+
+```env
+https://your-backend-project.vercel.app/api/v1
+```
 
 ## Apps
 

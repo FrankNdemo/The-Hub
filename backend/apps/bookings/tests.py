@@ -30,7 +30,7 @@ from apps.therapists.models import TherapistProfile
 )
 class BookingApiTests(APITestCase):
     def setUp(self):
-        call_command("bootstrap_wellness_demo")
+        call_command("bootstrap_wellness_data", with_test_credentials=True)
 
     def test_create_reschedule_and_cancel_booking_from_manage_token(self):
         create_response = self.client.post(
@@ -639,7 +639,7 @@ class BookingApiTests(APITestCase):
 )
 class PaidBookingCheckoutApiTests(APITestCase):
     def setUp(self):
-        call_command("bootstrap_wellness_demo")
+        call_command("bootstrap_wellness_data", with_test_credentials=True)
 
     def confirm_paid_booking(
         self,
@@ -826,6 +826,25 @@ class PaidBookingCheckoutApiTests(APITestCase):
                 "serviceType": "individual",
                 "sessionType": "virtual",
             },
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_409_CONFLICT)
+        self.assertEqual(response.data["code"], "active_session_exists")
+        self.assertIn("You already have an active session booked", response.data["detail"])
+
+    def test_client_email_precheck_reports_active_session_before_payment_step(self):
+        self.confirm_paid_booking(
+            client_email="email-precheck@example.com",
+            client_phone="+254700111445",
+            date="2026-06-25",
+            time="10:00",
+            mpesa_phone_number="0712345445",
+        )
+
+        response = self.client.post(
+            "/api/v1/bookings/client-email/precheck/",
+            {"clientEmail": "email-precheck@example.com"},
             format="json",
         )
 

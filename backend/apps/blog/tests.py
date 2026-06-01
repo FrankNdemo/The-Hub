@@ -8,7 +8,7 @@ from apps.therapists.models import TherapistProfile
 
 class BlogDashboardApiTests(APITestCase):
     def setUp(self):
-        call_command("bootstrap_wellness_demo")
+        call_command("bootstrap_wellness_data", with_test_credentials=True)
         self.therapist = TherapistProfile.objects.select_related("user").get(public_id="caroline-gichia")
         self.client.force_authenticate(user=self.therapist.user)
 

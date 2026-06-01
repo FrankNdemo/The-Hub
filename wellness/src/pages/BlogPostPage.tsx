@@ -1,10 +1,21 @@
 import { Link, useNavigate, useParams } from "react-router-dom";
+import type { SyntheticEvent } from "react";
 import { ArrowLeft, ArrowRight, CalendarDays, Clock3, User2 } from "lucide-react";
 
 import Footer from "@/components/Footer";
 import { Button } from "@/components/ui/button";
 import { useWellnessHub } from "@/context/WellnessHubContext";
+import { resolveBlogImage } from "@/data/blogImages";
 import { formatDisplayDate } from "@/lib/wellness";
+import type { BlogPost } from "@/types/wellness";
+
+const restoreBlogImage = (event: SyntheticEvent<HTMLImageElement>, post: BlogPost) => {
+  const fallbackImage = resolveBlogImage({ ...post, featuredImage: "" });
+
+  if (event.currentTarget.getAttribute("src") !== fallbackImage) {
+    event.currentTarget.src = fallbackImage;
+  }
+};
 
 const BlogPostPage = () => {
   const { slug } = useParams();
@@ -70,7 +81,12 @@ const BlogPostPage = () => {
 
             <div className="mt-6 overflow-hidden rounded-[2.25rem] border border-border/60 bg-card shadow-card">
               <div className="h-[260px] overflow-hidden md:h-[420px]">
-                <img src={post.featuredImage} alt={post.title} className="h-full w-full object-cover" />
+                <img
+                  src={post.featuredImage}
+                  alt={post.title}
+                  className="h-full w-full object-cover"
+                  onError={(event) => restoreBlogImage(event, post)}
+                />
               </div>
 
               <div className="px-6 py-8 md:px-10">
@@ -130,7 +146,12 @@ const BlogPostPage = () => {
                       to={`/blog/${entry.slug}`}
                       className="group flex flex-col items-center gap-4 rounded-[1.5rem] bg-secondary/35 p-4 text-center transition-all hover:bg-primary/6 sm:flex-row sm:items-start sm:text-left"
                     >
-                      <img src={entry.featuredImage} alt={entry.title} className="h-24 w-24 rounded-[1.25rem] object-cover" />
+                      <img
+                        src={entry.featuredImage}
+                        alt={entry.title}
+                        className="h-24 w-24 rounded-[1.25rem] object-cover"
+                        onError={(event) => restoreBlogImage(event, entry)}
+                      />
                       <div className="flex-1">
                         <p className="text-xs uppercase tracking-[0.2em] text-primary/70">{entry.category}</p>
                         <p className="mt-2 font-heading text-2xl font-semibold leading-7 text-foreground">{entry.title}</p>

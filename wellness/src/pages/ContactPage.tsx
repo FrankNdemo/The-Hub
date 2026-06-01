@@ -193,8 +193,7 @@ const ContactPage = () => {
                   </div>
                   <h3 className="mt-5 font-heading text-3xl font-semibold text-foreground">Inquiry sent</h3>
                   <p className="mt-3 text-muted-foreground leading-8">
-                    Your message has been sent to the therapist team. The first therapist to reply will mark it as
-                    replied for everyone else.
+                    Your message has been sent to our main inbox. A therapist will reply directly by email.
                   </p>
                 </div>
               ) : (
@@ -321,7 +320,7 @@ const ContactPage = () => {
                 Inquiry sent
               </h3>
               <p className="mt-3 text-sm leading-7 text-muted-foreground">
-                Your message has been sent to the therapist team. The first therapist to reply will mark it as replied.
+                Your message has been sent to our main inbox. A therapist will reply directly by email.
               </p>
               <Button
                 type="button"

@@ -344,6 +344,10 @@ class BookingAccessSerializer(serializers.Serializer):
     email = serializers.EmailField()
 
 
+class BookingClientEmailPrecheckSerializer(serializers.Serializer):
+    clientEmail = serializers.EmailField(source="client_email")
+
+
 class BookingAvailabilityQuerySerializer(serializers.Serializer):
     date = serializers.DateField()
     time = serializers.TimeField(input_formats=["%H:%M", "%H:%M:%S"])
