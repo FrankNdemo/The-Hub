@@ -5,12 +5,12 @@ import { ArrowLeft, ArrowRight, CalendarDays, Clock3, User2 } from "lucide-react
 import Footer from "@/components/Footer";
 import { Button } from "@/components/ui/button";
 import { useWellnessHub } from "@/context/WellnessHubContext";
-import { resolveBlogImage } from "@/data/blogImages";
+import { resolveInstantBlogImage } from "@/data/blogImages";
 import { formatDisplayDate } from "@/lib/wellness";
 import type { BlogPost } from "@/types/wellness";
 
 const restoreBlogImage = (event: SyntheticEvent<HTMLImageElement>, post: BlogPost) => {
-  const fallbackImage = resolveBlogImage({ ...post, featuredImage: "" });
+  const fallbackImage = resolveInstantBlogImage(post);
 
   if (event.currentTarget.getAttribute("src") !== fallbackImage) {
     event.currentTarget.src = fallbackImage;
@@ -24,6 +24,7 @@ const BlogPostPage = () => {
 
   const post = blogPosts.find((entry) => entry.slug === slug);
   const relatedPosts = blogPosts.filter((entry) => entry.slug !== slug).slice(0, 3);
+  const postImage = post ? resolveInstantBlogImage(post) : "";
 
   if (isInitializing) {
     return (
@@ -80,11 +81,14 @@ const BlogPostPage = () => {
             </button>
 
             <div className="mt-6 overflow-hidden rounded-[2.25rem] border border-border/60 bg-card shadow-card">
-              <div className="h-[260px] overflow-hidden md:h-[420px]">
+              <div className="h-[260px] overflow-hidden bg-secondary/45 md:h-[420px]">
                 <img
-                  src={post.featuredImage}
+                  src={postImage}
                   alt={post.title}
                   className="h-full w-full object-cover"
+                  loading="eager"
+                  decoding="sync"
+                  fetchpriority="high"
                   onError={(event) => restoreBlogImage(event, post)}
                 />
               </div>
@@ -147,9 +151,11 @@ const BlogPostPage = () => {
                       className="group flex flex-col items-center gap-4 rounded-[1.5rem] bg-secondary/35 p-4 text-center transition-all hover:bg-primary/6 sm:flex-row sm:items-start sm:text-left"
                     >
                       <img
-                        src={entry.featuredImage}
+                        src={resolveInstantBlogImage(entry)}
                         alt={entry.title}
                         className="h-24 w-24 rounded-[1.25rem] object-cover"
+                        loading="eager"
+                        decoding="async"
                         onError={(event) => restoreBlogImage(event, entry)}
                       />
                       <div className="flex-1">

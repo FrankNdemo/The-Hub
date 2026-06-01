@@ -1,6 +1,7 @@
 import { useEffect } from "react";
 
 import storyHeroImage from "@/assets/hero-calm-therapy.jpg";
+import { instantBlogImages } from "@/data/blogImages";
 import { pageHeaderBackgrounds } from "@/lib/pageBackground";
 
 const preloadImage = (src: string) => {
@@ -16,6 +17,7 @@ const NavigationImagePreloader = () => {
       pageHeaderBackgrounds.services.src,
       pageHeaderBackgrounds.team.src,
       pageHeaderBackgrounds.blog.src,
+      ...instantBlogImages,
       storyHeroImage,
       pageHeaderBackgrounds.contact.src,
     ];

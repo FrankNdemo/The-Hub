@@ -22,6 +22,15 @@ const blogImageBySlug: Record<string, string> = {
   "supporting-neurodivergent-children": blogNeurodivergent,
 };
 
+export const instantBlogImages = [
+  blogAnxiety,
+  blogHabits,
+  blogFamily,
+  blogVulnerability,
+  blogGrief,
+  blogNeurodivergent,
+];
+
 const blogImageByFileName: Record<string, string> = {
   "blog-anxiety.jpg": blogAnxiety,
   "blog-family.jpg": blogFamily,
@@ -56,6 +65,28 @@ export const resolveBlogImage = ({ featuredImage = "", slug = "", category = "",
 
     if (hasRenderableImageSource(trimmedImage)) {
       return trimmedImage;
+    }
+  }
+
+  const slugImage = blogImageBySlug[slug];
+
+  if (slugImage) {
+    return slugImage;
+  }
+
+  const searchText = `${slug} ${category} ${title} ${tags.join(" ")}`;
+  return fallbackRules.find((rule) => rule.pattern.test(searchText))?.image ?? blogAnxiety;
+};
+
+export const resolveInstantBlogImage = ({ featuredImage = "", slug = "", category = "", title = "", tags = [] }: BlogImageInput) => {
+  const trimmedImage = featuredImage.trim();
+
+  if (trimmedImage) {
+    const fileName = trimmedImage.split(/[\\/]/).pop() ?? "";
+    const localAssetImage = blogImageByFileName[fileName];
+
+    if (localAssetImage) {
+      return localAssetImage;
     }
   }
 

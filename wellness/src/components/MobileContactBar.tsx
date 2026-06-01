@@ -216,8 +216,8 @@ const MobileContactBar = () => {
         className={cn(
           "fixed inset-x-0 bottom-0 z-[70] border-0 px-5 pb-[max(0.55rem,env(safe-area-inset-bottom))] pt-2.5 backdrop-blur-md transition-[background-color,color,filter] duration-700 ease-in-out md:hidden",
           tone === "inverse"
-            ? "bg-foreground/36 text-white drop-shadow-[0_1px_5px_rgba(0,0,0,0.75)]"
-            : "bg-background/82 text-primary",
+            ? "bg-foreground/48 text-white drop-shadow-[0_1px_5px_rgba(0,0,0,0.75)]"
+            : "bg-[hsl(var(--primary)/0.13)] text-primary",
         )}
       >
         <p className="text-center text-xs font-bold uppercase leading-none tracking-[0.16em]">Talk With Us</p>

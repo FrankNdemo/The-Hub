@@ -7,13 +7,13 @@ import PageHeader from "@/components/PageHeader";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useWellnessHub } from "@/context/WellnessHubContext";
-import { resolveBlogImage } from "@/data/blogImages";
+import { resolveInstantBlogImage } from "@/data/blogImages";
 import { pageHeaderBackgrounds, softPageBackgroundStyle } from "@/lib/pageBackground";
 import { formatDisplayDate, stripHtml } from "@/lib/wellness";
 import type { BlogPost } from "@/types/wellness";
 
 const restoreBlogImage = (event: SyntheticEvent<HTMLImageElement>, post: BlogPost) => {
-  const fallbackImage = resolveBlogImage({ ...post, featuredImage: "" });
+  const fallbackImage = resolveInstantBlogImage(post);
 
   if (event.currentTarget.getAttribute("src") !== fallbackImage) {
     event.currentTarget.src = fallbackImage;
@@ -102,6 +102,7 @@ const BlogPage = () => {
   const remainingPosts = filteredPosts.slice(1);
   const shouldShowLoadingArticles = isInitializing && !featuredPost;
   const searchWidthCh = search.length <= 1 ? 10 : Math.min(30, Math.max(10, search.length + 7));
+  const featuredPostImage = featuredPost ? resolveInstantBlogImage(featuredPost) : "";
 
   const scrollFilters = (direction: "left" | "right") => {
     const rail = filterRailRef.current;
@@ -201,11 +202,14 @@ const BlogPage = () => {
           {featuredPost ? (
             <div className="rounded-[2rem] border border-border/60 bg-card p-5 shadow-card">
               <div className="grid gap-6 lg:grid-cols-[1.1fr_0.9fr]">
-                <div className="overflow-hidden rounded-[1.75rem]">
+                <div className="overflow-hidden rounded-[1.75rem] bg-secondary/45">
                   <img
-                    src={featuredPost.featuredImage}
+                    src={featuredPostImage}
                     alt={featuredPost.title}
                     className="h-full w-full object-cover"
+                    loading="eager"
+                    decoding="sync"
+                    fetchpriority="high"
                     onError={(event) => restoreBlogImage(event, featuredPost)}
                   />
                 </div>
@@ -240,11 +244,13 @@ const BlogPage = () => {
               {remainingPosts.map((post) => (
                 <article key={post.id} className="group overflow-hidden rounded-[2rem] border border-border/60 bg-card shadow-card transition-all hover:-translate-y-1 hover:shadow-hover">
                   <Link to={`/blog/${post.slug}`} className="block h-full">
-                    <div className="h-56 overflow-hidden">
+                    <div className="h-56 overflow-hidden bg-secondary/45">
                       <img
-                        src={post.featuredImage}
+                        src={resolveInstantBlogImage(post)}
                         alt={post.title}
                         className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+                        loading="eager"
+                        decoding="async"
                         onError={(event) => restoreBlogImage(event, post)}
                       />
                     </div>
