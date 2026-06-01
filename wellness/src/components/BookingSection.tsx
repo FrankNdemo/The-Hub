@@ -1771,7 +1771,7 @@ const BookingSection = () => {
           <div className={step === "details" ? "grid gap-12 lg:grid-cols-[0.92fr_1.08fr]" : "grid gap-12"}>
             {step === "details" ? (
               <ScrollReveal direction="left">
-                <div className="wellness-panel overflow-hidden rounded-[2rem] border border-border/60 p-6 text-center shadow-card sm:p-8 lg:text-left">
+                <div className="wellness-panel overflow-hidden rounded-none border border-border/60 p-6 text-center shadow-card sm:p-8 lg:text-left">
                   <LeafBannerHeading
                     eyebrow="Booking Flow"
                     title="Book your first session with confidence."
@@ -1802,7 +1802,7 @@ const BookingSection = () => {
                         description: "As soon as payment succeeds, we send the confirmation package by email.",
                       },
                     ].map((item) => (
-                      <div key={item.title} className="rounded-[1.5rem] bg-background/85 p-5 shadow-soft">
+                      <div key={item.title} className="rounded-none bg-background/85 p-5 shadow-soft">
                         <div className="flex flex-col items-center gap-4 text-center sm:flex-row sm:items-start sm:text-left">
                           <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-primary/10 text-primary">
                             <item.icon className="h-5 w-5" />
@@ -1816,7 +1816,7 @@ const BookingSection = () => {
                     ))}
                   </div>
 
-                  <div className="mt-8 rounded-[1.75rem] bg-foreground px-6 py-5 text-center text-primary-foreground shadow-soft">
+                  <div className="mt-8 rounded-none bg-foreground px-6 py-5 text-center text-primary-foreground shadow-soft">
                     <p className="text-sm uppercase tracking-[0.24em] text-primary-foreground/60">Availability</p>
                     <p className="mt-3 text-lg font-medium">{BOOKING_AVAILABILITY_SUMMARY}</p>
                     <p className="mt-2 text-sm text-primary-foreground/70">
@@ -1842,7 +1842,7 @@ const BookingSection = () => {
                   <form
                     id="schedule-appointment"
                     onSubmit={handleDetailsSubmit}
-                    className="scroll-mt-24 overflow-hidden rounded-[2rem] border border-border/60 bg-card p-6 shadow-card sm:p-8"
+                    className="scroll-mt-24 overflow-hidden rounded-none border border-border/60 bg-card p-6 shadow-card sm:p-8"
                   >
                     <LeafBannerHeading
                       title="Schedule your appointment"
@@ -1864,7 +1864,7 @@ const BookingSection = () => {
                               type="button"
                               aria-pressed={serviceType === item.type}
                               onClick={() => handleServiceTypeSelect(item.type)}
-                              className={`relative min-w-0 rounded-[1rem] border px-2 py-2 text-center transition-all duration-200 sm:px-2.5 sm:py-2.5 ${
+                              className={`relative min-w-0 rounded-none border px-2 py-2 text-center transition-all duration-200 sm:px-2.5 sm:py-2.5 ${
                                 serviceType === item.type
                                   ? "-translate-y-1 border-primary bg-primary/10 shadow-[0_18px_35px_rgba(17,24,39,0.24)]"
                                   : "border-border/60 bg-background hover:-translate-y-0.5 hover:border-primary/40 hover:bg-primary/5 hover:shadow-[0_12px_24px_rgba(17,24,39,0.12)]"
@@ -1898,7 +1898,7 @@ const BookingSection = () => {
                       </div>
 
                       {serviceType === "corporate" ? (
-                        <div className="sm:col-span-2 rounded-[1.5rem] border border-primary/15 bg-secondary/35 p-5 shadow-soft">
+                        <div className="sm:col-span-2 rounded-none border border-primary/15 bg-secondary/35 p-5 shadow-soft">
                           <div className="flex items-center gap-2 text-primary">
                             <Users className="h-4 w-4" />
                             <Label htmlFor="booking-participants" className="text-base font-medium text-foreground">
@@ -2040,7 +2040,7 @@ const BookingSection = () => {
                           </option>
                         ))}
                       </select>
-                      <div className="mt-3 flex items-center gap-3 rounded-[1.25rem] border border-border/60 bg-secondary/25 p-3">
+                      <div className="mt-3 flex items-center gap-3 rounded-none border border-border/60 bg-secondary/25 p-3">
                         <img
                           src={selectedTherapist.image}
                           alt={selectedTherapist.name}
@@ -2068,7 +2068,7 @@ const BookingSection = () => {
                             type="button"
                             aria-pressed={sessionType === item.type}
                             onClick={() => setSessionType(item.type)}
-                            className={`min-w-0 rounded-[1rem] border px-2 py-2 text-center transition-all duration-200 sm:px-2.5 sm:py-2.5 ${
+                            className={`min-w-0 rounded-none border px-2 py-2 text-center transition-all duration-200 sm:px-2.5 sm:py-2.5 ${
                               sessionType === item.type
                                 ? "-translate-y-1 border-primary bg-primary/10 shadow-[0_18px_35px_rgba(17,24,39,0.24)]"
                                 : "border-border/60 bg-background hover:-translate-y-0.5 hover:border-primary/40 hover:bg-primary/5 hover:shadow-[0_12px_24px_rgba(17,24,39,0.12)]"
@@ -2105,7 +2105,7 @@ const BookingSection = () => {
                       />
                     </div>
 
-                    <div className="mt-6 flex flex-col items-center gap-3 rounded-[1.5rem] bg-secondary/50 px-4 py-4 text-center text-sm text-muted-foreground sm:flex-row sm:text-left">
+                    <div className="mt-6 flex flex-col items-center gap-3 rounded-none bg-secondary/50 px-4 py-4 text-center text-sm text-muted-foreground sm:flex-row sm:text-left">
                       <ShieldCheck className="h-5 w-5 text-primary" />
                       <span>Your booking details remain private, and your follow-up session link is unique to you.</span>
                     </div>

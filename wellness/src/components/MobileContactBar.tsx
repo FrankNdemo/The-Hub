@@ -236,7 +236,7 @@ const MobileContactBar = () => {
             target="_blank"
             rel="noreferrer"
           >
-            <WhatsAppIcon className="h-[1.15rem] w-[1.15rem] shrink-0 text-[#5e8673]" />
+            <WhatsAppIcon className="h-[1.35rem] w-[1.35rem] shrink-0 text-[#5e8673]" />
             <span className="truncate">WhatsApp</span>
           </a>
           <span

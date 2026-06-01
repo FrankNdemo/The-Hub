@@ -13,6 +13,7 @@ import ScrollReveal from "@/components/ScrollReveal";
 import { Button } from "@/components/ui/button";
 import { useWellnessHub } from "@/context/WellnessHubContext";
 import { getClientStoryTestimonials } from "@/lib/clientTestimonials";
+import { cn } from "@/lib/utils";
 import {
   familyServiceImage,
   homeSpecializedSupportImage,
@@ -374,7 +375,10 @@ const Index = () => {
                         alt={profile.name}
                         loading="eager"
                         decoding="async"
-                        className="h-full w-full object-contain object-top"
+                        className={cn(
+                          "h-full w-full object-top",
+                          profile.id === "kelvin-kagiri" ? "object-cover sm:object-contain" : "object-contain",
+                        )}
                       />
                     </div>
                   </div>

@@ -51,7 +51,7 @@ const ExplorationCallPage = () => {
     selectableTherapists.find((item) => item.id === form.therapistId) ?? selectableTherapists[0] ?? therapist;
   const canSubmit = Boolean(form.therapistId) && !isSubmitting && !isLoadingTherapists;
   const callDetailsCard = (
-    <div className="rounded-[1.5rem] border border-primary/15 bg-primary/8 p-5">
+    <div className="rounded-none border border-primary/15 bg-primary/8 p-5">
       <p className="text-sm font-semibold uppercase tracking-[0.22em] text-primary/80">Call details</p>
       <div className="mt-4 space-y-3">
         <div className="flex items-start gap-3">
@@ -363,7 +363,7 @@ const ExplorationCallPage = () => {
             ) : (
               <ScrollReveal direction="up">
                 <>
-                  <form onSubmit={handleSubmit} className="overflow-hidden rounded-[2rem] border border-border/60 bg-card p-6 shadow-card sm:p-8">
+                  <form onSubmit={handleSubmit} className="overflow-hidden rounded-none border border-border/60 bg-card p-6 shadow-card sm:p-8">
                     <LeafBannerHeading
                       title="Book your exploration call"
                       description="Simple, private, and separate from the full therapy session booking flow."
@@ -454,13 +454,13 @@ const ExplorationCallPage = () => {
                         />
                       </div>
 
-                      <div className="rounded-[1.25rem] bg-primary/8 px-4 py-3 text-sm leading-7 text-muted-foreground">
+                      <div className="rounded-none bg-primary/8 px-4 py-3 text-sm leading-7 text-muted-foreground">
                         {BOOKING_AVAILABILITY_DETAIL}
                       </div>
                     </div>
 
                     <div className="space-y-5">
-                      <div className="wellness-panel rounded-[1.5rem] border border-border/60 p-5 shadow-card">
+                      <div className="wellness-panel rounded-none border border-border/60 p-5 shadow-card">
                         <div className="flex items-center justify-between gap-3">
                           <p className="text-sm font-semibold uppercase tracking-[0.22em] text-primary/75">Choose therapist</p>
                           {isLoadingTherapists ? <LoaderCircle className="h-4 w-4 animate-spin text-primary" /> : null}
@@ -487,7 +487,7 @@ const ExplorationCallPage = () => {
                           )}
                         </select>
 
-                        <div className="mt-3 flex items-center gap-3 rounded-[1.25rem] border border-border/60 bg-secondary/25 p-3">
+                        <div className="mt-3 flex items-center gap-3 rounded-none border border-border/60 bg-secondary/25 p-3">
                           {selectedTherapist.image ? (
                             <img
                               src={selectedTherapist.image}
@@ -520,7 +520,7 @@ const ExplorationCallPage = () => {
                       </div>
 
                       {bookingGuidance ? (
-                        <div className="rounded-[1.25rem] border border-primary/20 bg-primary/8 px-4 py-3 text-sm leading-7 text-foreground">
+                        <div className="rounded-none border border-primary/20 bg-primary/8 px-4 py-3 text-sm leading-7 text-foreground">
                           {bookingGuidance}
                         </div>
                       ) : null}
