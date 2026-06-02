@@ -25,6 +25,8 @@ const NETWORK_UNAVAILABLE_MESSAGE = "Unable to reach our service. Check your int
 const SERVICE_UNAVAILABLE_MESSAGE = "Our service is temporarily unavailable. Please try again shortly.";
 const SERVICE_ERROR_MESSAGE = "Something went wrong while completing your request. Please try again shortly.";
 const REQUEST_ERROR_MESSAGE = "We could not complete this request right now. Please try again.";
+const MISSING_API_BASE_URL_MESSAGE =
+  "This deployed frontend is missing VITE_API_BASE_URL. Point it to your backend /api/v1 URL, then confirm that origin is allowed in Django CORS.";
 const TECHNICAL_ERROR_PATTERNS = [
   /\bapi\b/i,
   /\bbackend\b/i,
@@ -300,6 +302,11 @@ let refreshPromise: Promise<AuthTokens | null> | null = null;
 const fetchFromApi = async (path: string, init: RequestInit) => {
   const candidates = getApiBaseCandidates();
   let lastNetworkError: Error | null = null;
+
+  if (candidates.length === 0) {
+    console.error(MISSING_API_BASE_URL_MESSAGE);
+    throw new Error(MISSING_API_BASE_URL_MESSAGE);
+  }
 
   for (const apiBaseUrl of candidates) {
     try {

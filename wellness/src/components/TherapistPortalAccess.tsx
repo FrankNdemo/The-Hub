@@ -37,6 +37,7 @@ const TherapistPortalAccess = () => {
   const passphraseInputRef = useRef<HTMLInputElement | null>(null);
   const emailInputRef = useRef<HTMLInputElement | null>(null);
   const passwordInputRef = useRef<HTMLInputElement | null>(null);
+  const unlockAttemptRef = useRef(0);
 
   const formatPassphraseError = (message: string) => {
     const normalized = message.trim().toLowerCase();
@@ -112,18 +113,46 @@ const TherapistPortalAccess = () => {
     setIsResettingPassword(false);
   };
 
-  const unlockPortal = async (value: string) => {
+  useEffect(() => {
+    if (!showPassphrase || loginOpen) {
+      return;
+    }
+
+    const value = passphrase.trim();
+    if (value.length < 3) {
+      return;
+    }
+
+    const timeout = window.setTimeout(() => {
+      void unlockPortal(value, { showError: false });
+    }, 180);
+
+    return () => window.clearTimeout(timeout);
+  }, [loginOpen, passphrase, showPassphrase]);
+
+  const unlockPortal = async (value: string, options: { showError?: boolean } = {}) => {
+    const showError = options.showError ?? true;
+    const attempt = unlockAttemptRef.current + 1;
+    unlockAttemptRef.current = attempt;
     setIsUnlocking(true);
 
     const result = await verifyTherapistPassphrase(value);
 
+    if (attempt !== unlockAttemptRef.current) {
+      return;
+    }
+
     if (!result.success) {
-      setPassphrase("");
-      setPassphraseError(formatPassphraseError(result.error));
+      if (showError) {
+        setPassphrase("");
+        setPassphraseError(formatPassphraseError(result.error));
+      }
       setIsUnlocking(false);
-      window.requestAnimationFrame(() => {
-        passphraseInputRef.current?.focus();
-      });
+      if (showError) {
+        window.requestAnimationFrame(() => {
+          passphraseInputRef.current?.focus();
+        });
+      }
       return;
     }
 
@@ -220,14 +249,13 @@ const TherapistPortalAccess = () => {
       {showPassphrase ? (
         <form
           onSubmit={handlePassphraseSubmit}
-          className="w-full max-w-xs rounded-[1.75rem] border border-primary/20 bg-primary/5 px-4 py-3 shadow-card"
+          className="w-full max-w-xs rounded-[1.75rem] border border-primary/25 bg-primary/5 px-4 py-3 shadow-[0_0_28px_hsl(var(--primary)/0.22)] transition-shadow duration-300 focus-within:shadow-[0_0_42px_hsl(var(--primary)/0.34)]"
         >
           <div className="flex items-center">
             <Input
               ref={passphraseInputRef}
               value={passphrase}
               onChange={(event) => handlePassphraseChange(event.target.value)}
-              placeholder="Enter secure passphrase"
               className="h-10 rounded-full border-0 bg-transparent shadow-none focus-visible:ring-0"
               autoFocus
               aria-label="Enter secure passphrase"
