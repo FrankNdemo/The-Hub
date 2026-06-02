@@ -21,7 +21,7 @@ const FALLBACK_API_BASE_URL = "http://127.0.0.1:8000/api/v1";
 const LOCALHOST_API_BASE_URL = "http://localhost:8000/api/v1";
 const AUTH_STORAGE_KEY = "wellness-auth-v1";
 const API_BASE_STORAGE_KEY = "wellness-api-base-v1";
-const NETWORK_UNAVAILABLE_MESSAGE = "Unable to reach our service. Check your internet connection and try again.";
+const NETWORK_UNAVAILABLE_MESSAGE = "Unable to reach our service. Please try again shortly.";
 const SERVICE_UNAVAILABLE_MESSAGE = "Our service is temporarily unavailable. Please try again shortly.";
 const SERVICE_ERROR_MESSAGE = "Something went wrong while completing your request. Please try again shortly.";
 const REQUEST_ERROR_MESSAGE = "We could not complete this request right now. Please try again.";
@@ -119,9 +119,8 @@ const addApiBaseCandidate = (candidates: string[], candidate?: string | null) =>
 
 const getApiBaseCandidates = () => {
   const candidates: string[] = [];
+  const configuredApiBaseUrl = getConfiguredApiBaseUrl();
   let allowLocalCandidates = false;
-
-  addApiBaseCandidate(candidates, getConfiguredApiBaseUrl());
 
   if (typeof window !== "undefined") {
     const { hostname, protocol } = window.location;
@@ -130,6 +129,10 @@ const getApiBaseCandidates = () => {
     if (allowLocalCandidates) {
       addApiBaseCandidate(candidates, buildApiBaseUrl(hostname, protocol));
     }
+  }
+
+  if (!isLocalOnlyApiBase(configuredApiBaseUrl) || allowLocalCandidates) {
+    addApiBaseCandidate(candidates, configuredApiBaseUrl);
   }
 
   if (preferredApiBaseUrl && (!isLocalOnlyApiBase(preferredApiBaseUrl) || allowLocalCandidates)) {

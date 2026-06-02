@@ -5,7 +5,7 @@ import { ApiError, getApiErrorMessage } from "./api";
 describe("getApiErrorMessage", () => {
   it("shows a user-friendly network message", () => {
     expect(getApiErrorMessage(new Error("Failed to fetch"), "Fallback message.")).toBe(
-      "Unable to reach our service. Check your internet connection and try again.",
+      "Unable to reach our service. Please try again shortly.",
     );
   });
 

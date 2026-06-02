@@ -134,7 +134,10 @@ const TherapistPortalAccess = () => {
     const showError = options.showError ?? true;
     const attempt = unlockAttemptRef.current + 1;
     unlockAttemptRef.current = attempt;
-    setIsUnlocking(true);
+
+    if (showError) {
+      setIsUnlocking(true);
+    }
 
     const result = await verifyTherapistPassphrase(value);
 
@@ -147,7 +150,9 @@ const TherapistPortalAccess = () => {
         setPassphrase("");
         setPassphraseError(formatPassphraseError(result.error));
       }
-      setIsUnlocking(false);
+      if (showError) {
+        setIsUnlocking(false);
+      }
       if (showError) {
         window.requestAnimationFrame(() => {
           passphraseInputRef.current?.focus();
@@ -244,12 +249,18 @@ const TherapistPortalAccess = () => {
     return null;
   }
 
+  const isPassphraseActive = passphrase.trim().length > 0;
+
   return (
     <div className="mt-8 flex flex-col items-center gap-3 text-center">
       {showPassphrase ? (
         <form
           onSubmit={handlePassphraseSubmit}
-          className="w-full max-w-xs rounded-[1.75rem] border border-primary/25 bg-primary/5 px-4 py-3 shadow-[0_0_28px_hsl(var(--primary)/0.22)] transition-shadow duration-300 focus-within:shadow-[0_0_42px_hsl(var(--primary)/0.34)]"
+          className={`w-full max-w-xs rounded-[1.75rem] border border-primary/25 bg-primary/5 px-4 py-3 transition-shadow duration-300 ${
+            isPassphraseActive
+              ? "shadow-[0_0_46px_hsl(var(--primary)/0.42)]"
+              : "shadow-[0_0_20px_hsl(var(--primary)/0.16)] focus-within:shadow-[0_0_34px_hsl(var(--primary)/0.28)]"
+          }`}
         >
           <div className="flex items-center">
             <Input
