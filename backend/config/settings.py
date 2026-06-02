@@ -136,9 +136,22 @@ def parse_database_url(value: str) -> dict[str, str]:
 
 SECRET_KEY = env("DJANGO_SECRET_KEY", "django-insecure-the-wellness-hub-local-dev")
 DEBUG = env("DJANGO_DEBUG", "True").lower() == "true"
+PUBLIC_FRONTEND_ORIGINS = env_list(
+    "PUBLIC_FRONTEND_ORIGINS",
+    "https://wellnesshub.africa,https://www.wellnesshub.africa",
+)
+FRONTEND_BASE_URL = env("FRONTEND_BASE_URL", "http://localhost:8080").rstrip("/")
+FRONTEND_ORIGINS = unique_values([FRONTEND_BASE_URL, *PUBLIC_FRONTEND_ORIGINS])
 ALLOWED_HOSTS = env_list("DJANGO_ALLOWED_HOSTS", "localhost,127.0.0.1,[::1],testserver")
 USE_X_FORWARDED_HOST = True
 SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
+
+ALLOWED_HOSTS = unique_values(
+    [
+        *ALLOWED_HOSTS,
+        *(hostname_from_url(origin) for origin in FRONTEND_ORIGINS),
+    ]
+)
 
 if env("DJANGO_AUTO_ALLOW_VERCEL_HOSTS", "True").lower() == "true":
     ALLOWED_HOSTS = unique_values(
@@ -287,6 +300,7 @@ CORS_ALLOWED_ORIGINS = env_list(
     "DJANGO_CORS_ALLOWED_ORIGINS",
     "http://localhost:8080,http://127.0.0.1:8080,http://localhost:5173,http://127.0.0.1:5173",
 )
+CORS_ALLOWED_ORIGINS = unique_values([*CORS_ALLOWED_ORIGINS, *FRONTEND_ORIGINS])
 CORS_ALLOWED_ORIGIN_REGEXES = (
     [
         r"^https?://localhost(?::\d+)?$",
@@ -304,7 +318,7 @@ CSRF_TRUSTED_ORIGINS = env_list(
     "DJANGO_CSRF_TRUSTED_ORIGINS",
     "http://localhost:8080,http://127.0.0.1:8080,http://localhost:5173,http://127.0.0.1:5173",
 )
-FRONTEND_BASE_URL = env("FRONTEND_BASE_URL", "http://localhost:8080").rstrip("/")
+CSRF_TRUSTED_ORIGINS = unique_values([*CSRF_TRUSTED_ORIGINS, *FRONTEND_ORIGINS])
 
 EMAIL_BACKEND = env("EMAIL_BACKEND", "django.core.mail.backends.console.EmailBackend")
 EMAIL_HOST = env("EMAIL_HOST", "")
