@@ -450,7 +450,7 @@ const ExplorationCallPage = () => {
                           value={form.notes}
                           onChange={(event) => updateField("notes", event.target.value)}
                           className="mt-2 min-h-[120px]"
-                          placeholder="For example: I am not sure which type of support fits me best, or I want to understand what the first full session would look like."
+                          placeholder="For example: I am not sure which type of support fits me best"
                         />
                       </div>
 
