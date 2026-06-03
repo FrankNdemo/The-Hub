@@ -1,4 +1,4 @@
 User-agent: *
 Allow: /
 
-Sitemap: https://wellnesshub.africa/sitemap.xml
+Sitemap: https://wellnesshub.africa/sitemap-main.xml
