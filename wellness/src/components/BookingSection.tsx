@@ -79,6 +79,7 @@ const STK_SENT_PROMOTE_DELAY_MS = 900;
 const PAYMENT_STATUS_FAST_POLL_INTERVAL_MS = 1000;
 const PAYMENT_STATUS_SLOW_POLL_INTERVAL_MS = 2500;
 const PAYMENT_STATUS_FAST_POLL_WINDOW_MS = 18000;
+const EMAIL_SESSION_PRECHECK_DELAY_MS = 120;
 const DEFAULT_BOOKING_FEE_AMOUNT = 200;
 const MANUAL_PAYMENT_PAYBILL = "714777";
 const MANUAL_PAYMENT_ACCOUNT = "0726759850";
@@ -676,6 +677,7 @@ const BookingSection = () => {
       : availableTherapists[0]?.id) ?? therapist.id;
   const sectionRef = useRef<HTMLElement | null>(null);
   const lastScheduleNoticeRef = useRef(0);
+  const emailSessionCheckIdRef = useRef(0);
   const {
     serviceType,
     sessionType,
@@ -847,14 +849,50 @@ const BookingSection = () => {
     sessionType,
   ]);
 
+  const checkClientEmailSession = useCallback(async (clientEmail: string): Promise<{ canBook: boolean; message: string }> => {
+    const checkId = emailSessionCheckIdRef.current + 1;
+    emailSessionCheckIdRef.current = checkId;
+    setIsCheckingEmailSession(true);
+
+    try {
+      await precheckBookingClientEmail(clientEmail);
+      if (emailSessionCheckIdRef.current !== checkId) {
+        return { canBook: false, message: "Please wait a moment while we check this email." };
+      }
+
+      setCheckedClientEmail(clientEmail);
+      setActiveSessionMessage("");
+      return { canBook: true, message: "" };
+    } catch (error) {
+      if (emailSessionCheckIdRef.current !== checkId) {
+        return { canBook: false, message: "Please wait a moment while we check this email." };
+      }
+
+      const errorCode = getApiErrorCode(error);
+      const message =
+        errorCode === "active_session_exists"
+          ? ACTIVE_SESSION_EMAIL_ERROR
+          : getApiErrorMessage(error, "We could not check this email yet. Please try again.");
+      setCheckedClientEmail(clientEmail);
+      setActiveSessionMessage(message);
+      return { canBook: false, message };
+    } finally {
+      if (emailSessionCheckIdRef.current === checkId) {
+        setIsCheckingEmailSession(false);
+      }
+    }
+  }, []);
+
   useEffect(() => {
     if (step !== "details") {
+      emailSessionCheckIdRef.current += 1;
       setIsCheckingEmailSession(false);
       return;
     }
 
     const clientEmail = normalizedClientEmail;
     if (!shouldCheckClientEmail) {
+      emailSessionCheckIdRef.current += 1;
       setIsCheckingEmailSession(false);
       setActiveSessionMessage("");
       setCheckedClientEmail("");
@@ -863,38 +901,16 @@ const BookingSection = () => {
 
     let isActive = true;
     const timeoutId = window.setTimeout(() => {
-      setIsCheckingEmailSession(true);
-
-      precheckBookingClientEmail(clientEmail)
-        .then(() => {
-          if (!isActive) {
-            return;
-          }
-
-          setCheckedClientEmail(clientEmail);
-          setActiveSessionMessage("");
-        })
-        .catch((error) => {
-          if (!isActive) {
-            return;
-          }
-
-          const errorCode = getApiErrorCode(error);
-          setCheckedClientEmail(clientEmail);
-          setActiveSessionMessage(errorCode === "active_session_exists" ? ACTIVE_SESSION_EMAIL_ERROR : "");
-        })
-        .finally(() => {
-          if (isActive) {
-            setIsCheckingEmailSession(false);
-          }
-        });
-    }, 450);
+      if (isActive) {
+        void checkClientEmailSession(clientEmail);
+      }
+    }, EMAIL_SESSION_PRECHECK_DELAY_MS);
 
     return () => {
       isActive = false;
       window.clearTimeout(timeoutId);
     };
-  }, [normalizedClientEmail, shouldCheckClientEmail]);
+  }, [checkClientEmailSession, normalizedClientEmail, shouldCheckClientEmail, step]);
 
   useEffect(() => {
     setForm((current) => {
@@ -1221,14 +1237,17 @@ const BookingSection = () => {
       return;
     }
 
-    if (isCheckingEmailSession || isCheckingBookingPrecheck) {
+    if (isCheckingBookingPrecheck) {
       toast.error("Please wait a moment while we finish checking these booking details.");
       return;
     }
 
-    if (isEmailSessionCheckPending) {
-      toast.error("Please wait a moment while we check this email.");
-      return;
+    if (shouldCheckClientEmail && (isCheckingEmailSession || isEmailSessionCheckPending)) {
+      const emailCheck = await checkClientEmailSession(normalizedClientEmail);
+      if (!emailCheck.canBook) {
+        toast.error(emailCheck.message);
+        return;
+      }
     }
 
     if (hasScheduleValidationError) {

@@ -3,6 +3,7 @@ import { Eye, Heart, Leaf, Shield, Sun, Target } from "lucide-react";
 
 import aboutImg from "@/assets/about-therapy.jpg";
 import founderGichiaImg from "@/assets/founder-gichia-cutout.png";
+import leafDecor from "@/assets/leaf-decoration.png";
 import Footer from "@/components/Footer";
 import LeafBannerHeading from "@/components/LeafBannerHeading";
 import PageHeader from "@/components/PageHeader";
@@ -291,10 +292,25 @@ const AboutPage = () => {
             </div>
 
             <div className="relative flex min-h-[420px] flex-col items-center justify-center overflow-hidden bg-foreground px-6 py-12 text-center text-primary-foreground sm:px-10 lg:px-12">
-              <div className="pointer-events-none absolute -right-8 top-5 h-40 w-40 opacity-20">
-                <Leaf className="h-full w-full text-[#d99a2b]" strokeWidth={1.2} />
+              <div className="pointer-events-none absolute inset-0" aria-hidden="true">
+                <span className="absolute -right-2 top-4 block animate-founder-leaf-bounce sm:right-4 sm:top-7">
+                  <img
+                    src={leafDecor}
+                    alt=""
+                    aria-hidden="true"
+                    className="w-12 rotate-[142deg] opacity-55 mix-blend-screen sm:w-16"
+                  />
+                </span>
+                <span className="absolute -bottom-1 left-1 block animate-founder-leaf-bounce animation-delay-400 sm:bottom-4 sm:left-6">
+                  <img
+                    src={leafDecor}
+                    alt=""
+                    aria-hidden="true"
+                    className="w-12 -rotate-12 opacity-40 mix-blend-screen sm:w-16"
+                  />
+                </span>
               </div>
-              <div className="relative z-10">
+              <div className="relative z-10 -mt-10 sm:-mt-14">
                 <h3 className="font-heading text-3xl font-semibold leading-tight text-[#d99a2b] sm:text-4xl">
                   Dr. Caroline Gichia
                 </h3>
