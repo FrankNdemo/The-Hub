@@ -22,6 +22,7 @@ import { toast } from "sonner";
 import { useNavigationPreview } from "@/context/NavigationPreviewContext";
 import { useWellnessHub } from "@/context/WellnessHubContext";
 import { cn } from "@/lib/utils";
+import { getWhatsAppHref } from "@/lib/whatsapp";
 import leafDecor from "@/assets/leaf-decoration.png";
 import { Button } from "@/components/ui/button";
 import WellnessLogo from "./WellnessLogo";
@@ -134,13 +135,14 @@ const Navbar = () => {
   const shouldFloatHomeMobileNav = !showTherapistHeader && isHomePage && hasScrolled && hasPassedHomeHero;
   const isInverseTone = navTone === "inverse";
   const menuWhatsAppNumber = therapist.phone.replace(/\D/g, "");
+  const menuWhatsAppHref = getWhatsAppHref(therapist.phone);
   const menuLocationQuery = therapist.location.filter(Boolean).join(", ");
   const menuMapHref = menuLocationQuery ? WELLNESS_HUB_MAP_URL : "";
   const menuQuickActions = [
     { label: "Exploration Call", to: "/exploration-call#book-exploration-call", icon: PhoneCall },
     { label: "Email", href: `mailto:${therapist.email}`, icon: EmailIcon },
     menuWhatsAppNumber
-      ? { label: "WhatsApp", href: `https://wa.me/${menuWhatsAppNumber}`, icon: WhatsAppIcon }
+      ? { label: "WhatsApp", href: menuWhatsAppHref, icon: WhatsAppIcon }
       : null,
     menuMapHref ? { label: "Directions", href: menuMapHref, icon: LocationIcon } : null,
   ].filter((action): action is MenuQuickAction => Boolean(action));

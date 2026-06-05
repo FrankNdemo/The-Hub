@@ -2,6 +2,7 @@ import { Link } from "react-router-dom";
 import { Eye, Heart, Leaf, Shield, Sun, Target } from "lucide-react";
 
 import aboutImg from "@/assets/about-therapy.jpg";
+import founderGichiaImg from "@/assets/founder-gichia-cutout.png";
 import Footer from "@/components/Footer";
 import LeafBannerHeading from "@/components/LeafBannerHeading";
 import PageHeader from "@/components/PageHeader";
@@ -9,6 +10,7 @@ import ParallaxBackgroundImage from "@/components/ParallaxBackgroundImage";
 import { Button } from "@/components/ui/button";
 import { useWellnessHub } from "@/context/WellnessHubContext";
 import { pageHeaderBackgrounds, softPageBackgroundStyle } from "@/lib/pageBackground";
+import { getWhatsAppHref } from "@/lib/whatsapp";
 
 const values = [
   { icon: Heart, title: "Authenticity", description: "A space where you can be honest, human, and emotionally unguarded without fear of judgment." },
@@ -28,8 +30,45 @@ const aboutValueBackgroundImage =
 const aboutApproachBackgroundImage =
   "https://images.pexels.com/photos/30688913/pexels-photo-30688913.jpeg?auto=compress&cs=tinysrgb&w=1800&h=980&fit=crop";
 
+const WhatsAppIcon = ({ className }: { className?: string }) => (
+  <svg viewBox="0 0 32 32" aria-hidden="true" className={className} fill="none" xmlns="http://www.w3.org/2000/svg">
+    <path
+      d="M27.1 4.7A15.1 15.1 0 0 0 3.4 22.8L2 30l7.4-1.9A15.1 15.1 0 0 0 27.1 4.7Z"
+      stroke="currentColor"
+      strokeWidth="2.4"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+    <path
+      d="M11.4 9.4c-.3 0-.7.1-1 .5-.4.4-1.4 1.4-1.4 3.4s1.5 4 1.7 4.3c.2.3 3 4.7 7.3 6.3 3.6 1.4 4.3.9 5.1.8.8-.1 2.5-1 2.8-2 .4-1 .4-1.8.3-2-.1-.2-.4-.3-.8-.5l-2.9-1.4c-.4-.2-.7-.2-1 .2-.3.4-1.1 1.4-1.4 1.7-.2.3-.5.3-.9.1a11.7 11.7 0 0 1-5.9-5.2c-.2-.4 0-.7.2-.9l.7-.8c.2-.3.3-.4.5-.7.1-.3.1-.5 0-.7l-1.3-3c-.3-.8-.7-.8-1-.8h-.9Z"
+      fill="currentColor"
+    />
+  </svg>
+);
+
+const InstagramIcon = ({ className }: { className?: string }) => (
+  <svg viewBox="0 0 32 32" aria-hidden="true" className={className} fill="none" xmlns="http://www.w3.org/2000/svg">
+    <rect x="6" y="6" width="20" height="20" rx="6" stroke="currentColor" strokeWidth="2.6" />
+    <circle cx="16" cy="16" r="5.1" stroke="currentColor" strokeWidth="2.6" />
+    <circle cx="22" cy="10.2" r="1.5" fill="currentColor" />
+  </svg>
+);
+
+const XIcon = ({ className }: { className?: string }) => (
+  <svg viewBox="0 0 32 32" aria-hidden="true" className={className} fill="none" xmlns="http://www.w3.org/2000/svg">
+    <path d="M6 6l16.6 20h3.5L9.5 6H6Z" fill="currentColor" />
+    <path d="M6 26 14.1 16 22 6h4L17.8 16 10 26H6Z" fill="currentColor" />
+  </svg>
+);
+
 const AboutPage = () => {
   const { therapist } = useWellnessHub();
+  const whatsappHref = getWhatsAppHref(therapist.phone);
+  const founderSocials = [
+    { label: "WhatsApp", icon: WhatsAppIcon },
+    { label: "Instagram", icon: InstagramIcon },
+    { label: "X (Twitter)", icon: XIcon },
+  ];
 
   return (
     <div className="min-h-screen" style={softPageBackgroundStyle}>
@@ -223,6 +262,68 @@ const AboutPage = () => {
               >
                 <Link to="/contact">Contact Us</Link>
               </Button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section className="pb-24">
+        <div className="container mx-auto px-4">
+          <div className="mx-auto max-w-3xl text-center">
+            <div className="flex items-center justify-center gap-4 text-[#d99a2b]">
+              <span className="h-px w-14 bg-current sm:w-24" />
+              <p className="text-base font-semibold uppercase text-[#d99a2b] sm:text-xl">Meet the</p>
+              <span className="h-px w-14 bg-current sm:w-24" />
+            </div>
+            <h2 className="founder-script relative mx-auto mt-1 inline-flex pb-3 text-6xl font-bold leading-none text-foreground sm:text-7xl md:text-8xl">
+              <span>Founder</span>
+              <span className="absolute bottom-0 left-[8%] h-[0.18rem] w-[86%] -rotate-2 rounded-full bg-foreground" />
+            </h2>
+          </div>
+
+          <div className="mx-auto mt-10 grid max-w-6xl overflow-hidden bg-background shadow-card lg:grid-cols-[0.92fr_1.08fr]">
+            <div className="relative flex min-h-[420px] items-end justify-center overflow-hidden bg-background sm:min-h-[520px] lg:min-h-[560px]">
+              <img
+                src={founderGichiaImg}
+                alt={`${therapist.name}, founder of The Wellness Hub`}
+                className="h-full min-h-[420px] w-full object-contain object-bottom drop-shadow-[0_28px_44px_hsl(var(--foreground)/0.22)] sm:min-h-[520px] lg:min-h-[560px]"
+              />
+            </div>
+
+            <div className="relative flex min-h-[420px] flex-col items-center justify-center overflow-hidden bg-foreground px-6 py-12 text-center text-primary-foreground sm:px-10 lg:px-12">
+              <div className="pointer-events-none absolute -right-8 top-5 h-40 w-40 opacity-20">
+                <Leaf className="h-full w-full text-[#d99a2b]" strokeWidth={1.2} />
+              </div>
+              <div className="relative z-10">
+                <h3 className="font-heading text-3xl font-semibold leading-tight text-[#d99a2b] sm:text-4xl">
+                  Dr. Caroline Gichia
+                </h3>
+                <div className="mt-5 font-heading text-6xl leading-none text-[#d99a2b]">“</div>
+                <p className="mx-auto mt-2 max-w-sm text-2xl font-semibold leading-snug sm:text-3xl">
+                  Empowering minds, transforming lives, one conversation at a time.
+                </p>
+                <div className="mx-auto mt-8 flex max-w-xs items-center justify-center gap-3 text-[#d99a2b]">
+                  <span className="h-px flex-1 bg-current" />
+                  <Leaf className="h-6 w-6" strokeWidth={1.7} />
+                  <span className="h-px flex-1 bg-current" />
+                </div>
+
+                <div className="mt-9 grid grid-cols-3 divide-x divide-[#d99a2b]/60">
+                  {founderSocials.map((social) => (
+                    <a
+                      key={social.label}
+                      href={whatsappHref}
+                      target="_blank"
+                      rel="noreferrer"
+                      aria-label={`${social.label} - open WhatsApp`}
+                      className="group flex min-h-[94px] flex-col items-center justify-center px-3 text-primary-foreground transition-colors duration-300 hover:text-[#d99a2b]"
+                    >
+                      <social.icon className="h-10 w-10 sm:h-12 sm:w-12" />
+                      <span className="mt-3 text-[0.62rem] font-bold uppercase sm:text-xs">{social.label}</span>
+                    </a>
+                  ))}
+                </div>
+              </div>
             </div>
           </div>
         </div>

@@ -2,10 +2,12 @@ import { useEffect, useRef, useState, type SVGProps } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { PhoneCall } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { getWhatsAppHref } from "@/lib/whatsapp";
 import { useFormDrafts } from "@/context/FormDraftContext";
 import { primaryTherapist } from "@/data/siteData";
 
 const WHATSAPP_PHONE_E164 = primaryTherapist.phone.replace(/\D/g, "");
+const WHATSAPP_HREF = getWhatsAppHref(primaryTherapist.phone);
 const EXPLORATION_CALL_PATH = "/exploration-call#book-exploration-call";
 
 const WhatsAppIcon = ({ className, ...props }: SVGProps<SVGSVGElement>) => (
@@ -230,7 +232,7 @@ const MobileContactBar = () => {
         />
         <div className="grid min-h-9 grid-cols-[1fr_auto_1fr] items-center px-3 pt-2 text-xs font-semibold leading-none min-[380px]:text-[13px]">
           <a
-            href={`https://wa.me/${WHATSAPP_PHONE_E164}`}
+            href={WHATSAPP_HREF}
             className="flex min-w-0 items-center justify-center gap-1.5 whitespace-nowrap px-1"
             aria-label="Chat on WhatsApp"
             target="_blank"

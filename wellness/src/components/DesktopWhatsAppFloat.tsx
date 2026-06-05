@@ -3,6 +3,7 @@ import { useLocation } from "react-router-dom";
 
 import { useWellnessHub } from "@/context/WellnessHubContext";
 import { cn } from "@/lib/utils";
+import { getWhatsAppHref } from "@/lib/whatsapp";
 
 const WhatsAppIcon = ({ className, ...props }: SVGProps<SVGSVGElement>) => (
   <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false" className={className} fill="currentColor" {...props}>
@@ -15,6 +16,7 @@ const DesktopWhatsAppFloat = () => {
   const { therapist } = useWellnessHub();
   const location = useLocation();
   const whatsappNumber = therapist.phone.replace(/\D/g, "");
+  const whatsappHref = getWhatsAppHref(therapist.phone);
   const shouldHide = isMenuOpen || !whatsappNumber || location.pathname.startsWith("/therapist");
   const shouldFloatLeft = location.pathname === "/booking" || location.pathname === "/contact";
 
@@ -34,7 +36,7 @@ const DesktopWhatsAppFloat = () => {
 
   return (
     <a
-      href={`https://wa.me/${whatsappNumber}`}
+      href={whatsappHref}
       target="_blank"
       rel="noreferrer"
       aria-label="Talk to us on WhatsApp"

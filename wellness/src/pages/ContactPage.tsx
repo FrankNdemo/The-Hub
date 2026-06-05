@@ -15,6 +15,7 @@ import { emptyContactDraft, useFormDrafts } from "@/context/FormDraftContext";
 import { useWellnessHub } from "@/context/WellnessHubContext";
 import { getApiErrorMessage, sendContactInquiry } from "@/lib/api";
 import { pageHeaderBackgrounds, softPageBackgroundStyle } from "@/lib/pageBackground";
+import { getWhatsAppHref } from "@/lib/whatsapp";
 
 const WELLNESS_HUB_MAP_URL = "https://maps.app.goo.gl/CzPK4ad5eeTAANLP6?g_st=aw";
 const contactGardenImage =
@@ -30,8 +31,7 @@ const ContactPage = () => {
   const locationLines = [mapArea, ...therapist.location.slice(1)];
   const mapHref = WELLNESS_HUB_MAP_URL;
   const emailHref = `mailto:${therapist.email}`;
-  const whatsappNumber = therapist.phone.replace(/\D/g, "");
-  const whatsappHref = `https://wa.me/${whatsappNumber}`;
+  const whatsappHref = getWhatsAppHref(therapist.phone);
   const contactItems = [
     {
       icon: MapPin,
