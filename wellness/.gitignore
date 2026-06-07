@@ -20,6 +20,7 @@ dist-ssr/
 # Local environment files
 .env
 .env.*
+!.env.example
 *.local
 
 # Test and tooling output

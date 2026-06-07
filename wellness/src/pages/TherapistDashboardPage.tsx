@@ -154,6 +154,9 @@ const getInitials = (value?: string | null) => {
   return (words.length > 1 ? `${words[0][0]}${words[1][0]}` : words[0]?.slice(0, 2) || "WH").toUpperCase();
 };
 
+const initialsBadgeClassName =
+  "flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-primary text-sm font-semibold text-primary-foreground shadow-soft";
+
 const getCompactPreview = (value?: string | null, fallback = "Tap to view details") => {
   const preview = (value || "").replace(/\s+/g, " ").trim();
 
@@ -1915,9 +1918,7 @@ const TherapistDashboardPage = () => {
                               }`}
                             >
                               <div className="flex items-start gap-3">
-                                <div className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-full text-sm font-semibold ${
-                                  isExpanded ? "bg-primary-foreground/15 text-primary-foreground" : "bg-primary/12 text-primary"
-                                }`}>
+                                <div className={`${initialsBadgeClassName} ${isExpanded ? "ring-2 ring-primary-foreground/35" : ""}`}>
                                   {getInitials(booking.clientName)}
                                 </div>
                                 <div className="min-w-0 flex-1">
@@ -1931,21 +1932,19 @@ const TherapistDashboardPage = () => {
                                     {getCompactPreview(booking.notes, "Exploration call request")}
                                   </span>
                                 </div>
-                                <button
-                                  type="button"
-                                  className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full transition-colors ${
-                                    isExpanded
-                                      ? "bg-primary-foreground/15 text-primary-foreground hover:bg-primary-foreground/25"
-                                      : "bg-background/80 text-muted-foreground hover:bg-rose-50 hover:text-rose-700"
-                                  }`}
-                                  onClick={(event) => {
-                                    event.stopPropagation();
-                                    openDeleteBookingDialog(booking);
-                                  }}
-                                  aria-label={`Delete ${booking.clientName}'s exploration call`}
-                                >
-                                  <X className="h-3.5 w-3.5" />
-                                </button>
+                                {isExpanded ? (
+                                  <button
+                                    type="button"
+                                    className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-primary-foreground/15 text-primary-foreground transition-colors hover:bg-primary-foreground/25"
+                                    onClick={(event) => {
+                                      event.stopPropagation();
+                                      openDeleteBookingDialog(booking);
+                                    }}
+                                    aria-label={`Delete ${booking.clientName}'s exploration call`}
+                                  >
+                                    <X className="h-3.5 w-3.5" />
+                                  </button>
+                                ) : null}
                               </div>
                             </div>
                           );
@@ -1955,7 +1954,11 @@ const TherapistDashboardPage = () => {
                       {callRequests.map((booking) =>
                         expandedCallBookingId === booking.id ? (
                           <div key={`${booking.id}-details`} className="mt-4 rounded-[1.25rem] border border-border/60 bg-secondary/25 p-4 text-sm shadow-card">
-                            <div className="grid gap-3 md:grid-cols-4">
+                            <div className="grid gap-3 md:grid-cols-5">
+                              <div>
+                                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-primary/70">Client</p>
+                                <p className="mt-1 text-foreground">{booking.clientName}</p>
+                              </div>
                               <div>
                                 <p className="text-xs font-semibold uppercase tracking-[0.18em] text-primary/70">Preferred</p>
                                 <p className="mt-1 text-foreground">{formatDisplayDate(booking.date)} at {formatDisplayTime(booking.time)}</p>
@@ -2787,7 +2790,7 @@ const TherapistDashboardPage = () => {
                             }`}
                           >
                             <div className="flex items-start gap-3 sm:hidden">
-                              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-primary/12 text-sm font-semibold text-primary">
+                              <div className={initialsBadgeClassName}>
                                 {getInitials(notification.inquiry?.name ?? notification.title)}
                               </div>
                               <div className="min-w-0 flex-1">
@@ -2799,17 +2802,19 @@ const TherapistDashboardPage = () => {
                                 </div>
                                 <p className="mt-1 truncate text-xs leading-5 text-muted-foreground">{getNotificationPreview(notification)}</p>
                               </div>
-                              <button
-                                type="button"
-                                onClick={(event) => {
-                                  event.stopPropagation();
-                                  handleDismissNotification(notification.id);
-                                }}
-                                className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-background/80 text-muted-foreground transition-colors hover:bg-rose-50 hover:text-rose-700"
-                                aria-label="Delete notification"
-                              >
-                                <X className="h-3.5 w-3.5" />
-                              </button>
+                              {isExpanded ? (
+                                <button
+                                  type="button"
+                                  onClick={(event) => {
+                                    event.stopPropagation();
+                                    handleDismissNotification(notification.id);
+                                  }}
+                                  className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-background/80 text-muted-foreground transition-colors hover:bg-rose-50 hover:text-rose-700"
+                                  aria-label="Delete notification"
+                                >
+                                  <X className="h-3.5 w-3.5" />
+                                </button>
+                              ) : null}
                             </div>
                             <div className="hidden items-start justify-between gap-3 sm:flex">
                               <div className="min-w-0">
@@ -2833,19 +2838,21 @@ const TherapistDashboardPage = () => {
                                   ) : null}
                                 </div>
                               </div>
-                              <button
-                                type="button"
-                                onClick={(event) => {
-                                  event.stopPropagation();
-                                  handleDismissNotification(notification.id);
-                                }}
-                                className="rounded-full p-1 text-muted-foreground transition-colors hover:bg-background/80 hover:text-foreground"
-                                aria-label="Delete notification"
-                              >
-                                <X className="h-4 w-4" />
-                              </button>
+                              {isExpanded ? (
+                                <button
+                                  type="button"
+                                  onClick={(event) => {
+                                    event.stopPropagation();
+                                    handleDismissNotification(notification.id);
+                                  }}
+                                  className="rounded-full p-1 text-muted-foreground transition-colors hover:bg-background/80 hover:text-foreground"
+                                  aria-label="Delete notification"
+                                >
+                                  <X className="h-4 w-4" />
+                                </button>
+                              ) : null}
                             </div>
-                            <div className={isExpanded ? "mt-4 block sm:block" : "hidden sm:block"}>
+                            <div className={isExpanded ? "mt-4 block" : "hidden"}>
                             {notification.inquiry ? (
                               <div className="space-y-4 rounded-[1.25rem] border border-border/60 bg-background/75 p-4">
                                 <div className="grid gap-3 text-sm leading-6 text-muted-foreground sm:grid-cols-2">
@@ -2937,7 +2944,7 @@ const TherapistDashboardPage = () => {
                               className="cursor-pointer rounded-[1.5rem] border border-border/60 bg-secondary/25 p-3 shadow-card transition-colors hover:bg-secondary/35 focus:outline-none focus:ring-2 focus:ring-primary/20"
                             >
                               <div className="flex items-start gap-3">
-                                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-primary/12 text-sm font-semibold text-primary">
+                                <div className={initialsBadgeClassName}>
                                   {getInitials(booking.clientName)}
                                 </div>
                                 <div className="min-w-0 flex-1">
@@ -2949,17 +2956,19 @@ const TherapistDashboardPage = () => {
                                   </div>
                                   <p className="mt-1 truncate text-xs leading-5 text-muted-foreground">{getBookingPreview(booking)}</p>
                                 </div>
-                                <button
-                                  type="button"
-                                  className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-background/80 text-muted-foreground transition-colors hover:bg-rose-50 hover:text-rose-700"
-                                  onClick={(event) => {
-                                    event.stopPropagation();
-                                    openDeleteBookingDialog(booking);
-                                  }}
-                                  aria-label={`Delete ${booking.clientName}'s completed session`}
-                                >
-                                  <X className="h-3.5 w-3.5" />
-                                </button>
+                                {expandedCompletedBookingId === booking.id ? (
+                                  <button
+                                    type="button"
+                                    className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-background/80 text-muted-foreground transition-colors hover:bg-rose-50 hover:text-rose-700"
+                                    onClick={(event) => {
+                                      event.stopPropagation();
+                                      openDeleteBookingDialog(booking);
+                                    }}
+                                    aria-label={`Delete ${booking.clientName}'s completed session`}
+                                  >
+                                    <X className="h-3.5 w-3.5" />
+                                  </button>
+                                ) : null}
                               </div>
                               <div className={expandedCompletedBookingId === booking.id ? "mt-4 space-y-2 text-sm leading-6 text-muted-foreground" : "hidden"}>
                                 <Badge
@@ -2968,6 +2977,9 @@ const TherapistDashboardPage = () => {
                                 >
                                   {statusLabel}
                                 </Badge>
+                                <p>
+                                  <span className="font-medium text-foreground">Client:</span> {booking.clientName}
+                                </p>
                                 <p>
                                   <span className="font-medium text-foreground">Date:</span> {formatDisplayDate(booking.date)}
                                 </p>
@@ -2980,14 +2992,6 @@ const TherapistDashboardPage = () => {
                                 <p>
                                   <span className="font-medium text-foreground">Phone:</span> {booking.clientPhone}
                                 </p>
-                                {hasBookingDashboardLinks(booking) ? (
-                                  <div className="mt-4 border-t border-border/40 pt-3">
-                                    <p className="mb-2 text-xs font-semibold uppercase tracking-[0.18em] text-primary/70">
-                                      Session Links
-                                    </p>
-                                    <BookingDashboardLinks booking={booking} compact stopPropagation />
-                                  </div>
-                                ) : null}
                               </div>
                             </div>
                           );
@@ -3044,18 +3048,6 @@ const TherapistDashboardPage = () => {
                                       </Badge>
                                     </TableCell>
                                   </TableRow>
-                                  {hasBookingDashboardLinks(booking) ? (
-                                    <TableRow>
-                                      <TableCell colSpan={6} className="pt-0">
-                                        <div className="flex flex-wrap items-center gap-x-4 gap-y-2 border-t border-border/40 pt-3">
-                                          <span className="text-xs font-semibold uppercase tracking-[0.18em] text-primary/70">
-                                            Session Links
-                                          </span>
-                                          <BookingDashboardLinks booking={booking} compact />
-                                        </div>
-                                      </TableCell>
-                                    </TableRow>
-                                  ) : null}
                                 </Fragment>
                               );
                             })}

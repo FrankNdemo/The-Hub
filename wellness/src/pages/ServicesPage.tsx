@@ -14,10 +14,10 @@ import {
 const featuredServices = [
   {
     image: servicePageIndividualImage,
-    imageAlt: "A Black woman speaking with a psychologist during a supportive individual therapy session",
+    imageAlt: "A Black client speaking with a counselor during a supportive individual therapy session",
     title: "Individual Therapy",
     description: "One-on-one support for anxiety, stress, depression, burnout, and emotional growth using a calm, collaborative pace.",
-    imageClassName: "object-[center_42%] sm:object-[center_44%] lg:object-[center_46%]",
+    imageClassName: "object-[center_28%] sm:object-[center_30%] lg:object-[center_32%]",
   },
   {
     image: servicePageFamilyImage,
@@ -185,7 +185,7 @@ const serviceList = [
   },
   {
     title: "Bariatric Psychology",
-    image: pexelsImage(30678208),
+    image: pexelsImage(5215008),
     imageAlt: "An African patient discussing a health plan with a medical professional",
     description:
       "Bariatric psychology supports the emotional side of major body and lifestyle change. We address readiness for surgery, expectations, identity shifts, mood, relationships, emotional eating, relapse prevention, post-surgery adjustment, and the mindset needed for sustainable health changes.",

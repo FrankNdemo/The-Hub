@@ -19,6 +19,7 @@ dist-ssr/
 # Local environment files
 .env
 .env.*
+!.env.example
 *.local
 
 # Python caches and local runtime data

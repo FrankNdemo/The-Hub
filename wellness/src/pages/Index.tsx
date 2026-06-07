@@ -69,10 +69,10 @@ const featuredServices = [
   },
   {
     image: homeSpecializedSupportImage,
-    imageAlt: "An African male client speaking during a therapy session with a clinician seated opposite him",
+    imageAlt: "A Black woman meditating peacefully in a bright room",
     title: "Specialized Wellness Support",
     description: "Thoughtful care for trauma, grief, neurodivergence, oncopsychology, LGBTQ+ wellbeing, and more.",
-    imageClassName: "object-[center_44%] sm:object-[center_50%] lg:object-[center_56%]",
+    imageClassName: "object-[center_30%] sm:object-[center_32%] lg:object-[center_34%]",
   },
 ];
 
