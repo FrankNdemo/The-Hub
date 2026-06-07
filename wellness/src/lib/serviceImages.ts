@@ -11,7 +11,7 @@ export const specializedServiceImage =
   "https://images.pexels.com/photos/19957220/pexels-photo-19957220.jpeg?auto=compress&cs=tinysrgb&w=1400&h=960&fit=crop";
 
 export const servicePageIndividualImage =
-  "https://images.pexels.com/photos/7579119/pexels-photo-7579119.jpeg?auto=compress&cs=tinysrgb&w=1400&h=960&fit=crop";
+  "https://images.pexels.com/photos/5234624/pexels-photo-5234624.jpeg?auto=compress&cs=tinysrgb&w=1400&h=960&fit=crop";
 
 export const servicePageFamilyImage =
   "https://images.pexels.com/photos/30678595/pexels-photo-30678595.jpeg?auto=compress&cs=tinysrgb&w=1400&h=960&fit=crop";

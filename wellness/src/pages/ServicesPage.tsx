@@ -14,10 +14,10 @@ import {
 const featuredServices = [
   {
     image: servicePageIndividualImage,
-    imageAlt: "A Black male client speaking with a therapist during an individual counseling session",
+    imageAlt: "A Black woman speaking with a psychologist during a supportive individual therapy session",
     title: "Individual Therapy",
     description: "One-on-one support for anxiety, stress, depression, burnout, and emotional growth using a calm, collaborative pace.",
-    imageClassName: "object-[center_16%] sm:object-[center_18%] lg:object-[center_20%]",
+    imageClassName: "object-[center_42%] sm:object-[center_44%] lg:object-[center_46%]",
   },
   {
     image: servicePageFamilyImage,
@@ -157,7 +157,7 @@ const serviceList = [
     imageAlt: "A Black healthcare professional offering calm support in a clinical setting",
     description:
       "A cancer journey can bring fear, grief, body changes, treatment fatigue, uncertainty, and pressure on the whole family. Oncopsychology support helps clients process emotions, communicate needs, strengthen coping, navigate treatment or recovery, and hold dignity through a deeply human season.",
-    imageClassName: "object-[center_42%]",
+    imageClassName: "object-[center_18%]",
   },
   {
     title: "Grief and Loss",
