@@ -88,6 +88,10 @@ export const resolveInstantBlogImage = ({ featuredImage = "", slug = "", categor
     if (localAssetImage) {
       return localAssetImage;
     }
+
+    if (hasRenderableImageSource(trimmedImage)) {
+      return trimmedImage;
+    }
   }
 
   const slugImage = blogImageBySlug[slug];

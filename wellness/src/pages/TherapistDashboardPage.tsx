@@ -145,6 +145,36 @@ const parseLineSeparated = (value: string) =>
     .map((item) => item.trim())
     .filter(Boolean);
 
+const getInitials = (value?: string | null) => {
+  const words = (value || "Wellness Hub")
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean);
+
+  return (words.length > 1 ? `${words[0][0]}${words[1][0]}` : words[0]?.slice(0, 2) || "WH").toUpperCase();
+};
+
+const getCompactPreview = (value?: string | null, fallback = "Tap to view details") => {
+  const preview = (value || "").replace(/\s+/g, " ").trim();
+
+  return preview || fallback;
+};
+
+const getBookingPreview = (booking: BookingRecord) =>
+  getCompactPreview(
+    `${formatDisplayDate(booking.date)} at ${formatDisplayTime(booking.time)} · ${formatServiceType(booking.serviceType)} · ${booking.sessionType} session`,
+  );
+
+const getTransactionPreview = (transaction: BookingPaymentRecord) =>
+  getCompactPreview(
+    `${formatCurrencyAmount(transaction.amount, transaction.currency)} · ${transaction.paymentMethod} · ${
+      transaction.sessionDate ? formatDisplayDate(transaction.sessionDate) : "Pending session"
+    }`,
+  );
+
+const getNotificationPreview = (notification: NotificationItem) =>
+  getCompactPreview(notification.inquiry?.message || notification.description, "Tap to view alert details");
+
 const therapistDashboardHeroImage =
   "https://images.pexels.com/photos/36729384/pexels-photo-36729384.jpeg?auto=compress&cs=tinysrgb&w=1800&h=980&fit=crop";
 
@@ -386,6 +416,8 @@ const TherapistDashboardPage = () => {
   const [expandedSessionBookingId, setExpandedSessionBookingId] = useState<string | null>(null);
   const [expandedCallBookingId, setExpandedCallBookingId] = useState<string | null>(null);
   const [expandedTransactionId, setExpandedTransactionId] = useState<string | null>(null);
+  const [expandedNotificationId, setExpandedNotificationId] = useState<string | null>(null);
+  const [expandedCompletedBookingId, setExpandedCompletedBookingId] = useState<string | null>(null);
   const [sessionSearch, setSessionSearch] = useState("");
   const [transactionSearch, setTransactionSearch] = useState("");
   const [profileDraft, setProfileDraft] = useState<TherapistProfileFormState>(() => makeProfileDraft(therapist));
@@ -937,6 +969,18 @@ const TherapistDashboardPage = () => {
     setExpandedCallBookingId((current) => (current === id ? null : id));
   };
 
+  const toggleTransaction = (id: string) => {
+    setExpandedTransactionId((current) => (current === id ? null : id));
+  };
+
+  const toggleNotification = (id: string) => {
+    setExpandedNotificationId((current) => (current === id ? null : id));
+  };
+
+  const toggleCompletedBooking = (id: string) => {
+    setExpandedCompletedBookingId((current) => (current === id ? null : id));
+  };
+
   const openDeleteBookingDialog = (booking: BookingRecord) => {
     setBookingToDelete(booking);
   };
@@ -958,10 +1002,10 @@ const TherapistDashboardPage = () => {
 
     try {
       await deleteBooking(bookingToDelete.id, "Deleted by therapist after confirmation.");
-      toast.success("Session removed from the dashboard.");
+      toast.success(bookingToDelete.isExplorationCall ? "Exploration call deleted permanently." : "Session deleted permanently.");
       setBookingToDelete(null);
     } catch (error) {
-      toast.error(getApiErrorMessage(error, "This session could not be deleted right now."));
+      toast.error(getApiErrorMessage(error, "This item could not be deleted right now."));
     } finally {
       setIsDeletingBooking(false);
     }
@@ -1238,9 +1282,23 @@ const TherapistDashboardPage = () => {
                             toggleOverviewBooking(booking.id);
                           }
                         }}
-                        className="group wellness-panel cursor-pointer rounded-[1.5rem] border border-border/60 p-4 transition-all duration-300 hover:shadow-soft focus:outline-none focus:ring-2 focus:ring-primary/20 sm:rounded-[1.75rem] sm:p-6"
+                        className="group wellness-panel cursor-pointer rounded-[1.5rem] border border-border/60 p-3 transition-all duration-300 hover:shadow-soft focus:outline-none focus:ring-2 focus:ring-primary/20 sm:rounded-[1.75rem] sm:p-6"
                       >
-                        <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between lg:items-center">
+                        <div className="flex items-start gap-3 sm:hidden">
+                          <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-primary/12 text-sm font-semibold text-primary">
+                            {getInitials(booking.clientName)}
+                          </div>
+                          <div className="min-w-0 flex-1">
+                            <div className="flex items-start justify-between gap-2">
+                              <p className="truncate font-semibold text-foreground">{booking.clientName}</p>
+                              <span className="shrink-0 text-[10px] font-medium uppercase tracking-[0.12em] text-primary/60">
+                                {formatDisplayTime(booking.time)}
+                              </span>
+                            </div>
+                            <p className="mt-1 truncate text-xs leading-5 text-muted-foreground">{getBookingPreview(booking)}</p>
+                          </div>
+                        </div>
+                        <div className="hidden flex-col gap-4 sm:flex sm:flex-row sm:items-start sm:justify-between lg:items-center">
                           <div>
                             <p className="font-heading text-xl font-semibold text-foreground sm:text-2xl">{booking.clientName}</p>
                             <p className="mt-2 text-sm leading-6 text-muted-foreground sm:leading-7">
@@ -1368,22 +1426,28 @@ const TherapistDashboardPage = () => {
                           }}
                           className="cursor-pointer rounded-[1.2rem] border border-border/60 bg-secondary/25 p-3 shadow-card transition-colors hover:bg-secondary/35 focus:outline-none focus:ring-2 focus:ring-primary/20"
                         >
-                          <div className="flex items-start justify-between gap-3">
-                            <div className="min-w-0">
-                              <p className="font-medium text-foreground">{booking.clientName}</p>
-                              <p className="mt-0.5 text-[11px] leading-4 text-primary/70">
-                                {formatServiceType(booking.serviceType)} · {booking.sessionType} session
-                              </p>
+                          <div className="flex items-start gap-3">
+                            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-primary/12 text-sm font-semibold text-primary">
+                              {getInitials(booking.clientName)}
                             </div>
+                            <div className="min-w-0 flex-1">
+                              <div className="flex items-start justify-between gap-2">
+                                <p className="truncate font-semibold text-foreground">{booking.clientName}</p>
+                                <span className="shrink-0 text-[10px] font-medium uppercase tracking-[0.12em] text-primary/60">
+                                  {formatDisplayTime(booking.time)}
+                                </span>
+                              </div>
+                              <p className="mt-1 truncate text-xs leading-5 text-muted-foreground">{getBookingPreview(booking)}</p>
+                            </div>
+                          </div>
+
+                          <div className={isExpanded ? "mt-4 space-y-2 text-sm leading-6 text-muted-foreground" : "hidden"}>
                             <Badge
                               variant="secondary"
                               className={`rounded-full px-3 py-1 capitalize ${getStatusBadgeClassName(booking.status)}`}
                             >
                               {booking.status}
                             </Badge>
-                          </div>
-
-                          <div className={isExpanded ? "mt-4 space-y-2 text-sm leading-6 text-muted-foreground" : "hidden"}>
                             <p>
                               <span className="font-medium text-foreground">Date:</span> {formatDisplayDate(booking.date)}
                             </p>
@@ -1405,44 +1469,43 @@ const TherapistDashboardPage = () => {
                                 {booking.participantCount.toLocaleString()}
                               </p>
                             ) : null}
-                          </div>
-
-                          <div className="mt-4 flex gap-2">
-                            <Button
-                              type="button"
-                              variant="heroBorder"
-                              size="sm"
-                              className="w-full rounded-full"
-                              onClick={(event) => {
-                                event.stopPropagation();
-                                openCompleteBookingDialog(booking);
-                              }}
-                              disabled={isCompletedOrExpiredBooking(booking, currentTime) || booking.status === "cancelled"}
-                            >
-                              Mark Completed
-                            </Button>
-                            <Button
-                              type="button"
-                              variant="heroBorder"
-                              size="icon"
-                              className="h-9 w-9 rounded-full"
-                              onClick={(event) => {
-                                event.stopPropagation();
-                                openDeleteBookingDialog(booking);
-                              }}
-                              aria-label={`Delete ${booking.clientName}'s session`}
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
-                          </div>
-                          {hasBookingDashboardLinks(booking) ? (
-                            <div className="mt-4 border-t border-border/40 pt-3">
-                              <p className="mb-2 text-xs font-semibold uppercase tracking-[0.18em] text-primary/70">
-                                Session Links
-                              </p>
-                              <BookingDashboardLinks booking={booking} compact stopPropagation />
+                            <div className="mt-4 flex gap-2">
+                              <Button
+                                type="button"
+                                variant="heroBorder"
+                                size="sm"
+                                className="w-full rounded-full"
+                                onClick={(event) => {
+                                  event.stopPropagation();
+                                  openCompleteBookingDialog(booking);
+                                }}
+                                disabled={isCompletedOrExpiredBooking(booking, currentTime) || booking.status === "cancelled"}
+                              >
+                                Mark Completed
+                              </Button>
+                              <Button
+                                type="button"
+                                variant="heroBorder"
+                                size="icon"
+                                className="h-9 w-9 rounded-full"
+                                onClick={(event) => {
+                                  event.stopPropagation();
+                                  openDeleteBookingDialog(booking);
+                                }}
+                                aria-label={`Delete ${booking.clientName}'s session`}
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
                             </div>
-                          ) : null}
+                            {hasBookingDashboardLinks(booking) ? (
+                              <div className="mt-4 border-t border-border/40 pt-3">
+                                <p className="mb-2 text-xs font-semibold uppercase tracking-[0.18em] text-primary/70">
+                                  Session Links
+                                </p>
+                                <BookingDashboardLinks booking={booking} compact stopPropagation />
+                              </div>
+                            ) : null}
+                          </div>
                         </div>
                         );
                       })}
@@ -1613,32 +1676,36 @@ const TherapistDashboardPage = () => {
                             role="button"
                             tabIndex={0}
                             aria-expanded={isExpanded}
-                            onClick={() => setExpandedTransactionId((current) => (current === transaction.id ? null : transaction.id))}
-                            onMouseLeave={() => setExpandedTransactionId(null)}
+                            onClick={() => toggleTransaction(transaction.id)}
                             onKeyDown={(event) => {
                               if (event.key === "Enter" || event.key === " ") {
                                 event.preventDefault();
-                                setExpandedTransactionId((current) => (current === transaction.id ? null : transaction.id));
+                                toggleTransaction(transaction.id);
                               }
                             }}
                             className="cursor-pointer rounded-[1.5rem] border border-border/60 bg-secondary/25 p-4 shadow-card transition-colors hover:bg-secondary/35 focus:outline-none focus:ring-2 focus:ring-primary/20"
                           >
-                            <div className="flex items-start justify-between gap-3">
-                              <div className="min-w-0">
-                                <p className="font-medium text-foreground">{transaction.clientName ?? "Booking payment"}</p>
-                                <p className="mt-1 text-xs uppercase tracking-[0.18em] text-primary/65">
-                                  {transaction.sessionDate ? formatDisplayDate(transaction.sessionDate) : "Pending session"}
-                                  {transaction.sessionTime ? ` · ${formatDisplayTime(transaction.sessionTime)}` : ""}
-                                </p>
+                            <div className="flex items-start gap-3">
+                              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-primary/12 text-sm font-semibold text-primary">
+                                {getInitials(transaction.clientName ?? transaction.phoneNumber)}
                               </div>
+                              <div className="min-w-0 flex-1">
+                                <div className="flex items-start justify-between gap-2">
+                                  <p className="truncate font-semibold text-foreground">{transaction.clientName ?? "Booking payment"}</p>
+                                  <span className="shrink-0 text-[10px] font-medium uppercase tracking-[0.12em] text-primary/60">
+                                    {transaction.sessionTime ? formatDisplayTime(transaction.sessionTime) : transaction.statusLabel}
+                                  </span>
+                                </div>
+                                <p className="mt-1 truncate text-xs leading-5 text-muted-foreground">{getTransactionPreview(transaction)}</p>
+                              </div>
+                            </div>
+                            <div className={isExpanded ? "mt-4 space-y-2 text-sm leading-6 text-muted-foreground" : "hidden"}>
                               <Badge
                                 variant="secondary"
                                 className={`rounded-full px-3 py-1 capitalize ${getPaymentStatusBadgeClassName(transaction.status)}`}
                               >
                                 {transaction.statusLabel}
                               </Badge>
-                            </div>
-                            <div className={isExpanded ? "mt-4 space-y-2 text-sm leading-6 text-muted-foreground" : "hidden"}>
                               <p>
                                 <span className="font-medium text-foreground">Amount:</span>{" "}
                                 {formatCurrencyAmount(transaction.amount, transaction.currency)}
@@ -1829,21 +1896,58 @@ const TherapistDashboardPage = () => {
                           const isExpanded = expandedCallBookingId === booking.id;
 
                           return (
-                            <button
+                            <div
                               key={booking.id}
-                              type="button"
+                              role="button"
+                              tabIndex={0}
+                              aria-expanded={isExpanded}
                               onClick={() => toggleCallBooking(booking.id)}
-                              className={`w-full rounded-[1.2rem] border px-4 py-3 text-left text-sm font-medium transition-colors ${
+                              onKeyDown={(event) => {
+                                if (event.key === "Enter" || event.key === " ") {
+                                  event.preventDefault();
+                                  toggleCallBooking(booking.id);
+                                }
+                              }}
+                              className={`w-full cursor-pointer rounded-[1.2rem] border px-3 py-3 text-left text-sm font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-primary/20 ${
                                 isExpanded
                                   ? "border-primary bg-primary text-primary-foreground"
                                   : "border-border/70 bg-secondary/30 text-foreground hover:border-primary/40 hover:bg-primary/5"
                               }`}
                             >
-                              <span className="block text-[11px] font-semibold uppercase tracking-[0.18em] opacity-75">
-                                {booking.notes || "No note provided"}
-                              </span>
-                              <span className="mt-1 block">{booking.clientName}</span>
-                            </button>
+                              <div className="flex items-start gap-3">
+                                <div className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-full text-sm font-semibold ${
+                                  isExpanded ? "bg-primary-foreground/15 text-primary-foreground" : "bg-primary/12 text-primary"
+                                }`}>
+                                  {getInitials(booking.clientName)}
+                                </div>
+                                <div className="min-w-0 flex-1">
+                                  <div className="flex items-start justify-between gap-2">
+                                    <span className="truncate font-semibold">{booking.clientName}</span>
+                                    <span className="shrink-0 text-[10px] font-medium uppercase tracking-[0.12em] opacity-70">
+                                      {formatDisplayTime(booking.time)}
+                                    </span>
+                                  </div>
+                                  <span className="mt-1 block truncate text-xs leading-5 opacity-75">
+                                    {getCompactPreview(booking.notes, "Exploration call request")}
+                                  </span>
+                                </div>
+                                <button
+                                  type="button"
+                                  className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full transition-colors ${
+                                    isExpanded
+                                      ? "bg-primary-foreground/15 text-primary-foreground hover:bg-primary-foreground/25"
+                                      : "bg-background/80 text-muted-foreground hover:bg-rose-50 hover:text-rose-700"
+                                  }`}
+                                  onClick={(event) => {
+                                    event.stopPropagation();
+                                    openDeleteBookingDialog(booking);
+                                  }}
+                                  aria-label={`Delete ${booking.clientName}'s exploration call`}
+                                >
+                                  <X className="h-3.5 w-3.5" />
+                                </button>
+                              </div>
+                            </div>
                           );
                         })}
                       </div>
@@ -1874,6 +1978,29 @@ const TherapistDashboardPage = () => {
                                 <span className="font-medium text-foreground">Notes:</span> {booking.notes}
                               </p>
                             ) : null}
+                            <div className="mt-4 flex flex-col gap-2 border-t border-border/50 pt-3 sm:flex-row">
+                              <Button variant="heroBorder" className="w-full rounded-full sm:w-auto" asChild>
+                                <a href={`tel:${booking.clientPhone}`}>
+                                  <Phone className="h-4 w-4" />
+                                  Call Client
+                                </a>
+                              </Button>
+                              <Button variant="heroBorder" className="w-full rounded-full sm:w-auto" asChild>
+                                <a href={`mailto:${booking.clientEmail}`}>
+                                  <Mail className="h-4 w-4" />
+                                  Email Client
+                                </a>
+                              </Button>
+                              <Button
+                                type="button"
+                                variant="heroBorder"
+                                className="w-full rounded-full sm:ml-auto sm:w-auto"
+                                onClick={() => openDeleteBookingDialog(booking)}
+                              >
+                                <X className="h-4 w-4" />
+                                Delete
+                              </Button>
+                            </div>
                           </div>
                         ) : null,
                       )}
@@ -2635,9 +2762,22 @@ const TherapistDashboardPage = () => {
                       </div>
 
                       <div className="mt-6 space-y-4">
-                        {notifications.map((notification) => (
+                        {notifications.map((notification) => {
+                          const isExpanded = expandedNotificationId === notification.id;
+
+                          return (
                           <div
                             key={notification.id}
+                            role="button"
+                            tabIndex={0}
+                            aria-expanded={isExpanded}
+                            onClick={() => toggleNotification(notification.id)}
+                            onKeyDown={(event) => {
+                              if (event.key === "Enter" || event.key === " ") {
+                                event.preventDefault();
+                                toggleNotification(notification.id);
+                              }
+                            }}
                             className={`rounded-[1.5rem] p-4 transition-colors ${
                               notification.inquiry?.id === focusedInquiryId
                                 ? "bg-primary/10 ring-2 ring-primary/25"
@@ -2646,7 +2786,32 @@ const TherapistDashboardPage = () => {
                                   : "bg-primary/8 ring-1 ring-primary/12"
                             }`}
                           >
-                            <div className="flex items-start justify-between gap-3">
+                            <div className="flex items-start gap-3 sm:hidden">
+                              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-primary/12 text-sm font-semibold text-primary">
+                                {getInitials(notification.inquiry?.name ?? notification.title)}
+                              </div>
+                              <div className="min-w-0 flex-1">
+                                <div className="flex items-start justify-between gap-2">
+                                  <p className="truncate font-semibold text-foreground">{notification.title}</p>
+                                  <span className="shrink-0 text-[10px] font-medium uppercase tracking-[0.12em] text-primary/60">
+                                    {new Date(notification.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                                  </span>
+                                </div>
+                                <p className="mt-1 truncate text-xs leading-5 text-muted-foreground">{getNotificationPreview(notification)}</p>
+                              </div>
+                              <button
+                                type="button"
+                                onClick={(event) => {
+                                  event.stopPropagation();
+                                  handleDismissNotification(notification.id);
+                                }}
+                                className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-background/80 text-muted-foreground transition-colors hover:bg-rose-50 hover:text-rose-700"
+                                aria-label="Delete notification"
+                              >
+                                <X className="h-3.5 w-3.5" />
+                              </button>
+                            </div>
+                            <div className="hidden items-start justify-between gap-3 sm:flex">
                               <div className="min-w-0">
                                 <div className="flex flex-wrap items-center gap-2">
                                   <p className="font-medium text-foreground">{notification.title}</p>
@@ -2670,22 +2835,30 @@ const TherapistDashboardPage = () => {
                               </div>
                               <button
                                 type="button"
-                                onClick={() => handleDismissNotification(notification.id)}
+                                onClick={(event) => {
+                                  event.stopPropagation();
+                                  handleDismissNotification(notification.id);
+                                }}
                                 className="rounded-full p-1 text-muted-foreground transition-colors hover:bg-background/80 hover:text-foreground"
                                 aria-label="Delete notification"
                               >
                                 <X className="h-4 w-4" />
                               </button>
                             </div>
+                            <div className={isExpanded ? "mt-4 block sm:block" : "hidden sm:block"}>
                             {notification.inquiry ? (
-                              <div className="mt-4 space-y-4 rounded-[1.25rem] border border-border/60 bg-background/75 p-4">
+                              <div className="space-y-4 rounded-[1.25rem] border border-border/60 bg-background/75 p-4">
                                 <div className="grid gap-3 text-sm leading-6 text-muted-foreground sm:grid-cols-2">
                                   <p>
                                     <span className="font-semibold text-primary">Client:</span> {notification.inquiry.name}
                                   </p>
                                   <p>
                                     <span className="font-semibold text-primary">Email:</span>{" "}
-                                    <a className="break-all text-primary underline-offset-4 hover:underline" href={`mailto:${notification.inquiry.email}`}>
+                                    <a
+                                      className="break-all text-primary underline-offset-4 hover:underline"
+                                      href={`mailto:${notification.inquiry.email}`}
+                                      onClick={(event) => event.stopPropagation()}
+                                    >
                                       {notification.inquiry.email}
                                     </a>
                                   </p>
@@ -2706,7 +2879,10 @@ const TherapistDashboardPage = () => {
                                     variant="hero"
                                     className="w-full shrink-0 rounded-full sm:w-auto"
                                     disabled={openingInquiryId === notification.inquiry.id}
-                                    onClick={() => handleReplyToInquiryByEmail(notification)}
+                                    onClick={(event) => {
+                                      event.stopPropagation();
+                                      handleReplyToInquiryByEmail(notification);
+                                    }}
                                   >
                                     <Mail className="h-4 w-4" />
                                     {openingInquiryId === notification.inquiry.id ? "Opening..." : "Reply by Email"}
@@ -2719,8 +2895,10 @@ const TherapistDashboardPage = () => {
                             <p className="mt-2 text-xs uppercase tracking-[0.2em] text-primary/65">
                               {new Date(notification.createdAt).toLocaleString()}
                             </p>
+                            </div>
                           </div>
-                        ))}
+                          );
+                        })}
                         {notifications.length === 0 ? (
                           <div className="rounded-[1.5rem] bg-secondary/45 p-4 text-sm text-muted-foreground">
                             Notifications will appear here as soon as bookings and content changes are made.
@@ -2744,22 +2922,52 @@ const TherapistDashboardPage = () => {
                           const statusLabel = getBookingStatusLabel(booking, currentTime);
 
                           return (
-                            <div key={booking.id} className="rounded-[1.5rem] border border-border/60 bg-secondary/25 p-4 shadow-card">
-                              <div className="flex items-start justify-between gap-3">
-                                <div className="min-w-0">
-                                  <p className="font-medium text-foreground">{booking.clientName}</p>
-                              <p className="mt-0.5 text-[11px] leading-4 text-primary/70">
-                                {formatServiceType(booking.serviceType)} · <span className="capitalize">{booking.sessionType}</span> session
-                                  </p>
+                            <div
+                              key={booking.id}
+                              role="button"
+                              tabIndex={0}
+                              aria-expanded={expandedCompletedBookingId === booking.id}
+                              onClick={() => toggleCompletedBooking(booking.id)}
+                              onKeyDown={(event) => {
+                                if (event.key === "Enter" || event.key === " ") {
+                                  event.preventDefault();
+                                  toggleCompletedBooking(booking.id);
+                                }
+                              }}
+                              className="cursor-pointer rounded-[1.5rem] border border-border/60 bg-secondary/25 p-3 shadow-card transition-colors hover:bg-secondary/35 focus:outline-none focus:ring-2 focus:ring-primary/20"
+                            >
+                              <div className="flex items-start gap-3">
+                                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-primary/12 text-sm font-semibold text-primary">
+                                  {getInitials(booking.clientName)}
                                 </div>
+                                <div className="min-w-0 flex-1">
+                                  <div className="flex items-start justify-between gap-2">
+                                    <p className="truncate font-semibold text-foreground">{booking.clientName}</p>
+                                    <span className="shrink-0 text-[10px] font-medium uppercase tracking-[0.12em] text-primary/60">
+                                      {formatDisplayTime(booking.time)}
+                                    </span>
+                                  </div>
+                                  <p className="mt-1 truncate text-xs leading-5 text-muted-foreground">{getBookingPreview(booking)}</p>
+                                </div>
+                                <button
+                                  type="button"
+                                  className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-background/80 text-muted-foreground transition-colors hover:bg-rose-50 hover:text-rose-700"
+                                  onClick={(event) => {
+                                    event.stopPropagation();
+                                    openDeleteBookingDialog(booking);
+                                  }}
+                                  aria-label={`Delete ${booking.clientName}'s completed session`}
+                                >
+                                  <X className="h-3.5 w-3.5" />
+                                </button>
+                              </div>
+                              <div className={expandedCompletedBookingId === booking.id ? "mt-4 space-y-2 text-sm leading-6 text-muted-foreground" : "hidden"}>
                                 <Badge
                                   variant="secondary"
                                   className={`rounded-full px-3 py-1 capitalize ${getStatusBadgeClassName(statusLabel)}`}
                                 >
                                   {statusLabel}
                                 </Badge>
-                              </div>
-                              <div className="mt-4 space-y-2 text-sm leading-6 text-muted-foreground">
                                 <p>
                                   <span className="font-medium text-foreground">Date:</span> {formatDisplayDate(booking.date)}
                                 </p>
@@ -2772,15 +2980,15 @@ const TherapistDashboardPage = () => {
                                 <p>
                                   <span className="font-medium text-foreground">Phone:</span> {booking.clientPhone}
                                 </p>
+                                {hasBookingDashboardLinks(booking) ? (
+                                  <div className="mt-4 border-t border-border/40 pt-3">
+                                    <p className="mb-2 text-xs font-semibold uppercase tracking-[0.18em] text-primary/70">
+                                      Session Links
+                                    </p>
+                                    <BookingDashboardLinks booking={booking} compact stopPropagation />
+                                  </div>
+                                ) : null}
                               </div>
-                              {hasBookingDashboardLinks(booking) ? (
-                                <div className="mt-4 border-t border-border/40 pt-3">
-                                  <p className="mb-2 text-xs font-semibold uppercase tracking-[0.18em] text-primary/70">
-                                    Session Links
-                                  </p>
-                                  <BookingDashboardLinks booking={booking} compact />
-                                </div>
-                              ) : null}
                             </div>
                           );
                         })}
@@ -2930,9 +3138,15 @@ const TherapistDashboardPage = () => {
       <Dialog open={Boolean(bookingToDelete)} onOpenChange={(open) => (open ? undefined : closeDeleteBookingDialog())}>
         <DialogContent className="max-w-lg rounded-[1.75rem] border-border/60">
           <DialogHeader>
-            <DialogTitle className="font-heading text-2xl text-foreground">Delete session</DialogTitle>
+            <DialogTitle className="font-heading text-2xl text-foreground">
+              {bookingToDelete?.isExplorationCall ? "Delete exploration call" : "Delete session"}
+            </DialogTitle>
             <DialogDescription className="leading-6">
-              If you proceed, this session will be deleted permanently.
+              {bookingToDelete
+                ? `Are you sure you want to permanently delete ${bookingToDelete.clientName}'s ${
+                    bookingToDelete.isExplorationCall ? "exploration call" : "session"
+                  }? This cannot be undone.`
+                : "Are you sure you want to permanently delete this item? This cannot be undone."}
             </DialogDescription>
           </DialogHeader>
 

@@ -376,8 +376,8 @@ const Index = () => {
                         loading="eager"
                         decoding="async"
                         className={cn(
-                          "h-full w-full object-top",
-                          profile.id === "kelvin-kagiri" ? "object-cover sm:object-contain" : "object-contain",
+                          "h-full w-full object-cover object-top",
+                          profile.id === "caroline-gichia" && "object-center",
                         )}
                       />
                     </div>

@@ -14,6 +14,7 @@ interface SeedBlogPost {
   title: string;
   category: string;
   publishDate: string;
+  author?: string;
   excerpt: string;
   featuredImage: string;
   tags: string[];
@@ -236,6 +237,142 @@ Labels can be useful, but the child in front of you matters most. Their needs, s
 
 Parents need support as well. Therapy can help families navigate overwhelm, build confidence, and create systems that feel more sustainable for everyone.`,
   },
+  {
+    id: "post-addiction-treatment-path",
+    slug: "addiction-treatment-compassionate-recovery",
+    title: "Addiction Treatment: Finding Recovery Without Shame",
+    category: "Addiction Treatment",
+    publishDate: "2025-09-20",
+    author: "Kelvin Kagiri",
+    excerpt:
+      "Recovery is not about punishment or judgment. It is about understanding what addiction has been carrying, then building safer support around change.",
+    featuredImage:
+      "https://images.pexels.com/photos/5711168/pexels-photo-5711168.jpeg?auto=compress&cs=tinysrgb&w=1400&h=960&fit=crop",
+    tags: ["Addiction Treatment", "Recovery", "Rehabilitation", "Support"],
+    content: `Addiction can affect health, trust, work, money, family life, and a person's sense of self. It can also carry shame, which often makes people delay asking for help. Compassionate treatment begins by remembering that addiction is not a moral failure. It is a pattern that needs support, structure, and honest care.
+
+## Why Addiction Can Feel So Hard to Stop
+
+Substances can become tied to stress relief, emotional pain, trauma, loneliness, routine, or social pressure. Over time, the body and brain may begin to expect the substance as a way to cope.
+
+## What Support Can Include
+
+- A clear recovery plan
+- Emotional support for cravings and relapse risk
+- Family education where appropriate
+- Therapy for underlying pain, trauma, stress, or anxiety
+- Practical routines that make recovery more sustainable
+
+## Residential or Outpatient Care
+
+Some people need a more protected residential environment. Others may do well with long-term outpatient support while remaining connected to home, work, or school. The best path depends on safety, substance use patterns, support systems, and personal needs.
+
+## A Gentle First Step
+
+If you or someone you love is struggling, the first conversation does not have to solve everything. It only needs to open the door to support without stigma or shame.`,
+  },
+  {
+    id: "post-psychotherapy-when-life-feels-heavy",
+    slug: "psychotherapy-when-life-feels-heavy",
+    title: "Psychotherapy: What Happens When Life Feels Too Heavy",
+    category: "Psychotherapy",
+    publishDate: "2025-09-10",
+    excerpt:
+      "Psychotherapy gives you a steady space to understand emotional difficulty, make sense of patterns, and find a healthier way through.",
+    featuredImage:
+      "https://images.pexels.com/photos/5699451/pexels-photo-5699451.jpeg?auto=compress&cs=tinysrgb&w=1400&h=960&fit=crop",
+    tags: ["Psychotherapy", "Mental Health", "Emotional Support", "Therapy"],
+    content: `Even strong people can feel overwhelmed. Work pressure, relationship strain, grief, anxiety, depression, health worries, or family conflict can leave the mind feeling crowded and tired.
+
+## What Psychotherapy Is
+
+Psychotherapy is a guided conversation with a trained mental health professional. It helps you explore thoughts, emotions, behaviours, and experiences in a structured and confidential space.
+
+## What It Can Help With
+
+- Anxiety and persistent worry
+- Low mood or depression
+- Stress and burnout
+- Relationship patterns
+- Trauma and painful memories
+- Life transitions and identity questions
+
+## Therapy Is Not About Being Told What To Do
+
+Good therapy helps you understand yourself more clearly. The therapist may offer questions, reflections, tools, and perspective, but the work respects your pace and your lived experience.
+
+## When To Begin
+
+You do not have to wait until things fall apart. Psychotherapy can help early, when you notice that your usual ways of coping are no longer enough.`,
+  },
+  {
+    id: "post-art-therapy-emotional-expression",
+    slug: "art-therapy-emotional-expression",
+    title: "Art Therapy: Healing Through Colour, Shape, and Story",
+    category: "Art Therapy",
+    publishDate: "2025-09-01",
+    author: "Kelvin Kagiri",
+    excerpt:
+      "Art therapy uses creative expression to support emotional resilience, self-awareness, communication, and personal growth.",
+    featuredImage:
+      "https://images.pexels.com/photos/33784418/pexels-photo-33784418.jpeg?auto=compress&cs=tinysrgb&w=1400&h=960&fit=crop",
+    tags: ["Art Therapy", "Creativity", "Emotional Resilience", "Self Awareness"],
+    content: `Some experiences are difficult to explain with words. Art therapy creates another way to express what is happening inside, using colour, image, texture, symbol, and process.
+
+## You Do Not Need To Be An Artist
+
+Art therapy is not about producing beautiful work. It is about using creative expression safely and intentionally with the support of a trained professional.
+
+## What Art Therapy Can Support
+
+- Emotional expression
+- Self-esteem and self-awareness
+- Stress reduction
+- Social skills and confidence
+- Processing difficult experiences
+- Cognitive and sensorimotor engagement
+
+## Why Creativity Helps
+
+Creative work can slow the mind, engage the body, and make emotions visible. For some clients, this makes it easier to notice patterns, name feelings, and talk about experiences that previously felt stuck.
+
+## A Different Doorway Into Healing
+
+Art therapy can be especially helpful when talking feels too direct, too tiring, or too limited. It gives healing another language.`,
+  },
+  {
+    id: "post-occupational-therapy-everyday-independence",
+    slug: "occupational-therapy-everyday-independence",
+    title: "Occupational Therapy: Rebuilding Confidence in Everyday Life",
+    category: "Occupational Therapy",
+    publishDate: "2025-08-20",
+    excerpt:
+      "Occupational therapy supports people with disability, ageing changes, or functional challenges to participate more fully in meaningful daily activities.",
+    featuredImage:
+      "https://images.pexels.com/photos/7551667/pexels-photo-7551667.jpeg?auto=compress&cs=tinysrgb&w=1400&h=960&fit=crop",
+    tags: ["Occupational Therapy", "Disability Support", "Older Adults", "Daily Living"],
+    content: `Occupational therapy focuses on the everyday activities that help people live with dignity, confidence, and participation. These activities may include self-care, movement, home routines, school, work, hobbies, or social connection.
+
+## Who It Can Support
+
+Occupational therapy can help clients living with disability, injury, illness, ageing-related changes, cognitive changes, sensory needs, or physical limitations.
+
+## What Sessions May Focus On
+
+- Building independence in daily routines
+- Adapting tasks or environments
+- Improving confidence with movement and participation
+- Supporting memory, planning, or attention
+- Helping caregivers understand practical needs
+
+## Care That Fits Real Life
+
+The work is tailored around the person's interests, goals, strengths, and environment. Therapy is most useful when it connects directly to the life someone wants to live.
+
+## Small Gains Matter
+
+Progress may look like dressing with less frustration, moving more safely at home, returning to a valued hobby, or feeling more in control of the day. These are meaningful wins.`,
+  },
 ];
 
 export const seedBlogPosts: BlogPost[] = seedBlogPostsContent.map((post) => ({
@@ -244,7 +381,7 @@ export const seedBlogPosts: BlogPost[] = seedBlogPostsContent.map((post) => ({
   title: post.title,
   category: post.category,
   publishDate: post.publishDate,
-  author: "Caroline Gichia",
+  author: post.author ?? "Caroline Gichia",
   readTime: post.slug === "understanding-anxiety" ? "5 min read" : post.slug === "navigating-grief" ? "6 min read" : "4 min read",
   excerpt: post.excerpt,
   featuredImage: post.featuredImage,

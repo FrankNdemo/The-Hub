@@ -241,35 +241,6 @@ const AboutPage = () => {
 
       <section className="pb-24">
         <div className="container mx-auto px-4">
-          <div className="rounded-[2.25rem] border border-border/60 bg-card px-6 py-8 text-center shadow-card sm:px-8">
-            <h2 className="font-heading text-4xl font-semibold text-foreground">Ready to begin your journey?</h2>
-            <p className="mx-auto mt-4 max-w-2xl text-muted-foreground leading-8">
-              Start with a first session or reach out if you want help deciding what type of support would fit best.
-            </p>
-            <div className="mt-8 grid grid-cols-2 gap-2.5 sm:flex sm:flex-row sm:justify-center">
-              <Button
-                variant="hero"
-                size="lg"
-                className="h-10 min-w-0 rounded-full px-3 text-[0.78rem] tracking-normal sm:h-11 sm:w-auto sm:px-8 sm:text-sm"
-                asChild
-              >
-                <Link to="/booking">Book a Session</Link>
-              </Button>
-              <Button
-                variant="heroBorder"
-                size="lg"
-                className="h-10 min-w-0 rounded-full px-3 text-[0.78rem] tracking-normal sm:h-11 sm:w-auto sm:px-8 sm:text-sm"
-                asChild
-              >
-                <Link to="/contact">Contact Us</Link>
-              </Button>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <section className="pb-24">
-        <div className="container mx-auto px-4">
           <div className="mx-auto max-w-3xl text-center">
             <div className="flex items-center justify-center gap-4 text-[#d99a2b]">
               <span className="h-px w-14 bg-current sm:w-24" />
@@ -340,6 +311,35 @@ const AboutPage = () => {
                   ))}
                 </div>
               </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section className="pb-24">
+        <div className="container mx-auto px-4">
+          <div className="rounded-[2.25rem] border border-border/60 bg-card px-6 py-8 text-center shadow-card sm:px-8">
+            <h2 className="font-heading text-4xl font-semibold text-foreground">Ready to begin your journey?</h2>
+            <p className="mx-auto mt-4 max-w-2xl text-muted-foreground leading-8">
+              Start with a first session or reach out if you want help deciding what type of support would fit best.
+            </p>
+            <div className="mt-8 grid grid-cols-2 gap-2.5 sm:flex sm:flex-row sm:justify-center">
+              <Button
+                variant="hero"
+                size="lg"
+                className="h-10 min-w-0 rounded-full px-3 text-[0.78rem] tracking-normal sm:h-11 sm:w-auto sm:px-8 sm:text-sm"
+                asChild
+              >
+                <Link to="/booking">Book a Session</Link>
+              </Button>
+              <Button
+                variant="heroBorder"
+                size="lg"
+                className="h-10 min-w-0 rounded-full px-3 text-[0.78rem] tracking-normal sm:h-11 sm:w-auto sm:px-8 sm:text-sm"
+                asChild
+              >
+                <Link to="/contact">Contact Us</Link>
+              </Button>
             </div>
           </div>
         </div>

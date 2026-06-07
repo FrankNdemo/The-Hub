@@ -110,6 +110,16 @@ const defaultState: WellnessHubState = {
 };
 
 const seedBlogPostsBySlug = new Map(seedBlogPosts.map((post) => [post.slug, post]));
+
+const mergeBlogPostsWithSeeds = (posts: BlogPost[]) => {
+  const postsBySlug = new Map(seedBlogPosts.map((post) => [post.slug, post]));
+
+  posts.forEach((post) => {
+    postsBySlug.set(post.slug, post);
+  });
+
+  return Array.from(postsBySlug.values());
+};
 const PUBLIC_THERAPISTS_STORAGE_KEY = "wellness-public-therapists-v1";
 
 const normalizeTherapistProfile = (profile?: Partial<TherapistProfile> | null): TherapistProfile => ({
@@ -501,9 +511,11 @@ const normalizeBooking = (booking?: Partial<BookingRecord> | null): BookingRecor
 };
 
 const applyDashboardSnapshot = (snapshot: DashboardOverviewResponse): WellnessHubState => ({
-  blogPosts: snapshot.blogPosts
-    .map((post) => normalizeBlogPost(post))
-    .filter((post): post is BlogPost => Boolean(post)),
+  blogPosts: mergeBlogPostsWithSeeds(
+    snapshot.blogPosts
+      .map((post) => normalizeBlogPost(post))
+      .filter((post): post is BlogPost => Boolean(post)),
+  ),
   clientStories: Array.isArray(snapshot.clientStories)
     ? snapshot.clientStories
         .map((story) => normalizeClientStory(story))
@@ -607,7 +619,7 @@ export const WellnessHubProvider = ({ children }: { children: React.ReactNode })
             .filter((story): story is ClientStory => Boolean(story))
         : undefined;
 
-    const nextBlogPosts = blogPosts && blogPosts.length > 0 ? blogPosts : undefined;
+    const nextBlogPosts = blogPosts && blogPosts.length > 0 ? mergeBlogPostsWithSeeds(blogPosts) : undefined;
 
     if (therapist || therapists || nextBlogPosts || clientStories) {
       setPublicContent({ therapist, therapists, blogPosts: nextBlogPosts, clientStories });

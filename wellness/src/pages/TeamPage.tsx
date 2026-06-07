@@ -36,7 +36,7 @@ const TeamPage = () => {
               <article id={member.id} key={member.id} className="scroll-mt-28 grid gap-8 lg:grid-cols-[0.85fr_1.15fr] lg:items-start">
                 <div className="overflow-hidden rounded-none border border-border/60 bg-card shadow-card lg:sticky lg:top-28 lg:self-start">
                   <div className="h-[360px] overflow-hidden bg-secondary/35">
-                    <img src={member.image} alt={member.name} className="h-full w-full object-contain object-center" />
+                    <img src={member.image} alt={member.name} className="h-full w-full object-cover object-center" />
                   </div>
                   <div className="wellness-panel p-6 text-center lg:text-left">
                     <p className="text-sm font-semibold uppercase tracking-[0.24em] text-primary/75">Specialties</p>
