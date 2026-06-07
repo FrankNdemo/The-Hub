@@ -17,7 +17,7 @@ const featuredServices = [
     imageAlt: "A Black male client speaking with a therapist during an individual counseling session",
     title: "Individual Therapy",
     description: "One-on-one support for anxiety, stress, depression, burnout, and emotional growth using a calm, collaborative pace.",
-    imageClassName: "object-[center_34%] sm:object-[center_36%] lg:object-[center_38%]",
+    imageClassName: "object-[center_16%] sm:object-[center_18%] lg:object-[center_20%]",
   },
   {
     image: servicePageFamilyImage,
@@ -44,7 +44,7 @@ const serviceList = [
     image: pexelsImage(30677713),
     imageAlt: "Black professionals in a workplace conversation about wellbeing and team support",
     description:
-      "Workplace stress, burnout, harassment, bullying, grief, and work-life strain can quietly affect performance and morale. Our corporate wellness talks help teams name these pressures early, reduce stigma around mental health, and build healthier habits for communication, resilience, leadership, and employee support.",
+      "At The Wellness Hub, we help teams talk about mental health before pressure becomes crisis. These sessions address burnout, harassment, bullying, grief, work-life strain, leadership stress, and low morale while giving staff practical language for resilience, communication, psychological safety, and healthier workplace culture.",
     imageClassName: "object-[center_62%]",
   },
   {
@@ -52,7 +52,7 @@ const serviceList = [
     image: pexelsImage(33763195),
     imageAlt: "African volunteers supporting a community outreach gathering outdoors",
     description:
-      "We bring mental health awareness closer to the communities that need it most. Through targeted outreach, we support conversations around stigma, poverty-related stress, family conflict, debt pressure, emotional safety, and access to care so people can find help within familiar community spaces.",
+      "We are committed to taking mental health education beyond the clinic. Through community outreaches, we address stigma, poverty-related stress, family conflict, debt pressure, grief, substance use concerns, and emotional safety in familiar spaces where people can ask questions, feel seen, and discover support pathways.",
     imageClassName: "object-[center_60%]",
   },
   {
@@ -60,7 +60,7 @@ const serviceList = [
     image: pexelsImage(34526411),
     imageAlt: "African students taking part in a calm school wellbeing discussion",
     description:
-      "Young people face exam pressure, social expectations, identity questions, difficult relationships, and intense emotional changes. Our school awareness sessions create age-appropriate spaces for learners, teachers, and caregivers to understand warning signs, reduce shame, and support wellbeing before a crisis grows.",
+      "School life can carry silent pressure. At The Wellness Hub, we create age-appropriate conversations for learners, teachers, and caregivers around exam stress, bullying, identity, relationships, self-esteem, emotional regulation, warning signs, and where to turn when a young person is struggling.",
     imageClassName: "object-[center_58%]",
   },
   {
@@ -68,7 +68,7 @@ const serviceList = [
     image: pexelsImage(33127869),
     imageAlt: "African healthcare volunteers offering supportive care during a community visit",
     description:
-      "For clients who need ongoing care but not full admission, home-based support offers continuity in a familiar environment. Care plans can include clinical check-ins, psychological support, medication guidance, caregiver education, and practical recovery planning that helps families participate with confidence.",
+      "For clients who need steady support without full admission, home-based care brings structured help into a familiar environment. We address recovery planning, emotional stability, caregiver education, medication guidance, clinical check-ins, and practical routines so families can support healing with more confidence.",
     imageClassName: "object-[center_62%]",
   },
   {
@@ -76,7 +76,7 @@ const serviceList = [
     image: pexelsImage(5234624),
     imageAlt: "A Black woman speaking with a psychologist during a supportive therapy session",
     description:
-      "Gentle one-on-one therapy for anxiety, depression, stress, burnout, grief, emotional overwhelm, and self-understanding. Sessions move at your pace, with practical CBT-informed tools that help you notice patterns, regulate emotions, and rebuild a steadier relationship with yourself.",
+      "This is a private, steady space for the things you may be carrying alone. We work with anxiety, depression, burnout, grief, stress, emotional overwhelm, confidence, relationships, and self-understanding using warm conversation and practical CBT-informed tools that fit real life.",
     imageClassName: "object-[center_42%]",
   },
   {
@@ -84,7 +84,7 @@ const serviceList = [
     image: pexelsImage(5711174),
     imageAlt: "A diverse group seated in a supportive group therapy circle for recovery",
     description:
-      "Weaning off addiction, alcohol, cigarettes, or hard drugs can be a daunting experience. Through compassionate care and customised addiction treatment plans, we help you or someone you love take back control without stigma or shame. Our goal is to work with you in finding the root cause of addiction and charting a recovery path through residential or long-term outpatient rehabilitation support.",
+      "Addiction recovery needs compassion, structure, and honesty. At The Wellness Hub, we help clients and families understand the roots of alcohol, cigarette, substance, or hard drug dependence, then build a treatment path that may include relapse prevention, therapy, family support, residential referral, or long-term outpatient rehabilitation.",
     imageClassName: "object-[center_50%]",
   },
   {
@@ -92,7 +92,7 @@ const serviceList = [
     image: pexelsImage(8560221),
     imageAlt: "A therapist conducting a calm psychotherapy session with a client in an office",
     description:
-      "Sometimes the problems that life throws at us can be overwhelming, even for the strongest among us. We offer psychotherapy for a wide variety of mental illnesses and emotional difficulties, with professional psychologists helping you navigate the dark storms rocking your boat, either at work or home.",
+      "Psychotherapy gives language and direction to what feels heavy, confusing, or repeated. We address emotional difficulties, relationship patterns, trauma responses, workplace strain, low mood, anxiety, and life transitions with professional psychological support that helps you understand yourself and move with more clarity.",
     imageClassName: "object-[center_48%]",
   },
   {
@@ -100,7 +100,7 @@ const serviceList = [
     image: pexelsImage(6925366),
     imageAlt: "Women painting together in a bright art therapy class with canvases",
     description:
-      "Facilitated by a professional art therapist, art therapy supports personal and relational treatment goals. It can help improve cognitive and sensorimotor functions, foster self-esteem and self-awareness, cultivate emotional resilience, and enhance social skills through guided creative expression.",
+      "Sometimes healing needs more than words. Art therapy uses guided creative expression to support self-awareness, emotional resilience, social skills, confidence, cognitive and sensorimotor growth, and relational healing. You do not need to be artistic; the focus is expression, safety, and discovery.",
     imageClassName: "object-[center_46%]",
   },
   {
@@ -108,7 +108,7 @@ const serviceList = [
     image: pexelsImage(7551611),
     imageAlt: "A caregiver supporting an older adult through a therapeutic home exercise",
     description:
-      "We offer occupational therapy for clients with disability or older adults experiencing cognitive or physical changes. Interventions are tailored for each client, helping you participate in desired occupations through the therapeutic use of everyday activities based on your personal interests and needs.",
+      "Occupational therapy helps people return to meaningful everyday life. We address disability support, aging changes, cognitive or physical challenges, independence, routines, home adaptations, caregiver needs, and confidence with daily activities, using interventions shaped around each client's environment and goals.",
     imageClassName: "object-[center_46%]",
   },
   {
@@ -116,7 +116,7 @@ const serviceList = [
     image: pexelsImage(3822622),
     imageAlt: "A Black woman practicing a calm mindfulness reset in a peaceful indoor setting",
     description:
-      "A focused wellbeing programme for people who feel stretched, wired, or constantly on. Sessions blend grounding skills, breathwork, reflective exercises, and simple daily practices that help the nervous system slow down, restore clarity, and create calmer routines.",
+      "For people who feel constantly on, this reset creates room to slow the nervous system. At The Wellness Hub, we blend grounding skills, breathwork, reflective exercises, stress education, and simple daily practices that help restore clarity, improve sleep, and build calmer routines.",
     imageClassName: "object-[center_48%]",
   },
   {
@@ -124,7 +124,7 @@ const serviceList = [
     image: pexelsImage(20333029),
     imageAlt: "Black African children listening attentively in a classroom",
     description:
-      "Children and teenagers need care that respects their age, personality, and stage of development. We support emotional regulation, behavior concerns, school stress, identity questions, peer relationships, family change, and early signs of anxiety or low mood with warmth and structure.",
+      "Children and teenagers need support that respects their age, voice, and development. We address emotional regulation, behaviour concerns, school stress, identity questions, peer pressure, family change, grief, and early signs of anxiety or low mood with warmth, structure, and caregiver involvement where helpful.",
     imageClassName: "object-[center_58%]",
   },
   {
@@ -132,7 +132,7 @@ const serviceList = [
     image: pexelsImage(6382655),
     imageAlt: "A Black woman sitting quietly during a reflective emotional support moment",
     description:
-      "Trauma can show up as fear, numbness, avoidance, anger, intrusive memories, or difficulty trusting your own body again. CBT-informed care helps you understand triggers, challenge painful beliefs, rebuild safety, and develop coping skills that support recovery without rushing your story.",
+      "Trauma can live in thoughts, body responses, relationships, sleep, anger, avoidance, or numbness. We use CBT-informed care to help clients understand triggers, challenge painful beliefs, rebuild safety, develop coping skills, and move toward recovery without being rushed or reduced to the painful event.",
     imageClassName: "object-[center_66%]",
   },
   {
@@ -140,7 +140,7 @@ const serviceList = [
     image: pexelsImage(6382522),
     imageAlt: "A Black client receiving comfort during a difficult emotional moment",
     description:
-      "Anxiety can affect sleep, focus, relationships, appetite, confidence, and everyday decision-making. We help you make sense of panic, worry, overwhelm, and emotional shutdown while building practical tools for grounding, thought patterns, self-care, and long-term mental health.",
+      "Anxiety and mental health struggles can affect sleep, focus, appetite, relationships, confidence, and daily decisions. At The Wellness Hub, we address worry, panic, overwhelm, emotional shutdown, depressive symptoms, and stress patterns while building tools for grounding, self-care, and long-term stability.",
     imageClassName: "object-[center_64%]",
   },
   {
@@ -148,7 +148,7 @@ const serviceList = [
     image: pexelsImage(6578397),
     imageAlt: "A focused Black man working on a laptop with a calm planning routine",
     description:
-      "Strengths-based support for ADHD, autism, dyslexia, dyspraxia, sensory differences, and neurodivergent identity. Sessions focus on self-acceptance, executive functioning, emotional regulation, relationships, workplace or school accommodations, and practical systems that fit your real life.",
+      "Neurodivergent support should honour both strengths and strain. We address ADHD, autism, dyslexia, dyspraxia, sensory differences, executive functioning, emotional regulation, identity, relationships, and school or workplace accommodations while building systems that fit the person, not the other way around.",
     imageClassName: "object-[center_42%]",
   },
   {
@@ -156,7 +156,7 @@ const serviceList = [
     image: pexelsImage(19963131),
     imageAlt: "A Black healthcare professional offering calm support in a clinical setting",
     description:
-      "A cancer diagnosis can bring fear, grief, body changes, treatment fatigue, and uncertainty for both clients and families. Oncopsychology support offers space to process emotions, strengthen coping, communicate needs, and navigate treatment or recovery with dignity.",
+      "A cancer journey can bring fear, grief, body changes, treatment fatigue, uncertainty, and pressure on the whole family. Oncopsychology support helps clients process emotions, communicate needs, strengthen coping, navigate treatment or recovery, and hold dignity through a deeply human season.",
     imageClassName: "object-[center_42%]",
   },
   {
@@ -164,7 +164,7 @@ const serviceList = [
     image: pexelsImage(8553653),
     imageAlt: "A Black woman processing grief in a quiet reflective moment",
     description:
-      "Grief can follow death, separation, illness, migration, lost opportunities, or major life changes. We offer compassionate support for the shock, anger, guilt, numbness, longing, and meaning-making that can come with loss, without forcing a timeline for healing.",
+      "Grief does not follow a neat timetable. We support loss after death, separation, illness, migration, major change, or lost opportunities, addressing shock, anger, guilt, numbness, longing, faith questions, family strain, and meaning-making without forcing someone to heal on command.",
     imageClassName: "object-[center_66%]",
   },
   {
@@ -172,7 +172,7 @@ const serviceList = [
     image: pexelsImage(6579051),
     imageAlt: "A supportive Black couple smiling together in a warm home setting",
     description:
-      "Affirming therapy honours identity, safety, relationships, family dynamics, self-acceptance, and mental wellbeing. We provide a confidential space to explore stress, belonging, boundaries, discrimination, faith questions, and the emotional load that can come with being misunderstood.",
+      "We are intentional about affirming care that honours identity, safety, and mental wellbeing. This support addresses belonging, self-acceptance, family dynamics, relationships, boundaries, discrimination, faith questions, and the emotional load of being misunderstood in spaces that should feel safe.",
     imageClassName: "object-[center_62%]",
   },
   {
@@ -180,7 +180,7 @@ const serviceList = [
     image: pexelsImage(13742663),
     imageAlt: "A crowd of Black people gathered in a reflective communal prayer moment",
     description:
-      "Sometimes distress is connected to meaning, faith, doubt, purpose, guilt, identity, or major questions about life. This therapy gives room for open, respectful exploration of spiritual complexity and existential concerns while supporting emotional clarity and grounded decision-making.",
+      "Sometimes distress is tied to meaning, faith, doubt, guilt, purpose, identity, or big questions about life. At The Wellness Hub, we offer respectful space to explore spiritual complexity and existential concerns while supporting emotional clarity, grounded decisions, and personal integrity.",
     imageClassName: "object-[center_60%]",
   },
   {
@@ -188,7 +188,7 @@ const serviceList = [
     image: pexelsImage(30678208),
     imageAlt: "An African patient discussing a health plan with a medical professional",
     description:
-      "Weight management surgery and major body changes can affect identity, mood, habits, relationships, and expectations. Bariatric psychology supports readiness, emotional eating patterns, adjustment after surgery, relapse prevention, and the mindset needed for sustainable lifestyle change.",
+      "Bariatric psychology supports the emotional side of major body and lifestyle change. We address readiness for surgery, expectations, identity shifts, mood, relationships, emotional eating, relapse prevention, post-surgery adjustment, and the mindset needed for sustainable health changes.",
     imageClassName: "object-[center_62%]",
   },
 ];
