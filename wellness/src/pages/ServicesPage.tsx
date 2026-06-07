@@ -66,9 +66,9 @@ const serviceList = [
   {
     title: "Home-Based Care",
     image: pexelsImage(33127869),
-    imageAlt: "African healthcare volunteers offering supportive care during a community visit",
+    imageAlt: "African wellness support workers having a calm conversation during a home visit",
     description:
-      "For clients who need steady support without full admission, home-based care brings structured help into a familiar environment. We address recovery planning, emotional stability, caregiver education, medication guidance, clinical check-ins, and practical routines so families can support healing with more confidence.",
+      "For clients and families who feel safest starting at home, The Wellness Hub brings therapy-informed support into a familiar environment. We focus on emotional stability, family communication, caregiver guidance, coping tools, wellness routines, and gentle follow-up so healing can feel practical, private, and human.",
     imageClassName: "object-[center_62%]",
   },
   {

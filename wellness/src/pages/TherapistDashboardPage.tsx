@@ -1288,7 +1288,7 @@ const TherapistDashboardPage = () => {
                         className="group wellness-panel cursor-pointer rounded-[1.5rem] border border-border/60 p-3 transition-all duration-300 hover:shadow-soft focus:outline-none focus:ring-2 focus:ring-primary/20 sm:rounded-[1.75rem] sm:p-6"
                       >
                         <div className="flex items-start gap-3 sm:hidden">
-                          <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-primary/12 text-sm font-semibold text-primary">
+                          <div className={initialsBadgeClassName}>
                             {getInitials(booking.clientName)}
                           </div>
                           <div className="min-w-0 flex-1">
@@ -1430,7 +1430,7 @@ const TherapistDashboardPage = () => {
                           className="cursor-pointer rounded-[1.2rem] border border-border/60 bg-secondary/25 p-3 shadow-card transition-colors hover:bg-secondary/35 focus:outline-none focus:ring-2 focus:ring-primary/20"
                         >
                           <div className="flex items-start gap-3">
-                            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-primary/12 text-sm font-semibold text-primary">
+                            <div className={initialsBadgeClassName}>
                               {getInitials(booking.clientName)}
                             </div>
                             <div className="min-w-0 flex-1">
@@ -1689,7 +1689,7 @@ const TherapistDashboardPage = () => {
                             className="cursor-pointer rounded-[1.5rem] border border-border/60 bg-secondary/25 p-4 shadow-card transition-colors hover:bg-secondary/35 focus:outline-none focus:ring-2 focus:ring-primary/20"
                           >
                             <div className="flex items-start gap-3">
-                              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-primary/12 text-sm font-semibold text-primary">
+                              <div className={initialsBadgeClassName}>
                                 {getInitials(transaction.clientName ?? transaction.phoneNumber)}
                               </div>
                               <div className="min-w-0 flex-1">
