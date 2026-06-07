@@ -257,9 +257,9 @@ const ServicesPage = () => (
 
     <section className="py-16">
       <div className="container mx-auto px-4">
-        <div className="rounded-[2.25rem] bg-secondary/40 px-6 py-8 lg:px-8">
+        <div className="px-0 py-0 sm:rounded-[2.25rem] sm:bg-secondary/40 sm:px-6 sm:py-8 lg:px-8">
           <div className="mx-auto max-w-4xl text-center">
-            <p className="inline-flex items-center justify-center gap-2 text-sm font-semibold uppercase tracking-[0.28em] text-primary/75">
+            <p className="inline-flex items-center justify-center gap-2 rounded-full bg-background/95 px-5 py-2.5 text-sm font-bold uppercase tracking-[0.24em] text-primary shadow-card sm:bg-transparent sm:px-0 sm:py-0 sm:font-semibold sm:tracking-[0.28em] sm:text-primary/75 sm:shadow-none">
               <Sparkles className="h-3.5 w-3.5 text-primary" />
               <span>Our Special Programmes</span>
             </p>
