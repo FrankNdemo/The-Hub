@@ -4,7 +4,6 @@ import { createPortal } from "react-dom";
 import {
   ArrowLeft,
   X,
-  Briefcase,
   CalendarDays,
   Check,
   CheckCircle2,
@@ -100,32 +99,6 @@ const FINAL_PAYMENT_STATUSES: BookingPaymentRecord["status"][] = [
   "insufficient_funds",
 ];
 
-const serviceCards: {
-  type: ServiceType;
-  title: string;
-  description: string;
-  icon: typeof Video;
-}[] = [
-  {
-    type: "individual",
-    title: "Individual",
-    description: "One-on-one sessions",
-    icon: User,
-  },
-  {
-    type: "family",
-    title: "Family",
-    description: "Family & couples support",
-    icon: Users,
-  },
-  {
-    type: "corporate",
-    title: "Corporate",
-    description: "Team & workplace programs",
-    icon: Briefcase,
-  },
-];
-
 const sessionCards: {
   type: SessionType;
   title: string;
@@ -147,6 +120,27 @@ const sessionCards: {
 ];
 
 const CHECKOUT_STAGE_COPY = [{ label: "Review" }, { label: "Pay" }, { label: "Confirm" }];
+
+const getRequestedServiceMessages = (service: string) => {
+  const requestedService = service.trim();
+
+  return requestedService
+    ? [
+        `Your ${requestedService} session will be shaped around what matters most to you.`,
+        `At The Wellness Hub, we make space for your story, your goals, and your preferred pace.`,
+        `We will thoughtfully match your ${requestedService} needs with practical, compassionate support.`,
+        "One clear step today can begin a steadier, healthier chapter.",
+      ]
+    : [
+        "Tell us what kind of support feels right for you today.",
+        "You do not need perfect words; start with the service you have in mind.",
+        "At The Wellness Hub, we will help you find a care path that fits.",
+        "Your next step can be simple, supported, and entirely your own.",
+      ];
+};
+
+const withRequestedServiceNote = (service: string, notes: string) =>
+  [`Requested service: ${service.trim()}`, notes.trim()].filter(Boolean).join("\n\n");
 
 const parseDateInput = (value: string) => {
   const [year, month, day] = value.split("-").map(Number);
@@ -518,6 +512,7 @@ const StatusHalo = ({
 
 const SummaryCard = ({
   serviceType,
+  requestedService,
   sessionType,
   date,
   time,
@@ -525,6 +520,7 @@ const SummaryCard = ({
   bookingAmount,
 }: {
   serviceType: ServiceType;
+  requestedService: string;
   sessionType: SessionType;
   date: string;
   time: string;
@@ -538,7 +534,9 @@ const SummaryCard = ({
         {
           icon: Users,
           label: "Session",
-          value: `${formatServiceType(serviceType)} ${sessionType === "virtual" ? "Virtual Session" : "In-Person Session"}`,
+          value: `${requestedService.trim() || formatServiceType(serviceType)} ${
+            sessionType === "virtual" ? "Virtual Session" : "In-Person Session"
+          }`,
         },
         {
           icon: CalendarDays,
@@ -670,6 +668,7 @@ const BookingSection = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const requestedTherapistId = searchParams.get("therapist");
+  const requestedServiceParam = searchParams.get("service")?.trim() ?? "";
   const availableTherapists = useMemo(() => (therapists.length ? therapists : [therapist]), [therapist, therapists]);
   const initialTherapistId =
     (requestedTherapistId && availableTherapists.some((item) => item.id === requestedTherapistId)
@@ -680,6 +679,7 @@ const BookingSection = () => {
   const emailSessionCheckIdRef = useRef(0);
   const {
     serviceType,
+    requestedService,
     sessionType,
     step,
     checkout,
@@ -699,7 +699,7 @@ const BookingSection = () => {
       [field]: resolveStateUpdate(value, current[field]),
     }));
   };
-  const setServiceType = (value: SetStateAction<ServiceType>) => setBookingDraftField("serviceType", value);
+  const setRequestedService = (value: SetStateAction<string>) => setBookingDraftField("requestedService", value);
   const setSessionType = (value: SetStateAction<SessionType>) => setBookingDraftField("sessionType", value);
   const setStep = (value: SetStateAction<BookingStep>) => setBookingDraftField("step", value);
   const setCheckout = (value: SetStateAction<BookingCheckoutResponse | null>) => setBookingDraftField("checkout", value);
@@ -723,7 +723,9 @@ const BookingSection = () => {
   const [slotTherapists, setSlotTherapists] = useState<TherapistProfile[] | null>(null);
   const [serviceDescriptionText, setServiceDescriptionText] = useState("");
   const [isDeletingServiceDescription, setIsDeletingServiceDescription] = useState(false);
-  const activeServiceCard = serviceCards.find((item) => item.type === serviceType) ?? serviceCards[0];
+  const [serviceDescriptionIndex, setServiceDescriptionIndex] = useState(0);
+  const requestedServiceMessages = useMemo(() => getRequestedServiceMessages(requestedService), [requestedService]);
+  const requestedServiceMessage = requestedServiceMessages[serviceDescriptionIndex % requestedServiceMessages.length];
   const selectableTherapists = slotTherapists ?? availableTherapists;
   const selectedTherapist =
     selectableTherapists.find((item) => item.id === form.therapistId) ?? selectableTherapists[0] ?? therapist;
@@ -774,6 +776,7 @@ const BookingSection = () => {
       form.therapistId,
       form.date,
       form.time,
+      requestedService.trim(),
       serviceType,
       sessionType,
       participantCount,
@@ -788,6 +791,7 @@ const BookingSection = () => {
     form.participantCount,
     form.therapistId,
     form.time,
+    requestedService,
     serviceType,
     sessionType,
   ]);
@@ -818,6 +822,15 @@ const BookingSection = () => {
     setForm((current) => ({ ...current, [field]: value }));
   };
 
+  const updateRequestedService = (value: string) => {
+    setBookingGuidance("");
+    setCheckout(null);
+    setPaymentFeedback("");
+    setRetryStartOverRequired(false);
+    setPreparedPrecheck(null);
+    setRequestedService(value);
+  };
+
   const buildPrecheckInput = useCallback(() => {
     const participantCount =
       serviceType === "corporate" && form.participantCount
@@ -834,7 +847,7 @@ const BookingSection = () => {
       serviceType,
       participantCount,
       sessionType,
-      notes: form.notes,
+      notes: withRequestedServiceNote(requestedService, form.notes),
     };
   }, [
     form.clientEmail,
@@ -845,6 +858,7 @@ const BookingSection = () => {
     form.participantCount,
     form.therapistId,
     form.time,
+    requestedService,
     serviceType,
     sessionType,
   ]);
@@ -927,9 +941,20 @@ const BookingSection = () => {
   }, [availableTherapistIds, availableTherapists, requestedTherapistId, therapist.id]);
 
   useEffect(() => {
+    if (requestedServiceParam) {
+      setBookingDraft((current) =>
+        current.requestedService === requestedServiceParam
+          ? current
+          : { ...current, requestedService: requestedServiceParam },
+      );
+    }
+  }, [requestedServiceParam, setBookingDraft]);
+
+  useEffect(() => {
     setServiceDescriptionText("");
     setIsDeletingServiceDescription(false);
-  }, [serviceType]);
+    setServiceDescriptionIndex(0);
+  }, [requestedService]);
 
   useEffect(() => {
     if (step !== "details") {
@@ -1060,7 +1085,7 @@ const BookingSection = () => {
   ]);
 
   useEffect(() => {
-    const target = activeServiceCard.description;
+    const target = requestedServiceMessage;
     const delay =
       !isDeletingServiceDescription && serviceDescriptionText === target
         ? 3000
@@ -1076,6 +1101,7 @@ const BookingSection = () => {
 
       if (isDeletingServiceDescription && serviceDescriptionText === "") {
         setIsDeletingServiceDescription(false);
+        setServiceDescriptionIndex((current) => (current + 1) % requestedServiceMessages.length);
         return;
       }
 
@@ -1087,7 +1113,7 @@ const BookingSection = () => {
     }, delay);
 
     return () => window.clearTimeout(timeout);
-  }, [activeServiceCard.description, isDeletingServiceDescription, serviceDescriptionText]);
+  }, [isDeletingServiceDescription, requestedServiceMessage, requestedServiceMessages.length, serviceDescriptionText]);
 
   useEffect(() => {
     if (step !== "stk_sent" && step !== "processing") {
@@ -1211,14 +1237,6 @@ const BookingSection = () => {
     return () => window.cancelAnimationFrame(frameId);
   }, [step]);
 
-  const handleServiceTypeSelect = (value: ServiceType) => {
-    setServiceType(value);
-    setForm((current) => ({
-      ...current,
-      participantCount: value === "corporate" ? current.participantCount : "",
-    }));
-  };
-
   const showScheduleWindowNotice = () => {
     const now = Date.now();
 
@@ -1232,6 +1250,10 @@ const BookingSection = () => {
 
   const handleDetailsSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
+    if (!requestedService.trim()) {
+      toast.error("Enter the service you require before continuing.");
+      return;
+    }
     if (isLoadingTherapists) {
       toast.error("Please wait a moment while we finish checking this slot.");
       return;
@@ -1339,7 +1361,7 @@ const BookingSection = () => {
               serviceType,
               participantCount,
               sessionType,
-              notes: form.notes,
+              notes: withRequestedServiceNote(requestedService, form.notes),
               mpesaPhoneNumber: paymentPhone,
             });
 
@@ -1417,7 +1439,7 @@ const BookingSection = () => {
         serviceType,
         participantCount,
         sessionType,
-        notes: form.notes,
+        notes: withRequestedServiceNote(requestedService, form.notes),
         mpesaConfirmationCode: confirmationCode,
         paidMobileName: payerName,
         sendMoneyNumber: recipient,
@@ -1875,38 +1897,18 @@ const BookingSection = () => {
 
                     <div className="mt-8 grid gap-5 sm:grid-cols-2">
                       <div className="sm:col-span-2">
-                        <Label className="block text-sm leading-6">Service Type *</Label>
-                        <div className="mt-3 grid grid-cols-3 gap-2 sm:gap-3">
-                          {serviceCards.map((item) => (
-                            <button
-                              key={item.type}
-                              type="button"
-                              aria-pressed={serviceType === item.type}
-                              onClick={() => handleServiceTypeSelect(item.type)}
-                              className={`relative min-w-0 rounded-none border px-2 py-2 text-center transition-all duration-200 sm:px-2.5 sm:py-2.5 ${
-                                serviceType === item.type
-                                  ? "-translate-y-1 border-primary bg-primary/10 shadow-[0_18px_35px_rgba(17,24,39,0.24)]"
-                                  : "border-border/60 bg-background hover:-translate-y-0.5 hover:border-primary/40 hover:bg-primary/5 hover:shadow-[0_12px_24px_rgba(17,24,39,0.12)]"
-                              }`}
-                            >
-                              {serviceType === item.type ? (
-                                <span className="absolute right-2 top-2 h-2.5 w-2.5 rounded-full bg-primary shadow-[0_0_0_3px_rgba(78,124,104,0.14)] sm:right-3 sm:top-3" />
-                              ) : null}
-                              <div className="flex items-center justify-center gap-1.5 sm:gap-2">
-                                <div
-                                  className={`flex h-7 w-7 items-center justify-center rounded-lg sm:h-8 sm:w-8 ${
-                                    serviceType === item.type ? "bg-primary/15 text-primary" : "bg-secondary text-muted-foreground"
-                                  }`}
-                                >
-                                  <item.icon className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
-                                </div>
-                                <p className="min-w-0 font-heading text-[10px] font-semibold leading-tight text-foreground sm:text-xs md:text-sm">
-                                  {item.title}
-                                </p>
-                              </div>
-                            </button>
-                          ))}
-                        </div>
+                        <Label htmlFor="booking-service" className="block text-sm leading-6">
+                          Service Type *
+                        </Label>
+                        <Input
+                          id="booking-service"
+                          value={requestedService}
+                          onChange={(event) => updateRequestedService(event.target.value)}
+                          className="mt-2"
+                          placeholder="Type the service you require"
+                          maxLength={120}
+                          required
+                        />
                         <div className="mt-3 min-h-6 px-1 text-xs leading-6 text-primary/80 sm:text-sm">
                           {serviceDescriptionText}
                           <span
@@ -1915,32 +1917,6 @@ const BookingSection = () => {
                           />
                         </div>
                       </div>
-
-                      {serviceType === "corporate" ? (
-                        <div className="sm:col-span-2 rounded-none border border-primary/15 bg-secondary/35 p-5 shadow-soft">
-                          <div className="flex items-center gap-2 text-primary">
-                            <Users className="h-4 w-4" />
-                            <Label htmlFor="booking-participants" className="text-base font-medium text-foreground">
-                              Number of Participants *
-                            </Label>
-                          </div>
-                          <Input
-                            id="booking-participants"
-                            type="number"
-                            inputMode="numeric"
-                            min="1"
-                            step="1"
-                            value={form.participantCount}
-                            onChange={(event) => updateField("participantCount", event.target.value)}
-                            className="mt-4 max-w-[240px] bg-background/95"
-                            placeholder="e.g. 25"
-                            required
-                          />
-                          <p className="mt-3 text-sm leading-6 text-muted-foreground">
-                            We&apos;ll tailor the program to your team size.
-                          </p>
-                        </div>
-                      ) : null}
 
                       <div>
                         <Label htmlFor="booking-name">Full Name</Label>
@@ -2171,7 +2147,9 @@ const BookingSection = () => {
                             {
                               icon: Users,
                               label: "Session",
-                              value: `${formatServiceType(serviceType)} ${sessionType === "virtual" ? "1-on-1 Session" : "In-Person Session"}`,
+                              value: `${requestedService.trim() || formatServiceType(serviceType)} ${
+                                sessionType === "virtual" ? "Virtual Session" : "In-Person Session"
+                              }`,
                             },
                             {
                               icon: CalendarDays,
@@ -2239,6 +2217,7 @@ const BookingSection = () => {
                       <div className="mt-8 grid gap-5 lg:grid-cols-[1.02fr_0.98fr] lg:items-start">
                         <SummaryCard
                           serviceType={serviceType}
+                          requestedService={requestedService}
                           sessionType={sessionType}
                           date={form.date}
                           time={form.time}
@@ -2396,6 +2375,7 @@ const BookingSection = () => {
                       <div className="mt-8 grid gap-5 lg:grid-cols-[0.95fr_1.05fr] lg:items-start">
                         <SummaryCard
                           serviceType={serviceType}
+                          requestedService={requestedService}
                           sessionType={sessionType}
                           date={form.date}
                           time={form.time}
@@ -2557,7 +2537,7 @@ const BookingSection = () => {
                       </div>
                       <div className="mt-8 grid gap-5 lg:grid-cols-[0.95fr_1.05fr] lg:items-start">
                         <div className="order-2 lg:order-1">
-                          <SummaryCard serviceType={serviceType} sessionType={sessionType} date={form.date} time={form.time} therapistName={selectedTherapist.name} bookingAmount={bookingAmount} />
+                          <SummaryCard serviceType={serviceType} requestedService={requestedService} sessionType={sessionType} date={form.date} time={form.time} therapistName={selectedTherapist.name} bookingAmount={bookingAmount} />
                         </div>
                         <div className="order-1 space-y-5 lg:order-2">
                           <div className="rounded-[1.6rem] border border-border/60 bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(247,249,246,0.96))] p-5 shadow-soft sm:p-6">
@@ -2642,7 +2622,7 @@ const BookingSection = () => {
                       </div>
                       <div className="mt-8 grid gap-5 lg:grid-cols-[0.95fr_1.05fr] lg:items-start">
                         <div className="order-2 lg:order-1">
-                          <SummaryCard serviceType={serviceType} sessionType={sessionType} date={form.date} time={form.time} therapistName={selectedTherapist.name} bookingAmount={bookingAmount} />
+                          <SummaryCard serviceType={serviceType} requestedService={requestedService} sessionType={sessionType} date={form.date} time={form.time} therapistName={selectedTherapist.name} bookingAmount={bookingAmount} />
                         </div>
                         <div className="order-1 space-y-5 lg:order-2">
                           <div className="rounded-[1.9rem] border border-border/60 bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(247,249,246,0.96))] p-5 shadow-soft sm:p-7">
@@ -2739,6 +2719,7 @@ const BookingSection = () => {
                         <div className="order-2 lg:order-1">
                           <SummaryCard
                             serviceType={serviceType}
+                            requestedService={requestedService}
                             sessionType={sessionType}
                             date={form.date}
                             time={form.time}

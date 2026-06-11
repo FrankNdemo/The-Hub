@@ -1,3 +1,6 @@
+import json
+from unittest.mock import MagicMock, patch
+
 from django.core import mail
 from django.core.management import call_command
 from django.test import override_settings
@@ -11,6 +14,7 @@ from apps.notifications.models import ContactInquiry, Notification
     EMAIL_BACKEND="django.core.mail.backends.locmem.EmailBackend",
     DEFAULT_FROM_EMAIL="The Wellness Hub <no-reply@wellnesshub.local>",
     CONTACT_INQUIRY_RECIPIENT_EMAIL="cgichia@gmail.com",
+    BREVO_API_KEY="",
     WHATSAPP_CLOUD_API_TOKEN="",
     WHATSAPP_CLOUD_PHONE_NUMBER_ID="",
 )
@@ -60,3 +64,34 @@ class ContactInquiryApiTests(APITestCase):
         self.assertEqual(mail.outbox[0].to, ["cgichia@gmail.com"])
         self.assertEqual(mail.outbox[0].cc, ["ndemojnrr@gmail.com"])
         self.assertNotIn("legacy-inbox@example.com", mail.outbox[0].recipients())
+
+    @override_settings(
+        BREVO_API_KEY="test-brevo-key",
+        DEFAULT_FROM_EMAIL="The Wellness Hub <verified-sender@example.com>",
+    )
+    @patch("apps.notifications.views.urllib_request.urlopen")
+    def test_contact_inquiry_uses_brevo_with_gichia_to_other_therapist_cc_and_client_reply_to(self, urlopen):
+        response_context = MagicMock()
+        response_context.status = 201
+        urlopen.return_value.__enter__.return_value = response_context
+
+        response = self.client.post(
+            "/api/v1/contact/inquiry/",
+            {
+                "name": "Brevo Client",
+                "email": "brevo-client@example.com",
+                "whatsappMobile": "+254700555666",
+                "subject": "Brevo delivery",
+                "message": "Please deliver this contact inquiry.",
+            },
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        request = urlopen.call_args.args[0]
+        payload = json.loads(request.data.decode("utf-8"))
+        self.assertEqual(payload["sender"]["email"], "verified-sender@example.com")
+        self.assertEqual(payload["to"], [{"email": "cgichia@gmail.com"}])
+        self.assertEqual(payload["cc"], [{"email": "ndemojnrr@gmail.com"}])
+        self.assertEqual(payload["replyTo"]["email"], "brevo-client@example.com")
+        self.assertEqual(len(mail.outbox), 0)

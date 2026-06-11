@@ -6,6 +6,7 @@ import {
   CalendarCheck2,
   ChevronDown,
   CheckCircle2,
+  CircleOff,
   Eye,
   ExternalLink,
   FilePenLine,
@@ -14,6 +15,7 @@ import {
   Mail,
   Phone,
   Plus,
+  Pencil,
   RefreshCw,
   Search,
   Trash2,
@@ -76,7 +78,6 @@ interface ClientStoryEditFormState {
   image: string;
   serviceType: StoryServiceType;
   story: string;
-  editedStory: string;
 }
 
 const DASHBOARD_TABS = [
@@ -127,7 +128,6 @@ const makeStoryDraft = (story?: ClientStory | null): ClientStoryEditFormState =>
   image: story?.image ?? "",
   serviceType: story?.serviceType ?? "individual",
   story: story?.story ?? "",
-  editedStory: story?.editedStory || story?.publishedText || story?.story || "",
 });
 
 const canReviewClientStories = (therapist: TherapistProfile) =>
@@ -162,6 +162,13 @@ const floatingEntryClassName =
 
 const floatingTableRowClassName =
   "cursor-pointer border-0 hover:bg-secondary/20 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-primary/20";
+
+const EmptyDisplay = () => (
+  <div className="flex min-h-28 flex-col items-center justify-center gap-3 rounded-[1.5rem] bg-secondary/35 p-5 text-center text-muted-foreground">
+    <CircleOff className="h-7 w-7 text-primary/65" />
+    <p className="text-sm font-medium">Nothing to display</p>
+  </div>
+);
 
 const getCompactPreview = (value?: string | null, fallback = "Tap to view details") => {
   const preview = (value || "").replace(/\s+/g, " ").trim();
@@ -421,6 +428,8 @@ const TherapistDashboardPage = () => {
   const [isSavingStory, setIsSavingStory] = useState(false);
   const [isPublishingStory, setIsPublishingStory] = useState(false);
   const [isDeletingStory, setIsDeletingStory] = useState(false);
+  const [isStoryImageRemoveDialogOpen, setIsStoryImageRemoveDialogOpen] = useState(false);
+  const storyImageInputRef = useRef<HTMLInputElement | null>(null);
   const [expandedOverviewBookingId, setExpandedOverviewBookingId] = useState<string | null>(null);
   const [expandedSessionBookingId, setExpandedSessionBookingId] = useState<string | null>(null);
   const [expandedCallBookingId, setExpandedCallBookingId] = useState<string | null>(null);
@@ -614,14 +623,11 @@ const TherapistDashboardPage = () => {
       return false;
     }
 
-    const selectedPublishedDraft = selectedStory.editedStory || selectedStory.publishedText || selectedStory.story;
-
     return (
       storyDraft.fullName.trim() !== selectedStory.fullName.trim() ||
       storyDraft.image !== selectedStory.image ||
       storyDraft.serviceType !== selectedStory.serviceType ||
-      storyDraft.story.trim() !== selectedStory.story.trim() ||
-      storyDraft.editedStory.trim() !== selectedPublishedDraft.trim()
+      storyDraft.story.trim() !== selectedStory.story.trim()
     );
   }, [selectedStory, storyDraft]);
 
@@ -691,6 +697,24 @@ const TherapistDashboardPage = () => {
     } finally {
       event.target.value = "";
     }
+  };
+
+  const handleStoryImage = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+
+    if (!file) {
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      if (typeof reader.result === "string") {
+        setStoryDraftField("image", reader.result);
+      }
+    };
+    reader.onerror = () => toast.error("The selected story image could not be read.");
+    reader.readAsDataURL(file);
+    event.target.value = "";
   };
 
   const handleSavePost = async (event: React.FormEvent) => {
@@ -789,7 +813,7 @@ const TherapistDashboardPage = () => {
     image: storyDraft.image,
     serviceType: storyDraft.serviceType,
     story: storyDraft.story.trim(),
-    editedStory: storyDraft.editedStory.trim(),
+    editedStory: storyDraft.story.trim(),
   });
 
   const handleSaveStory = async () => {
@@ -1394,9 +1418,7 @@ const TherapistDashboardPage = () => {
                       );
                     })}
                     {activeBookings.length === 0 ? (
-                      <div className="rounded-[1.75rem] bg-secondary/50 p-6 text-sm text-muted-foreground">
-                        No sessions have been booked yet.
-                      </div>
+                      <EmptyDisplay />
                     ) : null}
                   </TabsContent>
 
@@ -1404,7 +1426,6 @@ const TherapistDashboardPage = () => {
                     <div className="mb-4 flex flex-col gap-3 p-3 sm:flex-row sm:items-center sm:justify-between">
                       <div>
                         <h2 className="font-heading text-lg font-semibold text-foreground sm:text-xl">Booked Sessions</h2>
-                        <p className="text-xs leading-5 text-muted-foreground">Click a client to open full booking details.</p>
                       </div>
                       <div className="relative w-full sm:max-w-xs">
                         <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
@@ -1519,9 +1540,7 @@ const TherapistDashboardPage = () => {
                         );
                       })}
                       {filteredActiveBookings.length === 0 ? (
-                        <div className="rounded-[1.5rem] bg-secondary/50 p-5 text-sm text-muted-foreground">
-                          No bookings to display yet.
-                        </div>
+                        <EmptyDisplay />
                       ) : null}
                     </div>
 
@@ -1645,7 +1664,7 @@ const TherapistDashboardPage = () => {
                           {filteredActiveBookings.length === 0 ? (
                             <TableRow>
                               <TableCell colSpan={7} className="text-center text-muted-foreground">
-                                No bookings to display yet.
+                                Nothing to display
                               </TableCell>
                             </TableRow>
                           ) : null}
@@ -1658,9 +1677,6 @@ const TherapistDashboardPage = () => {
                     <div className="p-1 sm:p-2">
                       <div>
                         <h2 className="font-heading text-xl font-semibold text-foreground sm:text-2xl">Transaction Review</h2>
-                        <p className="mt-2 text-sm leading-7 text-muted-foreground">
-                          Review successful booking fee payments, manual confirmations, transaction IDs, and methods in one place.
-                        </p>
                       </div>
 
                       <div className="mt-5 flex justify-end">
@@ -1759,9 +1775,7 @@ const TherapistDashboardPage = () => {
                           );
                         })}
                         {filteredTransactions.length === 0 ? (
-                          <div className="rounded-[1.5rem] bg-secondary/45 p-4 text-sm text-muted-foreground">
-                            Payments and manual confirmations will appear here after clients submit the booking fee.
-                          </div>
+                          <EmptyDisplay />
                         ) : null}
                       </div>
 
@@ -1875,7 +1889,7 @@ const TherapistDashboardPage = () => {
                             {filteredTransactions.length === 0 ? (
                               <TableRow>
                                 <TableCell colSpan={6} className="text-center text-muted-foreground">
-                                  Payments and manual confirmations will appear here after clients submit the booking fee.
+                                  Nothing to display
                                 </TableCell>
                               </TableRow>
                             ) : null}
@@ -1890,10 +1904,6 @@ const TherapistDashboardPage = () => {
                       <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
                         <div>
                           <h2 className="font-heading text-xl font-semibold text-foreground sm:text-2xl">Exploration Calls</h2>
-                          <p className="mt-2 text-sm leading-7 text-muted-foreground">
-                            All exploration call requests are recorded here and kept separate from full therapy
-                            sessions.
-                          </p>
                         </div>
                         <Badge variant="secondary" className="w-fit rounded-full bg-primary/10 px-3 py-1 text-primary">
                           {callRequests.length} {callRequests.length === 1 ? "call request" : "call requests"}
@@ -2015,9 +2025,7 @@ const TherapistDashboardPage = () => {
                       )}
 
                       {callRequests.length === 0 ? (
-                        <div className="mt-5 rounded-[1.5rem] bg-secondary/45 p-4 text-sm text-muted-foreground">
-                          Exploration call requests will appear here as soon as clients submit them.
-                        </div>
+                        <div className="mt-5"><EmptyDisplay /></div>
                       ) : null}
 
                       <div className="mt-6 hidden">
@@ -2079,9 +2087,7 @@ const TherapistDashboardPage = () => {
                           </div>
                         ))}
                         {callRequests.length === 0 ? (
-                          <div className="rounded-[1.5rem] bg-secondary/45 p-4 text-sm text-muted-foreground">
-                            Exploration call requests will appear here as soon as clients submit them.
-                          </div>
+                          <EmptyDisplay />
                         ) : null}
                       </div>
 
@@ -2156,7 +2162,7 @@ const TherapistDashboardPage = () => {
                             {callRequests.length === 0 ? (
                               <TableRow>
                                 <TableCell colSpan={6} className="text-center text-muted-foreground">
-                                  Exploration call requests will appear here as soon as clients submit them.
+                                  Nothing to display
                                 </TableCell>
                               </TableRow>
                             ) : null}
@@ -2319,9 +2325,6 @@ const TherapistDashboardPage = () => {
                       <div className="flex items-center justify-between gap-3">
                         <div>
                           <h2 className="font-heading text-2xl font-semibold text-foreground">Story Inbox</h2>
-                          <p className="mt-1 text-sm text-muted-foreground">
-                            New stories land here before they appear publicly.
-                          </p>
                         </div>
                         <Badge variant="secondary" className="rounded-full bg-primary/10 px-3 py-1 text-primary">
                           {newStoryCount} new
@@ -2361,9 +2364,7 @@ const TherapistDashboardPage = () => {
                         })}
 
                         {sortedClientStories.length === 0 ? (
-                          <div className="rounded-[1.5rem] bg-card/80 p-5 text-sm leading-7 text-muted-foreground">
-                            Submitted stories will appear here as a compact name list.
-                          </div>
+                          <EmptyDisplay />
                         ) : null}
                       </div>
                     </div>
@@ -2402,9 +2403,6 @@ const TherapistDashboardPage = () => {
                               <DialogTitle className="font-heading text-3xl text-foreground">
                                 {selectedStory.displayName}
                               </DialogTitle>
-                              <DialogDescription>
-                                View the full submission, mark it as seen, edit the public version, delete it, or publish it when you're ready.
-                              </DialogDescription>
                             </DialogHeader>
 
                             <div className="mt-2 space-y-6">
@@ -2435,53 +2433,59 @@ const TherapistDashboardPage = () => {
                                       <option value="corporate">Corporate Wellness</option>
                                     </select>
                                   </div>
-                                  <div className="sm:col-span-2">
-                                    <Label htmlFor="story-review-image">Image</Label>
-                                    <Input
-                                      id="story-review-image"
-                                      value={storyDraft.image}
-                                      onChange={(event) => setStoryDraftField("image", event.target.value)}
-                                      className="mt-2 rounded-2xl"
-                                      placeholder="Optional image URL"
-                                    />
-                                  </div>
                                 </div>
 
-                                {storyDraft.image ? (
-                                  <img
-                                    src={storyDraft.image}
-                                    alt={selectedStory.displayName}
-                                    className="h-24 w-24 rounded-[1.25rem] object-cover shadow-card"
+                                <div className="relative h-28 w-28 shrink-0 overflow-hidden rounded-[1.25rem] bg-secondary/45 shadow-card">
+                                  {storyDraft.image ? (
+                                    <img
+                                      src={storyDraft.image}
+                                      alt={selectedStory.displayName}
+                                      className="h-full w-full object-cover"
+                                    />
+                                  ) : (
+                                    <div className="flex h-full w-full items-center justify-center text-primary">
+                                      <Heart className="h-8 w-8" />
+                                    </div>
+                                  )}
+                                  <input
+                                    ref={storyImageInputRef}
+                                    type="file"
+                                    accept="image/*"
+                                    className="hidden"
+                                    onChange={handleStoryImage}
                                   />
-                                ) : (
-                                  <div className="flex h-24 w-24 items-center justify-center rounded-[1.25rem] bg-secondary/45 text-primary">
-                                    <Heart className="h-8 w-8" />
+                                  <div className="absolute right-1.5 top-1.5 flex gap-1.5">
+                                    <button
+                                      type="button"
+                                      aria-label="Change story image"
+                                      className="flex h-8 w-8 items-center justify-center rounded-full bg-background/95 text-primary shadow-soft transition hover:bg-background"
+                                      onClick={() => storyImageInputRef.current?.click()}
+                                    >
+                                      <Pencil className="h-3.5 w-3.5" />
+                                    </button>
+                                    {storyDraft.image ? (
+                                      <button
+                                        type="button"
+                                        aria-label="Remove story image"
+                                        className="flex h-8 w-8 items-center justify-center rounded-full bg-background/95 text-destructive shadow-soft transition hover:bg-background"
+                                        onClick={() => setIsStoryImageRemoveDialogOpen(true)}
+                                      >
+                                        <X className="h-3.5 w-3.5" />
+                                      </button>
+                                    ) : null}
                                   </div>
-                                )}
+                                </div>
                               </div>
 
-                              <div className="grid gap-5 lg:grid-cols-2">
-                                <div>
-                                  <Label htmlFor="story-original">Original story</Label>
-                                  <Textarea
-                                    id="story-original"
-                                    value={storyDraft.story}
-                                    readOnly
-                                    rows={storyTextRows(storyDraft.story)}
-                                    className="mt-2 min-h-0 resize-none rounded-[1.5rem] bg-secondary/30 leading-7"
-                                  />
-                                </div>
-                                <div>
-                                  <Label htmlFor="story-published-version">Published version</Label>
-                                  <Textarea
-                                    id="story-published-version"
-                                    value={storyDraft.editedStory}
-                                    onChange={(event) => setStoryDraftField("editedStory", event.target.value)}
-                                    rows={storyTextRows(storyDraft.editedStory)}
-                                    className="mt-2 min-h-0 resize-none rounded-[1.5rem] leading-7"
-                                    placeholder="Edit the story for public sharing."
-                                  />
-                                </div>
+                              <div>
+                                <Label htmlFor="story-original">Story</Label>
+                                <Textarea
+                                  id="story-original"
+                                  value={storyDraft.story}
+                                  onChange={(event) => setStoryDraftField("story", event.target.value)}
+                                  rows={storyTextRows(storyDraft.story)}
+                                  className="mt-2 min-h-0 resize-none rounded-[1.5rem] leading-7"
+                                />
                               </div>
                             </div>
 
@@ -2552,6 +2556,38 @@ const TherapistDashboardPage = () => {
                         ) : null}
                       </DialogContent>
                     </Dialog>
+
+                    <Dialog open={isStoryImageRemoveDialogOpen} onOpenChange={setIsStoryImageRemoveDialogOpen}>
+                      <DialogContent className="sm:max-w-md">
+                        <DialogHeader>
+                          <DialogTitle>Remove story image?</DialogTitle>
+                          <DialogDescription>
+                            The image will be removed when you save the story changes.
+                          </DialogDescription>
+                        </DialogHeader>
+                        <DialogFooter>
+                          <Button
+                            type="button"
+                            variant="heroBorder"
+                            className="rounded-full"
+                            onClick={() => setIsStoryImageRemoveDialogOpen(false)}
+                          >
+                            Keep Image
+                          </Button>
+                          <Button
+                            type="button"
+                            variant="hero"
+                            className="rounded-full"
+                            onClick={() => {
+                              setStoryDraftField("image", "");
+                              setIsStoryImageRemoveDialogOpen(false);
+                            }}
+                          >
+                            Remove Image
+                          </Button>
+                        </DialogFooter>
+                      </DialogContent>
+                    </Dialog>
                   </TabsContent>
                   ) : null}
 
@@ -2573,10 +2609,6 @@ const TherapistDashboardPage = () => {
                             {profileDraft.name || therapist.name}
                           </h2>
                           <p className="mt-2 text-base text-primary">{profileDraft.title || therapist.title}</p>
-                          <p className="mt-4 text-sm leading-7 text-muted-foreground">
-                            Save your changes here and the updated therapist image and details will appear anywhere the
-                            public profile is shown across the site.
-                          </p>
                         </div>
 
                         <div className="mt-6">
@@ -2588,20 +2620,12 @@ const TherapistDashboardPage = () => {
                             className="mt-2"
                             onChange={handleProfileImage}
                           />
-                          <p className="mt-2 text-xs leading-6 text-muted-foreground">
-                            Choose a clear portrait-style image. It will be optimized automatically for a smoother site
-                            preview and local saving.
-                          </p>
                         </div>
                       </div>
 
                       <form onSubmit={handleSaveProfile} className="space-y-5 rounded-[1.75rem] bg-secondary/25 p-4 sm:p-5">
                         <div>
                           <h2 className="font-heading text-3xl font-semibold text-foreground">Update your profile</h2>
-                          <p className="mt-2 text-sm text-muted-foreground">
-                            Edit the therapist details used on the home page, team page, contact page, booking flow,
-                            and therapist overview cards.
-                          </p>
                         </div>
 
                         <div className="grid gap-5 md:grid-cols-2">
@@ -2766,7 +2790,6 @@ const TherapistDashboardPage = () => {
                         </div>
                         <div>
                           <h2 className="font-heading text-xl font-semibold text-foreground sm:text-2xl">Notifications</h2>
-                          <p className="text-sm text-muted-foreground">New bookings, cancellations, reschedules, and blog updates.</p>
                         </div>
                       </div>
 
@@ -2913,9 +2936,7 @@ const TherapistDashboardPage = () => {
                           );
                         })}
                         {notifications.length === 0 ? (
-                          <div className="rounded-[1.5rem] bg-secondary/45 p-4 text-sm text-muted-foreground">
-                            Notifications will appear here as soon as bookings and content changes are made.
-                          </div>
+                          <EmptyDisplay />
                         ) : null}
                       </div>
                     </div>
@@ -2925,9 +2946,6 @@ const TherapistDashboardPage = () => {
                     <div className="p-1 sm:p-2">
                       <div>
                         <h2 className="font-heading text-xl font-semibold text-foreground sm:text-2xl">Completed Sessions</h2>
-                        <p className="mt-2 text-sm leading-7 text-muted-foreground">
-                          Completed sessions and sessions whose scheduled time has passed are kept here.
-                        </p>
                       </div>
 
                       <div className="mt-6 space-y-4 md:hidden">
@@ -3003,9 +3021,7 @@ const TherapistDashboardPage = () => {
                           );
                         })}
                         {completedBookings.length === 0 ? (
-                          <div className="rounded-[1.5rem] bg-secondary/45 p-4 text-sm text-muted-foreground">
-                            Completed and expired sessions will appear here.
-                          </div>
+                          <EmptyDisplay />
                         ) : null}
                       </div>
 
@@ -3060,7 +3076,7 @@ const TherapistDashboardPage = () => {
                             {completedBookings.length === 0 ? (
                               <TableRow>
                                 <TableCell colSpan={6} className="text-center text-muted-foreground">
-                                  Completed and expired sessions will appear here.
+                                  Nothing to display
                                 </TableCell>
                               </TableRow>
                             ) : null}

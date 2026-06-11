@@ -162,13 +162,14 @@ Notes:
 - Secret passphrases are stored separately as hashed values.
 - Blog tags, specialties, locations, and email recipients use `JSONField` for easier Postgres portability.
 - Booking confirmation, reschedule, and cancellation emails are sent through Django's configured email backend. With Brevo SMTP configured, the client and therapist each receive a calendar invite (`.ics`) that can be added to their calendars and updated on reschedule/cancel.
+- Contact-page inquiries use the Brevo transactional API when `BREVO_API_KEY` is configured. Set `DEFAULT_FROM_EMAIL` to a sender verified in Brevo; Caroline Gichia receives the inquiry directly and the other therapist is copied.
 
 ## Vercel Booking Troubleshooting
 
 If booking returns a `500` on Vercel, check these first:
 
 1. Verify the backend deployment is rooted at `backend/` so Vercel can detect `api/index.py`, with `VITE_API_BASE_URL` in the frontend pointing to `https://your-backend-project.vercel.app/api/v1`.
-2. Confirm the Vercel backend environment includes `DJANGO_DEBUG=False`, `DJANGO_ALLOWED_HOSTS`, `DJANGO_CORS_ALLOWED_ORIGINS`, `FRONTEND_BASE_URL`, and either `DATABASE_URL` or the `DB_*` values.
+2. Confirm the Vercel backend environment includes `DJANGO_DEBUG=False`, a strong unique `DJANGO_SECRET_KEY`, `DJANGO_ALLOWED_HOSTS`, `DJANGO_CORS_ALLOWED_ORIGINS`, `FRONTEND_BASE_URL`, and either `DATABASE_URL` or the `DB_*` values. Production defaults enforce HTTPS redirects and secure session/CSRF cookies. Set `DJANGO_SECURE_HSTS_SECONDS` only after confirming the domain and all required subdomains are permanently HTTPS-ready.
 3. For Supabase, use the exact connection details from the Supabase dashboard. If using the transaction pooler on port `6543`, use the pooler username and keep `DB_CONN_MAX_AGE=0`.
 4. Run the Django migrations against the hosted database after deployment changes:
 

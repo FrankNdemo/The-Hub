@@ -183,6 +183,7 @@ export interface TherapistLoginResponse {
   refresh: string;
   therapist: TherapistProfile;
   therapistSession: TherapistSession;
+  bookings?: BookingRecord[];
 }
 
 export interface DashboardOverviewResponse {

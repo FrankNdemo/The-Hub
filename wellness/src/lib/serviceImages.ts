@@ -13,9 +13,6 @@ export const specializedServiceImage =
 export const servicePageIndividualImage =
   "https://images.pexels.com/photos/5699447/pexels-photo-5699447.jpeg?auto=compress&cs=tinysrgb&w=1400&h=960&fit=crop";
 
-export const servicePageFamilyImage =
-  "https://images.pexels.com/photos/30678595/pexels-photo-30678595.jpeg?auto=compress&cs=tinysrgb&w=1400&h=960&fit=crop";
-
 export const servicePageSpecializedImage =
   "https://images.pexels.com/photos/7579310/pexels-photo-7579310.jpeg?auto=compress&cs=tinysrgb&w=1400&h=960&fit=crop";
 

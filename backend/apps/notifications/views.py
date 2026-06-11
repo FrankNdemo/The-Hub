@@ -1,4 +1,5 @@
 import json
+from email.utils import parseaddr
 from urllib.parse import quote
 from urllib import error as urllib_error
 from urllib import request as urllib_request
@@ -164,6 +165,44 @@ def send_inquiry_email_to_therapists(*, inquiry: ContactInquiry, therapists: lis
         ]
     )
     html_body = build_inquiry_email_html(inquiry=inquiry)
+
+    if settings.BREVO_API_KEY:
+        sender_name, sender_email = parseaddr(settings.DEFAULT_FROM_EMAIL)
+        payload = {
+            "sender": {
+                "name": sender_name or "The Wellness Hub",
+                "email": sender_email,
+            },
+            "to": [{"email": email} for email in recipients],
+            "cc": [{"email": email} for email in cc],
+            "replyTo": {
+                "name": inquiry.name,
+                "email": inquiry.email,
+            },
+            "subject": subject,
+            "textContent": body,
+            "htmlContent": html_body,
+            "headers": {"X-Auto-Response-Suppress": "All"},
+        }
+        request = urllib_request.Request(
+            settings.BREVO_API_URL,
+            data=json.dumps(payload).encode("utf-8"),
+            headers={
+                "accept": "application/json",
+                "api-key": settings.BREVO_API_KEY,
+                "content-type": "application/json",
+            },
+            method="POST",
+        )
+
+        try:
+            with urllib_request.urlopen(request, timeout=settings.BREVO_API_TIMEOUT) as response:
+                if response.status not in {200, 201, 202}:
+                    raise OSError("Brevo did not accept the contact inquiry email.")
+        except (OSError, urllib_error.HTTPError, urllib_error.URLError) as exc:
+            raise OSError("Brevo could not deliver the contact inquiry email.") from exc
+        return
+
     message = EmailMultiAlternatives(
         subject=subject,
         body=body,

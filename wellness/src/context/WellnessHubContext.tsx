@@ -665,7 +665,7 @@ export const WellnessHubProvider = ({ children }: { children: React.ReactNode })
             }));
           }
 
-          void refreshDashboard().catch(() => undefined);
+          await refreshDashboard().catch(() => undefined);
           return;
         }
 
@@ -995,9 +995,15 @@ export const WellnessHubProvider = ({ children }: { children: React.ReactNode })
   const loginTherapist = async (email: string, password: string) => {
     try {
       const payload = await loginTherapistRequest(email, password);
+      const loginBookings = Array.isArray(payload.bookings)
+        ? payload.bookings
+            .map((booking) => normalizeBooking(booking))
+            .filter((booking): booking is BookingRecord => Boolean(booking))
+        : [];
 
       setState((current) => ({
         ...current,
+        bookings: loginBookings,
         therapist: normalizeTherapistProfile(payload.therapist),
         therapistSession: payload.therapistSession,
       }));

@@ -29,6 +29,7 @@ class TherapistAuthApiTests(APITestCase):
         self.assertEqual(login_response.status_code, status.HTTP_200_OK)
         self.assertIn("access", login_response.data)
         self.assertIn("refresh", login_response.data)
+        self.assertIn("bookings", login_response.data)
         self.assertEqual(login_response.data["therapist"]["id"], "caroline-gichia")
 
         kelvin_login_response = self.client.post(

@@ -46,6 +46,7 @@ export type BookingDraftForm = {
 
 export type BookingDraft = {
   serviceType: ServiceType;
+  requestedService: string;
   sessionType: SessionType;
   step: BookingStep;
   checkout: BookingCheckoutResponse | null;
@@ -82,6 +83,7 @@ export const createExplorationCallDraft = (therapistId = ""): ExplorationCallDra
 
 export const createBookingDraft = (therapistId = ""): BookingDraft => ({
   serviceType: "individual",
+  requestedService: "",
   sessionType: "virtual",
   step: "details",
   checkout: null,

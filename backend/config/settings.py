@@ -7,6 +7,8 @@ from email.utils import parseaddr
 from pathlib import Path
 from urllib.parse import parse_qs, unquote, urlparse
 
+from django.core.exceptions import ImproperlyConfigured
+
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -134,8 +136,11 @@ def parse_database_url(value: str) -> dict[str, str]:
     }
 
 
-SECRET_KEY = env("DJANGO_SECRET_KEY", "django-insecure-the-wellness-hub-local-dev")
+LOCAL_DEVELOPMENT_SECRET_KEY = "django-insecure-the-wellness-hub-local-dev"
+SECRET_KEY = env("DJANGO_SECRET_KEY", LOCAL_DEVELOPMENT_SECRET_KEY)
 DEBUG = env("DJANGO_DEBUG", "True").lower() == "true"
+if not DEBUG and SECRET_KEY == LOCAL_DEVELOPMENT_SECRET_KEY:
+    raise ImproperlyConfigured("DJANGO_SECRET_KEY must be configured when DJANGO_DEBUG=False.")
 PUBLIC_FRONTEND_ORIGINS = env_list(
     "PUBLIC_FRONTEND_ORIGINS",
     "https://wellnesshub.africa,https://www.wellnesshub.africa",
@@ -145,6 +150,12 @@ FRONTEND_ORIGINS = unique_values([FRONTEND_BASE_URL, *PUBLIC_FRONTEND_ORIGINS])
 ALLOWED_HOSTS = env_list("DJANGO_ALLOWED_HOSTS", "localhost,127.0.0.1,[::1],testserver")
 USE_X_FORWARDED_HOST = True
 SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
+SECURE_SSL_REDIRECT = env("DJANGO_SECURE_SSL_REDIRECT", "False" if DEBUG else "True").lower() == "true"
+SESSION_COOKIE_SECURE = env("DJANGO_SESSION_COOKIE_SECURE", "False" if DEBUG else "True").lower() == "true"
+CSRF_COOKIE_SECURE = env("DJANGO_CSRF_COOKIE_SECURE", "False" if DEBUG else "True").lower() == "true"
+SECURE_HSTS_SECONDS = int(env("DJANGO_SECURE_HSTS_SECONDS", "0") or "0")
+SECURE_HSTS_INCLUDE_SUBDOMAINS = env("DJANGO_SECURE_HSTS_INCLUDE_SUBDOMAINS", "False").lower() == "true"
+SECURE_HSTS_PRELOAD = env("DJANGO_SECURE_HSTS_PRELOAD", "False").lower() == "true"
 
 ALLOWED_HOSTS = unique_values(
     [

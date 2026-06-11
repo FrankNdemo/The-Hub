@@ -97,9 +97,6 @@ const TherapistSecurityPanel = () => {
             <div className="min-w-0">
               <p className="text-xs font-semibold uppercase tracking-[0.22em] text-primary/70">Password</p>
               <h3 className="mt-2 font-heading text-xl font-semibold text-foreground sm:text-2xl">Change portal password</h3>
-              <p className="mt-2 text-sm leading-7 text-muted-foreground">
-                Update the login password used to access the therapist dashboard.
-              </p>
             </div>
           </div>
         </button>
@@ -121,9 +118,6 @@ const TherapistSecurityPanel = () => {
             <div className="min-w-0">
               <p className="text-xs font-semibold uppercase tracking-[0.22em] text-primary/70">Secret</p>
               <h3 className="mt-2 font-heading text-xl font-semibold text-foreground sm:text-2xl">Change footer passphrase</h3>
-              <p className="mt-2 text-sm leading-7 text-muted-foreground">
-                Update the hidden passphrase used before the therapist login dialog opens.
-              </p>
             </div>
           </div>
         </button>

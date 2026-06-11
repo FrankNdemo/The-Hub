@@ -340,39 +340,6 @@ Creative work can slow the mind, engage the body, and make emotions visible. For
 
 Art therapy can be especially helpful when talking feels too direct, too tiring, or too limited. It gives healing another language.`,
   },
-  {
-    id: "post-occupational-therapy-everyday-independence",
-    slug: "occupational-therapy-everyday-independence",
-    title: "Occupational Therapy: Rebuilding Confidence in Everyday Life",
-    category: "Occupational Therapy",
-    publishDate: "2025-08-20",
-    excerpt:
-      "Occupational therapy supports people with disability, ageing changes, or functional challenges to participate more fully in meaningful daily activities.",
-    featuredImage:
-      "https://images.pexels.com/photos/7551667/pexels-photo-7551667.jpeg?auto=compress&cs=tinysrgb&w=1400&h=960&fit=crop",
-    tags: ["Occupational Therapy", "Disability Support", "Older Adults", "Daily Living"],
-    content: `Occupational therapy focuses on the everyday activities that help people live with dignity, confidence, and participation. These activities may include self-care, movement, home routines, school, work, hobbies, or social connection.
-
-## Who It Can Support
-
-Occupational therapy can help clients living with disability, injury, illness, ageing-related changes, cognitive changes, sensory needs, or physical limitations.
-
-## What Sessions May Focus On
-
-- Building independence in daily routines
-- Adapting tasks or environments
-- Improving confidence with movement and participation
-- Supporting memory, planning, or attention
-- Helping caregivers understand practical needs
-
-## Care That Fits Real Life
-
-The work is tailored around the person's interests, goals, strengths, and environment. Therapy is most useful when it connects directly to the life someone wants to live.
-
-## Small Gains Matter
-
-Progress may look like dressing with less frustration, moving more safely at home, returning to a valued hobby, or feeling more in control of the day. These are meaningful wins.`,
-  },
 ];
 
 export const seedBlogPosts: BlogPost[] = seedBlogPostsContent.map((post) => ({

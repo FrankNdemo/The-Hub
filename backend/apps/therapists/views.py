@@ -114,12 +114,39 @@ class TherapistLoginView(APIView):
         authenticated_user.last_login = timezone.now()
         authenticated_user.save(update_fields=["last_login"])
 
+        from apps.bookings.models import Booking
+        from apps.bookings.serializers import BookingDetailSerializer
+
+        therapist = authenticated_user.therapist_profile
+        bookings = (
+            Booking.objects.filter(
+                therapist=therapist,
+                deleted_at__isnull=True,
+                status__in=[
+                    Booking.Status.UPCOMING,
+                    Booking.Status.PAYMENT_PENDING,
+                    Booking.Status.RESCHEDULED,
+                ],
+            )
+            .select_related("therapist")
+            .prefetch_related("emails", "history", "payments")
+        )
+
         refresh = RefreshToken.for_user(authenticated_user)
         response_payload = {
             "access": str(refresh.access_token),
             "refresh": str(refresh),
-            "therapist": TherapistProfilePublicSerializer(authenticated_user.therapist_profile).data,
+            "therapist": TherapistProfilePublicSerializer(therapist).data,
             "therapistSession": TherapistSessionSerializer(build_therapist_session(authenticated_user)).data,
+            "bookings": BookingDetailSerializer(
+                bookings,
+                many=True,
+                context={
+                    "include_meet_link": True,
+                    "include_therapist_links": True,
+                    "include_email_records": True,
+                },
+            ).data,
         }
         return Response(response_payload, status=status.HTTP_200_OK)
 
