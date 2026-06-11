@@ -101,9 +101,48 @@ def build_inquiry_email_html(*, inquiry: ContactInquiry) -> str:
 </html>"""
 
 
-def send_inquiry_email_to_main_mailbox(*, inquiry: ContactInquiry) -> None:
-    recipient = settings.CONTACT_INQUIRY_RECIPIENT_EMAIL.strip()
-    if not recipient:
+def unique_emails(values: list[str]) -> list[str]:
+    seen: set[str] = set()
+    unique: list[str] = []
+
+    for value in values:
+        email = value.strip()
+        email_key = email.lower()
+        if not email or email_key in seen:
+            continue
+
+        seen.add(email_key)
+        unique.append(email)
+
+    return unique
+
+
+def get_inquiry_email_recipients(therapists: list[TherapistProfile]) -> tuple[list[str], list[str]]:
+    configured_recipient = settings.CONTACT_INQUIRY_RECIPIENT_EMAIL.strip()
+    primary_therapist = next(
+        (
+            therapist
+            for therapist in therapists
+            if therapist.public_id == "caroline-gichia" or therapist.name.strip().lower() == "caroline gichia"
+        ),
+        therapists[0] if therapists else None,
+    )
+    primary_email = primary_therapist.email if primary_therapist else configured_recipient
+    recipients = unique_emails([primary_email])
+    recipient_keys = {email.lower() for email in recipients}
+    cc = unique_emails(
+        [
+            therapist.email
+            for therapist in therapists
+            if therapist.email.strip().lower() not in recipient_keys
+        ]
+    )
+    return recipients, cc
+
+
+def send_inquiry_email_to_therapists(*, inquiry: ContactInquiry, therapists: list[TherapistProfile]) -> None:
+    recipients, cc = get_inquiry_email_recipients(therapists)
+    if not recipients:
         return
 
     subject = f"New Contact Inquiry: {inquiry.subject or 'General enquiry'} | The Wellness Hub"
@@ -129,7 +168,8 @@ def send_inquiry_email_to_main_mailbox(*, inquiry: ContactInquiry) -> None:
         subject=subject,
         body=body,
         from_email=settings.DEFAULT_FROM_EMAIL,
-        to=[recipient],
+        to=recipients,
+        cc=cc,
         reply_to=[inquiry.email],
         headers={"X-Auto-Response-Suppress": "All"},
     )
@@ -165,16 +205,7 @@ class ContactInquiryView(APIView):
         )
         inquiry_message = build_inquiry_message(name=name, email=email, mobile=mobile, subject=subject, message=message)
         whatsapp_sent = send_whatsapp_inquiry(inquiry_message, therapists[0].phone)
-        send_inquiry_email_to_main_mailbox(inquiry=inquiry)
-
-        for therapist in therapists:
-            Notification.objects.create(
-                therapist=therapist,
-                type=Notification.NotificationType.INQUIRY,
-                title=f"New inquiry from {name}",
-                description="Check the main email inbox for this inquiry message. Use the email reply action when you are ready to respond.",
-                inquiry=inquiry,
-            )
+        send_inquiry_email_to_therapists(inquiry=inquiry, therapists=therapists)
 
         return Response({"success": True, "whatsappSent": whatsapp_sent, "inquiryId": str(inquiry.pk)}, status=status.HTTP_201_CREATED)
 

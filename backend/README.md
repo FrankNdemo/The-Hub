@@ -21,7 +21,7 @@ This backend is designed around the current frontend flows already present in `w
 
 ## Deployment
 
-This backend has moved to Vercel. Configure the Vercel backend project with the production values from `.env.example`, then point the frontend `VITE_API_BASE_URL` to:
+This backend has moved to Vercel. Configure the Vercel backend project with the required production environment variables, then point the frontend `VITE_API_BASE_URL` to:
 
 ```env
 https://your-backend-project.vercel.app/api/v1
@@ -75,7 +75,9 @@ python -m venv .venv
 pip install -r requirements.txt
 ```
 
-2. Copy `.env.example` to `.env` and adjust values if needed.
+2. Create a local `.env` file and add the environment values needed for your setup.
+
+   Set `THERAPIST_BOOTSTRAP_SECRET_PASSPHRASE` before creating therapist profiles for the first time.
 
 3. Run migrations:
 
@@ -166,7 +168,7 @@ Notes:
 If booking returns a `500` on Vercel, check these first:
 
 1. Verify the backend deployment is rooted at `backend/` so Vercel can detect `api/index.py`, with `VITE_API_BASE_URL` in the frontend pointing to `https://your-backend-project.vercel.app/api/v1`.
-2. Confirm the Vercel backend environment has the production values from `.env.example`, especially `DJANGO_DEBUG=False`, `DJANGO_ALLOWED_HOSTS`, `DJANGO_CORS_ALLOWED_ORIGINS`, `FRONTEND_BASE_URL`, and either `DATABASE_URL` or the `DB_*` values.
+2. Confirm the Vercel backend environment includes `DJANGO_DEBUG=False`, `DJANGO_ALLOWED_HOSTS`, `DJANGO_CORS_ALLOWED_ORIGINS`, `FRONTEND_BASE_URL`, and either `DATABASE_URL` or the `DB_*` values.
 3. For Supabase, use the exact connection details from the Supabase dashboard. If using the transaction pooler on port `6543`, use the pooler username and keep `DB_CONN_MAX_AGE=0`.
 4. Run the Django migrations against the hosted database after deployment changes:
 

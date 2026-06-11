@@ -10,7 +10,7 @@ This frontend is a Vite + React application for The Wellness Hub.
 npm install
 ```
 
-2. Copy `.env.example` to `.env` and point `VITE_API_BASE_URL` to the Django backend:
+2. Create a local `.env` file and point `VITE_API_BASE_URL` to the Django backend:
 
 ```env
 VITE_API_BASE_URL=http://127.0.0.1:8000/api/v1

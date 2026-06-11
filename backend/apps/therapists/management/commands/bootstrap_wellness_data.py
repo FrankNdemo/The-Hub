@@ -1,5 +1,6 @@
+from django.conf import settings
 from django.contrib.auth.models import User
-from django.core.management.base import BaseCommand
+from django.core.management.base import BaseCommand, CommandError
 from django.db import transaction
 
 from apps.therapists.models import TherapistProfile
@@ -135,8 +136,14 @@ class Command(BaseCommand):
             profile.location_lines = therapist_data["location_lines"]
             profile.image_url = therapist_data["image_url"]
             profile.is_primary = therapist_data["is_primary"]
-            if not profile.secret_passphrase_hash or with_test_credentials:
+            if with_test_credentials:
                 profile.set_secret_passphrase("gichia")
+            elif not profile.secret_passphrase_hash:
+                if not settings.THERAPIST_BOOTSTRAP_SECRET_PASSPHRASE:
+                    raise CommandError(
+                        "THERAPIST_BOOTSTRAP_SECRET_PASSPHRASE is required when creating therapist profiles."
+                    )
+                profile.set_secret_passphrase(settings.THERAPIST_BOOTSTRAP_SECRET_PASSPHRASE)
             profile.save()
 
         self.stdout.write(self.style.SUCCESS("Therapist profiles are ready."))

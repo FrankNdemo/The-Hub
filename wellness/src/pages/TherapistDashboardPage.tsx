@@ -157,6 +157,12 @@ const getInitials = (value?: string | null) => {
 const initialsBadgeClassName =
   "flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-primary text-sm font-semibold text-primary-foreground shadow-soft";
 
+const floatingEntryClassName =
+  "cursor-pointer rounded-[1.25rem] border-0 bg-transparent shadow-none transition-colors hover:bg-secondary/25 focus:outline-none focus:ring-2 focus:ring-primary/20";
+
+const floatingTableRowClassName =
+  "cursor-pointer border-0 hover:bg-secondary/20 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-primary/20";
+
 const getCompactPreview = (value?: string | null, fallback = "Tap to view details") => {
   const preview = (value || "").replace(/\s+/g, " ").trim();
 
@@ -601,7 +607,7 @@ const TherapistDashboardPage = () => {
 
   useEffect(() => {
     setStoryDraft(makeStoryDraft(selectedStory));
-  }, [selectedStory?.id, selectedStory?.updatedAt]);
+  }, [selectedStory]);
 
   const storyDraftHasChanges = useMemo(() => {
     if (!selectedStory) {
@@ -1285,7 +1291,7 @@ const TherapistDashboardPage = () => {
                             toggleOverviewBooking(booking.id);
                           }
                         }}
-                        className="group wellness-panel cursor-pointer rounded-[1.5rem] border border-border/60 p-3 transition-all duration-300 hover:shadow-soft focus:outline-none focus:ring-2 focus:ring-primary/20 sm:rounded-[1.75rem] sm:p-6"
+                        className={`group p-3 sm:p-6 ${floatingEntryClassName}`}
                       >
                         <div className="flex items-start gap-3 sm:hidden">
                           <div className={initialsBadgeClassName}>
@@ -1395,7 +1401,7 @@ const TherapistDashboardPage = () => {
                   </TabsContent>
 
                   <TabsContent value="sessions" className="mt-8">
-                    <div className="mb-4 flex flex-col gap-3 rounded-[1.35rem] border border-border/60 bg-card/80 p-3 shadow-card sm:flex-row sm:items-center sm:justify-between">
+                    <div className="mb-4 flex flex-col gap-3 p-3 sm:flex-row sm:items-center sm:justify-between">
                       <div>
                         <h2 className="font-heading text-lg font-semibold text-foreground sm:text-xl">Booked Sessions</h2>
                         <p className="text-xs leading-5 text-muted-foreground">Click a client to open full booking details.</p>
@@ -1427,7 +1433,7 @@ const TherapistDashboardPage = () => {
                               toggleSessionBooking(booking.id);
                             }
                           }}
-                          className="cursor-pointer rounded-[1.2rem] border border-border/60 bg-secondary/25 p-3 shadow-card transition-colors hover:bg-secondary/35 focus:outline-none focus:ring-2 focus:ring-primary/20"
+                          className={`p-3 ${floatingEntryClassName}`}
                         >
                           <div className="flex items-start gap-3">
                             <div className={initialsBadgeClassName}>
@@ -1501,7 +1507,7 @@ const TherapistDashboardPage = () => {
                               </Button>
                             </div>
                             {hasBookingDashboardLinks(booking) ? (
-                              <div className="mt-4 border-t border-border/40 pt-3">
+                              <div className="mt-4 pt-3">
                                 <p className="mb-2 text-xs font-semibold uppercase tracking-[0.18em] text-primary/70">
                                   Session Links
                                 </p>
@@ -1521,7 +1527,7 @@ const TherapistDashboardPage = () => {
 
                     <div className="hidden overflow-x-auto md:block">
                       <Table>
-                        <TableHeader>
+                        <TableHeader className="[&_tr]:border-0">
                           <TableRow>
                             <TableHead>Client</TableHead>
                             <TableHead>Contact</TableHead>
@@ -1532,7 +1538,7 @@ const TherapistDashboardPage = () => {
                             <TableHead className="text-right">Action</TableHead>
                           </TableRow>
                         </TableHeader>
-                        <TableBody>
+                        <TableBody className="[&_tr]:border-0">
                           {filteredActiveBookings.map((booking) => {
                             const isExpanded = expandedSessionBookingId === booking.id;
 
@@ -1549,7 +1555,7 @@ const TherapistDashboardPage = () => {
                                   toggleSessionBooking(booking.id);
                                 }
                               }}
-                              className="cursor-pointer"
+                              className={floatingTableRowClassName}
                             >
                               <TableCell>
                                 <div className="space-y-1">
@@ -1610,7 +1616,7 @@ const TherapistDashboardPage = () => {
                             {isExpanded ? (
                               <TableRow>
                                 <TableCell colSpan={7} className="pt-0">
-                                  <div className="grid gap-3 border-t border-border/40 pt-3 text-sm md:grid-cols-3">
+                                  <div className="grid gap-3 pt-3 text-sm md:grid-cols-3">
                                     <div>
                                       <p className="text-xs font-semibold uppercase tracking-[0.18em] text-primary/70">Email</p>
                                       <p className="mt-1 break-all text-muted-foreground">{booking.clientEmail}</p>
@@ -1649,7 +1655,7 @@ const TherapistDashboardPage = () => {
                   </TabsContent>
 
                   <TabsContent value="transactions" className="mt-8">
-                    <div className="rounded-[1.75rem] border border-border/60 bg-card/80 p-5 shadow-card sm:p-6">
+                    <div className="p-1 sm:p-2">
                       <div>
                         <h2 className="font-heading text-xl font-semibold text-foreground sm:text-2xl">Transaction Review</h2>
                         <p className="mt-2 text-sm leading-7 text-muted-foreground">
@@ -1686,7 +1692,7 @@ const TherapistDashboardPage = () => {
                                 toggleTransaction(transaction.id);
                               }
                             }}
-                            className="cursor-pointer rounded-[1.5rem] border border-border/60 bg-secondary/25 p-4 shadow-card transition-colors hover:bg-secondary/35 focus:outline-none focus:ring-2 focus:ring-primary/20"
+                            className={`p-4 ${floatingEntryClassName}`}
                           >
                             <div className="flex items-start gap-3">
                               <div className={initialsBadgeClassName}>
@@ -1761,7 +1767,7 @@ const TherapistDashboardPage = () => {
 
                       <div className="mt-6 hidden overflow-x-auto md:block" onMouseLeave={() => setExpandedTransactionId(null)}>
                         <Table>
-                          <TableHeader>
+                          <TableHeader className="[&_tr]:border-0">
                             <TableRow>
                               <TableHead>Client</TableHead>
                               <TableHead>Session</TableHead>
@@ -1771,7 +1777,7 @@ const TherapistDashboardPage = () => {
                               <TableHead>Status</TableHead>
                             </TableRow>
                           </TableHeader>
-                          <TableBody>
+                          <TableBody className="[&_tr]:border-0">
                             {filteredTransactions.map((transaction) => {
                               const isExpanded = expandedTransactionId === transaction.id;
 
@@ -1788,7 +1794,7 @@ const TherapistDashboardPage = () => {
                                       setExpandedTransactionId((current) => (current === transaction.id ? null : transaction.id));
                                     }
                                   }}
-                                  className="cursor-pointer"
+                                  className={floatingTableRowClassName}
                                 >
                                   <TableCell>
                                     <div className="space-y-1">
@@ -1822,7 +1828,7 @@ const TherapistDashboardPage = () => {
                                 {isExpanded ? (
                                 <TableRow>
                                   <TableCell colSpan={6} className="pt-0">
-                                    <div className="grid gap-4 border-t border-border/40 pt-3 text-sm md:grid-cols-3">
+                                    <div className="grid gap-4 pt-3 text-sm md:grid-cols-3">
                                       <div>
                                         <p className="text-xs font-semibold uppercase tracking-[0.18em] text-primary/70">Reference</p>
                                         <p className="mt-1 break-all text-muted-foreground">
@@ -1880,7 +1886,7 @@ const TherapistDashboardPage = () => {
                   </TabsContent>
 
                   <TabsContent value="calls" className="mt-8">
-                    <div className="rounded-[1.75rem] border border-border/60 bg-card/80 p-5 shadow-card sm:p-6">
+                    <div className="p-1 sm:p-2">
                       <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
                         <div>
                           <h2 className="font-heading text-xl font-semibold text-foreground sm:text-2xl">Exploration Calls</h2>
@@ -1911,10 +1917,10 @@ const TherapistDashboardPage = () => {
                                   toggleCallBooking(booking.id);
                                 }
                               }}
-                              className={`w-full cursor-pointer rounded-[1.2rem] border px-3 py-3 text-left text-sm font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-primary/20 ${
+                              className={`w-full border-0 px-3 py-3 text-left text-sm font-medium shadow-none ${floatingEntryClassName} ${
                                 isExpanded
-                                  ? "border-primary bg-primary text-primary-foreground"
-                                  : "border-border/70 bg-secondary/30 text-foreground hover:border-primary/40 hover:bg-primary/5"
+                                  ? "bg-primary/8 text-primary"
+                                  : "text-foreground"
                               }`}
                             >
                               <div className="flex items-start gap-3">
@@ -1953,7 +1959,7 @@ const TherapistDashboardPage = () => {
 
                       {callRequests.map((booking) =>
                         expandedCallBookingId === booking.id ? (
-                          <div key={`${booking.id}-details`} className="mt-4 rounded-[1.25rem] border border-border/60 bg-secondary/25 p-4 text-sm shadow-card">
+                          <div key={`${booking.id}-details`} className="mt-4 rounded-[1.25rem] bg-secondary/20 p-4 text-sm">
                             <div className="grid gap-3 md:grid-cols-5">
                               <div>
                                 <p className="text-xs font-semibold uppercase tracking-[0.18em] text-primary/70">Client</p>
@@ -1977,11 +1983,11 @@ const TherapistDashboardPage = () => {
                               </div>
                             </div>
                             {booking.notes ? (
-                              <p className="mt-3 border-t border-border/50 pt-3 leading-7 text-muted-foreground">
+                              <p className="mt-3 pt-3 leading-7 text-muted-foreground">
                                 <span className="font-medium text-foreground">Notes:</span> {booking.notes}
                               </p>
                             ) : null}
-                            <div className="mt-4 flex flex-col gap-2 border-t border-border/50 pt-3 sm:flex-row">
+                            <div className="mt-4 flex flex-col gap-2 pt-3 sm:flex-row">
                               <Button variant="heroBorder" className="w-full rounded-full sm:w-auto" asChild>
                                 <a href={`tel:${booking.clientPhone}`}>
                                   <Phone className="h-4 w-4" />
@@ -2016,7 +2022,7 @@ const TherapistDashboardPage = () => {
 
                       <div className="mt-6 hidden">
                         {callRequests.map((booking) => (
-                          <div key={booking.id} className="rounded-[1.5rem] border border-border/60 bg-secondary/25 p-4 shadow-card">
+                          <div key={booking.id} className="rounded-[1.5rem] bg-transparent p-4">
                             <div className="flex items-start justify-between gap-3">
                               <div className="min-w-0">
                                 <p className="font-medium text-foreground">{booking.clientName}</p>
@@ -2139,7 +2145,7 @@ const TherapistDashboardPage = () => {
                                 {booking.notes ? (
                                   <TableRow>
                                     <TableCell colSpan={6} className="pt-0">
-                                      <div className="border-t border-border/40 pt-3 text-sm leading-7 text-muted-foreground">
+                                      <div className="pt-3 text-sm leading-7 text-muted-foreground">
                                         <span className="font-medium text-foreground">Notes:</span> {booking.notes}
                                       </div>
                                     </TableCell>
@@ -2748,7 +2754,7 @@ const TherapistDashboardPage = () => {
                   </TabsContent>
 
                   <TabsContent value="notifications" className="mt-8">
-                    <div className="rounded-[1.75rem] border border-border/60 bg-card/80 p-5 shadow-card sm:p-6">
+                    <div className="p-1 sm:p-2">
                       <div className="flex items-start gap-3 sm:items-center">
                         <div className="relative flex h-12 w-12 items-center justify-center rounded-2xl bg-primary/10 text-primary">
                           <BellRing className="h-5 w-5" />
@@ -2760,7 +2766,7 @@ const TherapistDashboardPage = () => {
                         </div>
                         <div>
                           <h2 className="font-heading text-xl font-semibold text-foreground sm:text-2xl">Notifications</h2>
-                          <p className="text-sm text-muted-foreground">New bookings, cancellations, reschedules, blog updates, and inquiry mail alerts.</p>
+                          <p className="text-sm text-muted-foreground">New bookings, cancellations, reschedules, and blog updates.</p>
                         </div>
                       </div>
 
@@ -2781,12 +2787,12 @@ const TherapistDashboardPage = () => {
                                 toggleNotification(notification.id);
                               }
                             }}
-                            className={`rounded-[1.5rem] p-4 transition-colors ${
+                            className={`p-4 ${floatingEntryClassName} ${
                               notification.inquiry?.id === focusedInquiryId
-                                ? "bg-primary/10 ring-2 ring-primary/25"
+                                ? "bg-primary/10"
                                 : notification.read
-                                  ? "bg-secondary/35"
-                                  : "bg-primary/8 ring-1 ring-primary/12"
+                                  ? "bg-transparent"
+                                  : "bg-primary/8"
                             }`}
                           >
                             <div className="flex items-start gap-3 sm:hidden">
@@ -2854,7 +2860,7 @@ const TherapistDashboardPage = () => {
                             </div>
                             <div className={isExpanded ? "mt-4 block" : "hidden"}>
                             {notification.inquiry ? (
-                              <div className="space-y-4 rounded-[1.25rem] border border-border/60 bg-background/75 p-4">
+                              <div className="space-y-4 rounded-[1.25rem] bg-background/55 p-4">
                                 <div className="grid gap-3 text-sm leading-6 text-muted-foreground sm:grid-cols-2">
                                   <p>
                                     <span className="font-semibold text-primary">Client:</span> {notification.inquiry.name}
@@ -2916,7 +2922,7 @@ const TherapistDashboardPage = () => {
                   </TabsContent>
 
                   <TabsContent value="completed" className="mt-8">
-                    <div className="rounded-[1.75rem] border border-border/60 bg-card/80 p-5 shadow-card sm:p-6">
+                    <div className="p-1 sm:p-2">
                       <div>
                         <h2 className="font-heading text-xl font-semibold text-foreground sm:text-2xl">Completed Sessions</h2>
                         <p className="mt-2 text-sm leading-7 text-muted-foreground">
@@ -2941,7 +2947,7 @@ const TherapistDashboardPage = () => {
                                   toggleCompletedBooking(booking.id);
                                 }
                               }}
-                              className="cursor-pointer rounded-[1.5rem] border border-border/60 bg-secondary/25 p-3 shadow-card transition-colors hover:bg-secondary/35 focus:outline-none focus:ring-2 focus:ring-primary/20"
+                              className={`p-3 ${floatingEntryClassName}`}
                             >
                               <div className="flex items-start gap-3">
                                 <div className={initialsBadgeClassName}>
@@ -3005,7 +3011,7 @@ const TherapistDashboardPage = () => {
 
                       <div className="mt-6 hidden overflow-x-auto md:block">
                         <Table>
-                          <TableHeader>
+                          <TableHeader className="[&_tr]:border-0">
                             <TableRow>
                               <TableHead>Client</TableHead>
                               <TableHead>Contact</TableHead>
@@ -3015,13 +3021,13 @@ const TherapistDashboardPage = () => {
                               <TableHead>Status</TableHead>
                             </TableRow>
                           </TableHeader>
-                          <TableBody>
+                          <TableBody className="[&_tr]:border-0">
                             {completedBookings.map((booking) => {
                               const statusLabel = getBookingStatusLabel(booking, currentTime);
 
                               return (
                                 <Fragment key={booking.id}>
-                                  <TableRow>
+                                  <TableRow className="border-0">
                                     <TableCell>
                                       <div className="space-y-1">
                                         <p className="font-medium text-foreground">{booking.clientName}</p>

@@ -1,4 +1,4 @@
-import { FormEvent, useEffect, useRef, useState } from "react";
+import { FormEvent, useCallback, useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { ShieldCheck } from "lucide-react";
 import { toast } from "sonner";
@@ -14,6 +14,21 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+
+const formatPassphraseError = (message: string) => {
+  const normalized = message.trim().toLowerCase();
+
+  if (
+    normalized.includes("temporarily unavailable") ||
+    normalized.includes("unable to reach") ||
+    normalized.includes("something went wrong") ||
+    normalized.includes("could not complete")
+  ) {
+    return "The therapist portal is temporarily unavailable. Please try again shortly.";
+  }
+
+  return message;
+};
 
 const TherapistPortalAccess = () => {
   const navigate = useNavigate();
@@ -38,16 +53,6 @@ const TherapistPortalAccess = () => {
   const emailInputRef = useRef<HTMLInputElement | null>(null);
   const passwordInputRef = useRef<HTMLInputElement | null>(null);
   const unlockAttemptRef = useRef(0);
-
-  const formatPassphraseError = (message: string) => {
-    const normalized = message.trim().toLowerCase();
-
-    if (normalized.includes("unable to reach the wellness api")) {
-      return "Unable to verify the secret passphrase right now. Refresh the page and try again.";
-    }
-
-    return message;
-  };
 
   useEffect(() => {
     if (!showPassphrase || loginOpen) {
@@ -100,7 +105,7 @@ const TherapistPortalAccess = () => {
     return () => window.cancelAnimationFrame(frame);
   }, [loginOpen, mode]);
 
-  const resetDialogState = () => {
+  const resetDialogState = useCallback(() => {
     setMode("login");
     setEmail("");
     setPassword("");
@@ -111,26 +116,9 @@ const TherapistPortalAccess = () => {
     setResetError("");
     setIsLoggingIn(false);
     setIsResettingPassword(false);
-  };
+  }, []);
 
-  useEffect(() => {
-    if (!showPassphrase || loginOpen) {
-      return;
-    }
-
-    const value = passphrase.trim();
-    if (value.length < 3) {
-      return;
-    }
-
-    const timeout = window.setTimeout(() => {
-      void unlockPortal(value, { showError: false });
-    }, 180);
-
-    return () => window.clearTimeout(timeout);
-  }, [loginOpen, passphrase, showPassphrase]);
-
-  const unlockPortal = async (value: string, options: { showError?: boolean } = {}) => {
+  const unlockPortal = useCallback(async (value: string, options: { showError?: boolean } = {}) => {
     const showError = options.showError ?? true;
     const attempt = unlockAttemptRef.current + 1;
     unlockAttemptRef.current = attempt;
@@ -139,7 +127,16 @@ const TherapistPortalAccess = () => {
       setIsUnlocking(true);
     }
 
-    const result = await verifyTherapistPassphrase(value);
+    let result;
+
+    try {
+      result = await verifyTherapistPassphrase(value);
+    } catch {
+      result = {
+        success: false,
+        error: "The therapist portal is temporarily unavailable. Please try again shortly.",
+      } as const;
+    }
 
     if (attempt !== unlockAttemptRef.current) {
       return;
@@ -167,7 +164,24 @@ const TherapistPortalAccess = () => {
     setLoginOpen(true);
     setShowPassphrase(false);
     setIsUnlocking(false);
-  };
+  }, [resetDialogState, verifyTherapistPassphrase]);
+
+  useEffect(() => {
+    if (!showPassphrase || loginOpen) {
+      return;
+    }
+
+    const value = passphrase.trim();
+    if (value.length < 3) {
+      return;
+    }
+
+    const timeout = window.setTimeout(() => {
+      void unlockPortal(value, { showError: false });
+    }, 300);
+
+    return () => window.clearTimeout(timeout);
+  }, [loginOpen, passphrase, showPassphrase, unlockPortal]);
 
   const handlePassphraseChange = (value: string) => {
     setPassphrase(value);
