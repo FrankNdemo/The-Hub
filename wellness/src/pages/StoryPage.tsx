@@ -12,13 +12,6 @@ import WellnessLogo from "@/components/WellnessLogo";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { useWellnessHub } from "@/context/WellnessHubContext";
 import { useDesktopImageEffects } from "@/hooks/useDesktopImageEffects";
@@ -36,7 +29,7 @@ interface StoryFormState {
 const initialStoryForm: StoryFormState = {
   fullName: "",
   image: "",
-  serviceType: "individual",
+  serviceType: "",
   story: "",
 };
 
@@ -162,13 +155,18 @@ const StoryPage = () => {
       return;
     }
 
+    if (!form.serviceType.trim()) {
+      toast.error("Please enter the service or support area.");
+      return;
+    }
+
     setIsSubmitting(true);
 
     try {
       await submitClientStory({
         fullName: form.fullName.trim(),
         image: form.image,
-        serviceType: form.serviceType,
+        serviceType: form.serviceType.trim(),
         story: form.story.trim(),
       });
       setForm(initialStoryForm);
@@ -282,19 +280,15 @@ const StoryPage = () => {
                 </div>
                 <div>
                   <Label htmlFor="story-service-type">Service Type</Label>
-                  <Select value={form.serviceType} onValueChange={(value) => setField("serviceType", value as StoryServiceType)}>
-                    <SelectTrigger
-                      id="story-service-type"
-                      className="mt-2 h-10 rounded-2xl border-border/70 bg-background/72 focus:ring-primary/30"
-                    >
-                      <SelectValue placeholder="Select service" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="individual">Individual Therapy</SelectItem>
-                      <SelectItem value="family">Family Therapy</SelectItem>
-                      <SelectItem value="corporate">Corporate Wellness</SelectItem>
-                    </SelectContent>
-                  </Select>
+                  <Input
+                    id="story-service-type"
+                    value={form.serviceType}
+                    onChange={(event) => setField("serviceType", event.target.value)}
+                    className="mt-2 rounded-2xl border-border/70 bg-white transition-shadow focus-visible:ring-primary/30 focus-visible:shadow-[0_0_0_6px_hsl(var(--primary)/0.08)]"
+                    placeholder="e.g. Grief and loss"
+                    maxLength={120}
+                    required
+                  />
                 </div>
               </div>
 

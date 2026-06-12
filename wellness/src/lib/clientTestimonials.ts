@@ -37,21 +37,28 @@ export const defaultClientTestimonials: ClientTestimonial[] = [
 ];
 
 const getClientStoryRole = (serviceType: StoryServiceType) => {
-  switch (serviceType) {
+  switch (serviceType.trim().toLowerCase()) {
     case "family":
+    case "family therapy":
       return "Family Therapy Client";
     case "corporate":
+    case "corporate wellness":
       return "Corporate Wellness Client";
-    default:
+    case "individual":
+    case "individual therapy":
       return "Individual Therapy Client";
+    default:
+      return `${serviceType.trim() || "Wellness"} Client`;
   }
 };
 
 const getClientStoryFallbackImage = (serviceType: StoryServiceType) => {
-  switch (serviceType) {
+  switch (serviceType.trim().toLowerCase()) {
     case "family":
+    case "family therapy":
       return familyServiceImage;
     case "corporate":
+    case "corporate wellness":
       return homeSpecializedSupportImage;
     default:
       return individualServiceImage;

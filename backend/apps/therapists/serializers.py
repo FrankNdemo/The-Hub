@@ -129,7 +129,7 @@ class ClientStorySerializer(serializers.ModelSerializer):
 class ClientStoryCreateSerializer(serializers.ModelSerializer):
     fullName = serializers.CharField(source="full_name", allow_blank=True, required=False, max_length=160)
     image = serializers.CharField(source="image_url", allow_blank=True, required=False)
-    serviceType = serializers.ChoiceField(source="service_type", choices=ClientStory.ServiceType.choices)
+    serviceType = serializers.CharField(source="service_type", max_length=120, trim_whitespace=True)
     story = serializers.CharField(source="story_text", trim_whitespace=True)
 
     class Meta:
@@ -140,7 +140,7 @@ class ClientStoryCreateSerializer(serializers.ModelSerializer):
 class ClientStoryUpdateSerializer(serializers.ModelSerializer):
     fullName = serializers.CharField(source="full_name", allow_blank=True, required=False, max_length=160)
     image = serializers.CharField(source="image_url", allow_blank=True, required=False)
-    serviceType = serializers.ChoiceField(source="service_type", choices=ClientStory.ServiceType.choices, required=False)
+    serviceType = serializers.CharField(source="service_type", max_length=120, trim_whitespace=True, required=False)
     story = serializers.CharField(source="story_text", trim_whitespace=True, required=False)
     editedStory = serializers.CharField(source="edited_story_text", trim_whitespace=True, allow_blank=True, required=False)
 

@@ -41,11 +41,6 @@ class TherapistProfile(TimeStampedUUIDModel):
 
 
 class ClientStory(TimeStampedUUIDModel):
-    class ServiceType(models.TextChoices):
-        INDIVIDUAL = "individual", "Individual Therapy"
-        FAMILY = "family", "Family Therapy"
-        CORPORATE = "corporate", "Corporate Wellness"
-
     class Status(models.TextChoices):
         PENDING = "pending", "Pending Review"
         REVIEWED = "reviewed", "Reviewed"
@@ -58,11 +53,7 @@ class ClientStory(TimeStampedUUIDModel):
     )
     full_name = models.CharField(max_length=160, blank=True)
     image_url = models.TextField(blank=True)
-    service_type = models.CharField(
-        max_length=20,
-        choices=ServiceType.choices,
-        default=ServiceType.INDIVIDUAL,
-    )
+    service_type = models.CharField(max_length=120, default="Individual Therapy")
     story_text = models.TextField()
     edited_story_text = models.TextField(blank=True)
     status = models.CharField(max_length=20, choices=Status.choices, default=Status.PENDING)

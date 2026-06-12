@@ -2,7 +2,7 @@ from django.core.management import call_command
 from rest_framework import status
 from rest_framework.test import APITestCase
 
-from apps.therapists.models import TherapistProfile
+from apps.therapists.models import ClientStory, TherapistProfile
 
 
 class TherapistAuthApiTests(APITestCase):
@@ -64,3 +64,23 @@ class TherapistAuthApiTests(APITestCase):
 
         therapist = TherapistProfile.objects.select_related("user").get(public_id="caroline-gichia")
         self.assertTrue(therapist.user.check_password("NewWellnessHub2026!"))
+
+
+class ClientStoryApiTests(APITestCase):
+    def setUp(self):
+        call_command("bootstrap_wellness_data", with_test_credentials=True)
+
+    def test_client_can_submit_manual_service_type(self):
+        response = self.client.post(
+            "/api/v1/stories/",
+            {
+                "fullName": "Anonymous",
+                "serviceType": "Grief and loss",
+                "story": "Therapy helped me process a difficult season with more compassion.",
+            },
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(response.data["serviceType"], "Grief and loss")
+        self.assertEqual(ClientStory.objects.get().service_type, "Grief and loss")

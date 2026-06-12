@@ -363,7 +363,7 @@ const ExplorationCallPage = () => {
             ) : (
               <ScrollReveal direction="up">
                 <>
-                  <form onSubmit={handleSubmit} className="overflow-hidden rounded-none border border-border/60 bg-card p-6 shadow-card sm:p-8">
+                  <form onSubmit={handleSubmit} className="overflow-hidden rounded-none border border-border/60 bg-card p-6 shadow-card [&_input]:bg-white [&_select]:bg-white [&_textarea]:bg-white sm:p-8">
                     <LeafBannerHeading
                       title="Book your exploration call"
                       description="Simple, private, and separate from the full therapy session booking flow."
@@ -395,7 +395,7 @@ const ExplorationCallPage = () => {
                               value={form.clientPhone}
                               onChange={(event) => updateField("clientPhone", event.target.value)}
                               className="mt-2"
-                              placeholder="+254 7XX XXX XXX"
+                              placeholder="07******20"
                               required
                             />
                           </div>
@@ -454,7 +454,7 @@ const ExplorationCallPage = () => {
                         />
                       </div>
 
-                      <div className="rounded-none bg-primary/8 px-4 py-3 text-sm leading-7 text-muted-foreground">
+                      <div className="hidden rounded-none bg-primary/8 px-4 py-3 text-sm leading-7 text-muted-foreground sm:block">
                         {BOOKING_AVAILABILITY_DETAIL}
                       </div>
                     </div>

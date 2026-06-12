@@ -181,7 +181,7 @@ const Index = () => {
   }, [isDeletingCtaText, typedCtaText]);
 
   return (
-    <div id="homepage-top" className="min-h-screen overflow-x-hidden">
+    <div id="homepage-top" className="min-h-screen overflow-x-clip">
       <HeroSection />
       <JourneyQuoteSection />
 

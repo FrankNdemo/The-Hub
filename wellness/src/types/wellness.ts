@@ -1,6 +1,6 @@
 export type SessionType = "virtual" | "physical";
 export type ServiceType = "individual" | "family" | "corporate";
-export type StoryServiceType = "individual" | "family" | "corporate";
+export type StoryServiceType = string;
 export type ClientStoryStatus = "pending" | "reviewed" | "published";
 
 export type BookingStatus =

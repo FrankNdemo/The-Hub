@@ -936,13 +936,4 @@ def delete_booking(*, booking: Booking, reason: str) -> None:
     if booking.is_deleted:
         raise ValueError("Booking has already been removed.")
 
-    booking.status = Booking.Status.CANCELLED
-    booking.mark_deleted(reason=reason)
-    booking.save(update_fields=["status", "deleted_at", "deleted_reason", "updated_at"])
-
-    BookingHistoryEvent.objects.create(
-        booking=booking,
-        type=BookingHistoryEvent.EventType.CANCELLED,
-        title="Session deleted by therapist",
-        description=f"{booking.therapist_name_snapshot} removed this session from the dashboard. Reason: {reason.strip()}",
-    )
+    booking.delete()

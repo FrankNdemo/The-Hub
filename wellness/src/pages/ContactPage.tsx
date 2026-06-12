@@ -197,7 +197,7 @@ const ContactPage = () => {
                   </p>
                 </div>
               ) : (
-                <form onSubmit={handleSubmit} className="mt-8 space-y-5">
+                <form onSubmit={handleSubmit} className="mt-8 space-y-5 [&_input]:bg-white [&_textarea]:bg-white">
                   <div className="grid gap-5 sm:grid-cols-2">
                     <div>
                       <Label htmlFor="contact-name" className="text-primary">Your name</Label>
@@ -220,7 +220,7 @@ const ContactPage = () => {
                         value={contactDraft.whatsappMobile}
                         onChange={(event) => setContactDraft((current) => ({ ...current, whatsappMobile: event.target.value }))}
                         className="mt-2"
-                        placeholder="+254 7XX XXX XXX"
+                        placeholder="07 ******24"
                         required
                       />
                     </div>

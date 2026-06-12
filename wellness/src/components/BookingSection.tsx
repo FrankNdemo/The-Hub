@@ -1798,7 +1798,7 @@ const BookingSection = () => {
   };
 
   return (
-    <section id="booking" ref={sectionRef} className="py-24">
+    <section id="booking" ref={sectionRef} className="pb-24 pt-0 lg:py-24">
       {isLoadingTherapists
         ? createPortal(
             <div className="pointer-events-none fixed left-1/2 top-1/2 z-[120] flex h-16 w-16 -translate-x-1/2 -translate-y-1/2 items-center justify-center">
@@ -1811,7 +1811,7 @@ const BookingSection = () => {
         <div className="mx-auto max-w-6xl">
           <div className={step === "details" ? "grid gap-12 lg:grid-cols-[0.92fr_1.08fr]" : "grid gap-12"}>
             {step === "details" ? (
-              <ScrollReveal direction="left">
+              <ScrollReveal direction="left" className="hidden lg:block">
                 <div className="wellness-panel overflow-hidden rounded-none border border-border/60 p-6 text-center shadow-card sm:p-8 lg:text-left">
                   <LeafBannerHeading
                     eyebrow="Booking Flow"
@@ -1883,13 +1883,13 @@ const BookingSection = () => {
                   <form
                     id="schedule-appointment"
                     onSubmit={handleDetailsSubmit}
-                    className="scroll-mt-24 overflow-hidden rounded-none border border-border/60 bg-card p-6 shadow-card sm:p-8"
+                    className="scroll-mt-24 overflow-hidden rounded-none border border-border/60 bg-card p-6 shadow-card [&_input]:bg-white [&_select]:bg-white [&_textarea]:bg-white sm:p-8"
                   >
                     <LeafBannerHeading
                       title="Schedule your appointment"
                       titleTag="h3"
                       description="Enter your details first, then review the session summary before payment."
-                      className="-mx-6 -mt-6 sm:-mx-8 sm:-mt-8"
+                      className="-mx-6 -mt-6 hidden sm:-mx-8 sm:-mt-8 lg:block"
                       innerClassName="px-6 py-6 sm:px-8 sm:py-7"
                       titleClassName="text-3xl"
                       descriptionClassName="max-w-none"
@@ -1937,7 +1937,7 @@ const BookingSection = () => {
                           value={form.clientPhone}
                           onChange={(event) => updateField("clientPhone", event.target.value)}
                           className="mt-2"
-                          placeholder="+254 7XX XXX XXX or +254 1XX XXX XXX"
+                          placeholder="07******20"
                           required
                         />
                       </div>

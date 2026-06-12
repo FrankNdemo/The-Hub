@@ -126,7 +126,7 @@ const makeProfileDraft = (therapist: TherapistProfile): TherapistProfileFormStat
 const makeStoryDraft = (story?: ClientStory | null): ClientStoryEditFormState => ({
   fullName: story?.fullName ?? "",
   image: story?.image ?? "",
-  serviceType: story?.serviceType ?? "individual",
+  serviceType: story?.serviceType ?? "",
   story: story?.story ?? "",
 });
 
@@ -2420,18 +2420,14 @@ const TherapistDashboardPage = () => {
                                   </div>
                                   <div>
                                     <Label htmlFor="story-review-service">Service type</Label>
-                                    <select
+                                    <Input
                                       id="story-review-service"
                                       value={storyDraft.serviceType}
-                                      onChange={(event) =>
-                                        setStoryDraftField("serviceType", event.target.value as StoryServiceType)
-                                      }
-                                      className="mt-2 flex h-10 w-full rounded-2xl border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/25"
-                                    >
-                                      <option value="individual">Individual Therapy</option>
-                                      <option value="family">Family Therapy</option>
-                                      <option value="corporate">Corporate Wellness</option>
-                                    </select>
+                                      onChange={(event) => setStoryDraftField("serviceType", event.target.value)}
+                                      className="mt-2 rounded-2xl bg-white"
+                                      placeholder="e.g. Grief and loss"
+                                      maxLength={120}
+                                    />
                                   </div>
                                 </div>
 

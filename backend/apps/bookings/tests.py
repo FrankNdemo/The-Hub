@@ -10,7 +10,7 @@ from django.utils import timezone
 from rest_framework import status
 from rest_framework.test import APITestCase
 
-from apps.bookings.models import Booking, BookingPayment
+from apps.bookings.models import Booking, BookingHistoryEvent, BookingPayment, EmailRecord
 from apps.bookings.delivery import REMINDER_EMAIL_KIND
 from apps.bookings.payments import BookingPaymentError, MpesaQueryResponse, MpesaStkPushResponse
 from apps.bookings.services import normalize_payment_result_description
@@ -608,6 +608,9 @@ class BookingApiTests(APITestCase):
 
         booking = Booking.objects.select_related("therapist__user").get(pk=create_response.data["id"])
         self.client.force_authenticate(user=booking.therapist.user)
+        complete_response = self.client.post(f"/api/v1/dashboard/bookings/{booking.id}/complete/")
+        self.assertEqual(complete_response.status_code, status.HTTP_200_OK)
+        self.assertEqual(complete_response.data["status"], Booking.Status.COMPLETED)
 
         delete_response = self.client.post(
             f"/api/v1/dashboard/bookings/{booking.id}/delete/",
@@ -615,9 +618,11 @@ class BookingApiTests(APITestCase):
             format="json",
         )
         self.assertEqual(delete_response.status_code, status.HTTP_200_OK)
-        booking.refresh_from_db()
-        self.assertIsNotNone(booking.deleted_at)
-        self.assertEqual(booking.deleted_reason, "Duplicate session created by mistake.")
+        self.assertFalse(Booking.objects.filter(pk=booking.id).exists())
+        self.assertFalse(BookingHistoryEvent.objects.filter(booking_id=booking.id).exists())
+        self.assertFalse(BookingPayment.objects.filter(booking_id=booking.id).exists())
+        self.assertFalse(EmailRecord.objects.filter(booking_id=booking.id).exists())
+        self.assertFalse(Notification.objects.filter(booking_id=booking.id).exists())
 
         dashboard_response = self.client.get("/api/v1/dashboard/")
         self.assertEqual(dashboard_response.status_code, status.HTTP_200_OK)

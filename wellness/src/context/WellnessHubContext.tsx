@@ -309,8 +309,7 @@ const normalizeClientStory = (story?: Partial<ClientStory> | null): ClientStory 
     fullName: typeof story.fullName === "string" ? story.fullName : "",
     displayName: story.displayName || "Anonymous client",
     image: typeof story.image === "string" ? story.image : "",
-    serviceType:
-      story.serviceType === "family" || story.serviceType === "corporate" ? story.serviceType : "individual",
+    serviceType: story.serviceType.trim() || "Individual Therapy",
     story: story.story,
     editedStory: typeof story.editedStory === "string" ? story.editedStory : "",
     publishedText:
