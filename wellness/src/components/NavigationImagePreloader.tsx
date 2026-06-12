@@ -3,6 +3,7 @@ import { useEffect } from "react";
 import storyHeroImage from "@/assets/hero-calm-therapy.jpg";
 import { instantBlogImages } from "@/data/blogImages";
 import { pageHeaderBackgrounds } from "@/lib/pageBackground";
+import { servicesPageCardImages } from "@/lib/serviceImages";
 
 const preloadImage = (src: string) => {
   const image = new Image();
@@ -15,6 +16,7 @@ const NavigationImagePreloader = () => {
     const sources = [
       pageHeaderBackgrounds.about.src,
       pageHeaderBackgrounds.services.src,
+      ...servicesPageCardImages,
       pageHeaderBackgrounds.team.src,
       pageHeaderBackgrounds.blog.src,
       ...instantBlogImages,

@@ -5,17 +5,14 @@ import Footer from "@/components/Footer";
 import PageHeader from "@/components/PageHeader";
 import { Button } from "@/components/ui/button";
 import { pageHeaderBackgrounds, softPageBackgroundStyle } from "@/lib/pageBackground";
-import {
-  servicePageIndividualImage,
-  servicePageSpecializedImage,
-} from "@/lib/serviceImages";
+import { servicesPageImages } from "@/lib/serviceImages";
 
-const pexelsImage = (photoId: number) =>
-  `https://images.pexels.com/photos/${photoId}/pexels-photo-${photoId}.jpeg?auto=compress&cs=tinysrgb&w=1200&h=820&fit=crop`;
+const getBookingLink = (serviceTitle: string) =>
+  `/booking?service=${encodeURIComponent(serviceTitle)}#schedule-appointment`;
 
 const featuredServices = [
   {
-    image: servicePageIndividualImage,
+    image: servicesPageImages.individualTherapy,
     imageAlt: "A Black client speaking with a counselor during a supportive individual therapy session",
     title: "Individual Therapy",
     description:
@@ -23,7 +20,7 @@ const featuredServices = [
     imageClassName: "object-[center_28%] sm:object-[center_30%] lg:object-[center_32%]",
   },
   {
-    image: servicePageSpecializedImage,
+    image: servicesPageImages.groupTherapy,
     imageAlt: "A Black male client participating in a supportive group therapy conversation",
     title: "Group Therapy",
     description:
@@ -35,8 +32,7 @@ const featuredServices = [
 const therapyServices = [
   {
     title: "Addiction Treatment",
-    image:
-      "https://www.ndnu.edu/articles/images/Black%20male%20therapist%20gives%20advice%20to%20%20a%20substance%20abuse%20patient%20working%20on%20their%20recovery%20.jpg",
+    image: servicesPageImages.addictionTreatment,
     imageAlt: "A Black male addiction counselor supporting a client during one-on-one recovery therapy",
     description:
       "Addiction recovery needs compassion, structure, and honesty. At The Wellness Hub, we help clients and families understand the roots of alcohol, cigarette, substance, or hard drug dependence, then build a treatment path that may include relapse prevention, therapy, family support, residential referral, or long-term outpatient rehabilitation.",
@@ -44,7 +40,7 @@ const therapyServices = [
   },
   {
     title: "Psychotherapy",
-    image: pexelsImage(8560221),
+    image: servicesPageImages.psychotherapy,
     imageAlt: "A therapist conducting a calm psychotherapy session with a client in an office",
     description:
       "Psychotherapy gives language and direction to what feels heavy, confusing, or repeated. We address emotional difficulties, relationship patterns, trauma responses, workplace strain, low mood, anxiety, and life transitions with professional psychological support that helps you understand yourself and move with more clarity.",
@@ -52,7 +48,7 @@ const therapyServices = [
   },
   {
     title: "Mindfulness & Stress Reset",
-    image: pexelsImage(3822622),
+    image: servicesPageImages.mindfulnessStressReset,
     imageAlt: "A Black woman practicing a calm mindfulness reset in a peaceful indoor setting",
     description:
       "For people who feel constantly on, this reset creates room to slow the nervous system. At The Wellness Hub, we blend grounding skills, breathwork, reflective exercises, stress education, and simple daily practices that help restore clarity, improve sleep, and build calmer routines.",
@@ -60,7 +56,7 @@ const therapyServices = [
   },
   {
     title: "Grief and Loss",
-    image: pexelsImage(8553653),
+    image: servicesPageImages.griefAndLoss,
     imageAlt: "A Black woman processing grief in a quiet reflective moment",
     description:
       "Grief does not follow a neat timetable. We support loss after death, separation, illness, migration, major change, or lost opportunities, addressing shock, anger, guilt, numbness, longing, faith questions, family strain, and meaning-making without forcing someone to heal on command.",
@@ -68,7 +64,7 @@ const therapyServices = [
   },
   {
     title: "Child and Adolescent Support",
-    image: pexelsImage(20333029),
+    image: servicesPageImages.childAndAdolescentSupport,
     imageAlt: "Black African children listening attentively in a classroom",
     description:
       "Children and teenagers need support that respects their age, voice, and development. We address emotional regulation, behaviour concerns, school stress, identity questions, peer pressure, family change, grief, and early signs of anxiety or low mood with warmth, structure, and caregiver involvement where helpful.",
@@ -76,7 +72,7 @@ const therapyServices = [
   },
   {
     title: "Trauma and CBT",
-    image: pexelsImage(6382655),
+    image: servicesPageImages.traumaAndCbt,
     imageAlt: "A Black woman sitting quietly during a reflective emotional support moment",
     description:
       "Trauma can live in thoughts, body responses, relationships, sleep, anger, avoidance, or numbness. We use CBT-informed care to help clients understand triggers, challenge painful beliefs, rebuild safety, develop coping skills, and move toward recovery without being rushed or reduced to the painful event.",
@@ -84,7 +80,7 @@ const therapyServices = [
   },
   {
     title: "Anxiety and Mental Health",
-    image: "https://www.blackmenshealth.com/wp-content/uploads/2021/11/stress-1024x683.png",
+    image: servicesPageImages.anxietyAndMentalHealth,
     imageAlt: "A Black man experiencing stress and anxiety in a quiet moment",
     description:
       "Anxiety and mental health struggles can affect sleep, focus, appetite, relationships, confidence, and daily decisions. At The Wellness Hub, we address worry, panic, overwhelm, emotional shutdown, depressive symptoms, and stress patterns while building tools for grounding, self-care, and long-term stability.",
@@ -92,7 +88,7 @@ const therapyServices = [
   },
   {
     title: "Neurodivergence",
-    image: pexelsImage(6578397),
+    image: servicesPageImages.neurodivergence,
     imageAlt: "A focused Black man working on a laptop with a calm planning routine",
     description:
       "Neurodivergent support should honour both strengths and strain. We address ADHD, autism, dyslexia, dyspraxia, sensory differences, executive functioning, emotional regulation, identity, relationships, and school or workplace accommodations while building systems that fit the person, not the other way around.",
@@ -100,7 +96,7 @@ const therapyServices = [
   },
   {
     title: "Bariatric Psychology",
-    image: pexelsImage(5215008),
+    image: servicesPageImages.bariatricPsychology,
     imageAlt: "An African patient discussing a health plan with a medical professional",
     description:
       "Bariatric psychology supports the emotional side of major body and lifestyle change. We address readiness for surgery, expectations, identity shifts, mood, relationships, emotional eating, relapse prevention, post-surgery adjustment, and the mindset needed for sustainable health changes.",
@@ -111,7 +107,7 @@ const therapyServices = [
 const specialProgrammes = [
   {
     title: "Corporate Health & Wellness Talk",
-    image: pexelsImage(30677713),
+    image: servicesPageImages.corporateHealthWellnessTalk,
     imageAlt: "Black professionals in a workplace conversation about wellbeing and team support",
     description:
       "At The Wellness Hub, we help teams talk about mental health before pressure becomes crisis. These sessions address burnout, harassment, bullying, grief, work-life strain, leadership stress, and low morale while giving staff practical language for resilience, communication, psychological safety, and healthier workplace culture.",
@@ -119,7 +115,7 @@ const specialProgrammes = [
   },
   {
     title: "Community Outreaches",
-    image: pexelsImage(33763195),
+    image: servicesPageImages.communityOutreaches,
     imageAlt: "African volunteers supporting a community outreach gathering outdoors",
     description:
       "We are committed to taking mental health education beyond the clinic. Through community outreaches, we address stigma, poverty-related stress, family conflict, debt pressure, grief, substance use concerns, and emotional safety in familiar spaces where people can ask questions, feel seen, and discover support pathways.",
@@ -127,7 +123,7 @@ const specialProgrammes = [
   },
   {
     title: "Mental Health Awareness for Schools",
-    image: pexelsImage(34526411),
+    image: servicesPageImages.mentalHealthAwarenessForSchools,
     imageAlt: "African students taking part in a calm school wellbeing discussion",
     description:
       "School life can carry silent pressure. At The Wellness Hub, we create age-appropriate conversations for learners, teachers, and caregivers around exam stress, bullying, identity, relationships, self-esteem, emotional regulation, warning signs, and where to turn when a young person is struggling.",
@@ -135,7 +131,7 @@ const specialProgrammes = [
   },
   {
     title: "Upgraded Boychild",
-    image: "https://trustafrica.org/wp-content/uploads/2025/11/IMG_9081-scaled.jpg",
+    image: servicesPageImages.upgradedBoychild,
     imageAlt: "Young African men participating in a focused group discussion",
     description:
       "Upgraded Boychild is a growth and mentorship programme helping boys and young men build emotional confidence, healthy masculinity, purpose, discipline, and practical life skills. Through honest conversations and guided activities, participants learn to communicate well, manage pressure, form respectful relationships, make responsible choices, and become grounded men who can thrive at home, in school, at work, and in their communities.",
@@ -143,7 +139,7 @@ const specialProgrammes = [
   },
   {
     title: "LGBTQ+ Support",
-    image: pexelsImage(6579051),
+    image: servicesPageImages.lgbtqSupport,
     imageAlt: "A supportive Black couple smiling together in a warm home setting",
     description:
       "We are intentional about affirming care that honours identity, safety, and mental wellbeing. This support addresses belonging, self-acceptance, family dynamics, relationships, boundaries, discrimination, faith questions, and the emotional load of being misunderstood in spaces that should feel safe.",
@@ -197,7 +193,8 @@ const ServicesPage = () => (
                 <img
                   src={service.image}
                   alt={service.imageAlt}
-                  loading="lazy"
+                  loading="eager"
+                  decoding="async"
                   className={`h-full w-full object-cover transition-transform duration-500 group-hover:scale-105 ${service.imageClassName}`}
                 />
               </div>
@@ -209,7 +206,7 @@ const ServicesPage = () => (
                   {service.description}
                 </p>
                 <Button variant="hero" className="mt-6 w-full rounded-full sm:w-auto" asChild>
-                  <Link to={`/booking?service=${encodeURIComponent(service.title)}`}>Book This Service</Link>
+                  <Link to={getBookingLink(service.title)}>Book This Service</Link>
                 </Button>
               </div>
             </div>
@@ -238,7 +235,8 @@ const ServicesPage = () => (
                   <img
                     src={service.image}
                     alt={service.imageAlt}
-                    loading="lazy"
+                    loading="eager"
+                    decoding="async"
                     className={`h-full w-full object-cover transition-transform duration-500 group-hover:scale-105 ${service.imageClassName}`}
                   />
                 </div>
@@ -250,7 +248,7 @@ const ServicesPage = () => (
                     {service.description}
                   </p>
                   <Button variant="hero" className="mt-6 w-full rounded-full sm:w-auto" asChild>
-                    <Link to={`/booking?service=${encodeURIComponent(service.title)}`}>Book This Service</Link>
+                    <Link to={getBookingLink(service.title)}>Book This Service</Link>
                   </Button>
                 </div>
               </div>
