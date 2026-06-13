@@ -90,9 +90,9 @@ const HeroSection = () => {
 
           </div>
 
-          <div className="sticky top-0 z-30 h-[70svh] sm:relative sm:top-auto sm:h-auto">
+          <div className="sticky top-0 z-30 h-[calc(70svh+0.25rem)] sm:relative sm:top-auto sm:h-auto">
             <div className="absolute inset-x-0 top-0">
-              <div className="mx-auto max-w-7xl px-4 pt-16 sm:px-6 sm:pt-14 md:px-8 md:pt-14 lg:px-10 lg:pt-14">
+              <div className="mx-auto max-w-7xl px-4 pt-14 sm:px-6 sm:pt-14 md:px-8 md:pt-14 lg:px-10 lg:pt-14">
                 <div className="pl-2 text-left sm:pl-4 md:pl-6 lg:pl-8">
                   <div className="inline-block">
                     <div className="relative z-10 origin-left -translate-x-3 translate-y-4 rotate-[1.15deg] scale-[1.03] scale-x-[1.08] scale-y-[1.24] sm:translate-x-[0.15rem] sm:translate-y-3 sm:scale-[1.02] sm:scale-x-[1.04] sm:scale-y-[1.1] md:-translate-x-[0.95rem] md:translate-y-5 md:rotate-[1.2deg] md:scale-x-[1.1] md:scale-y-[1.16] lg:-translate-x-[1.35rem] lg:translate-y-6 lg:rotate-[1.15deg] lg:scale-x-[1.14] lg:scale-y-[1.2]">
@@ -105,7 +105,7 @@ const HeroSection = () => {
 
             <button
               type="button"
-              className="absolute right-4 top-[5.5rem] z-40 flex h-12 w-[3.35rem] items-center justify-center bg-transparent p-0 text-white shadow-none transition-colors hover:text-white/82 sm:hidden"
+              className="absolute right-4 top-20 z-40 flex h-12 w-[3.35rem] items-center justify-center bg-transparent p-0 text-white shadow-none transition-colors hover:text-white/82 sm:hidden"
               onClick={toggleMobileMenu}
               aria-label={isMobileMenuOpen ? "Close navigation menu" : "Open navigation menu"}
               aria-expanded={isMobileMenuOpen}
@@ -113,7 +113,7 @@ const HeroSection = () => {
               {isMobileMenuOpen ? <X size={28} strokeWidth={3.1} /> : <Menu size={28} strokeWidth={3.1} />}
             </button>
 
-            <div className="absolute inset-x-0 top-[40svh] mx-auto flex max-w-7xl px-4 pb-3 sm:relative sm:top-auto sm:min-h-[36rem] sm:items-start sm:px-6 sm:pb-12 sm:pt-48 md:min-h-[38rem] md:px-8 md:pt-48 lg:min-h-[40rem] lg:px-10 lg:pb-14 lg:pt-52">
+            <div className="absolute inset-x-0 top-[38svh] mx-auto flex max-w-7xl px-4 pb-3 sm:relative sm:top-auto sm:min-h-[36rem] sm:items-start sm:px-6 sm:pb-12 sm:pt-48 md:min-h-[38rem] md:px-8 md:pt-48 lg:min-h-[40rem] lg:px-10 lg:pb-14 lg:pt-52">
               <div className="animate-fade-up max-w-[24rem] pl-2 text-left sm:mt-10 sm:max-w-[26rem] sm:pl-4 md:mt-14 md:max-w-[30rem] md:pl-6 lg:mt-16 lg:max-w-[33rem] lg:pl-8">
                 <h1
                   className="max-w-[22rem] font-heading text-[2.68rem] font-medium leading-[0.92] text-white [text-shadow:0_12px_30px_rgba(0,0,0,0.42)] sm:max-w-[21rem] sm:text-[2.8rem] md:max-w-[23rem] md:text-[3.1rem] lg:max-w-[26rem] lg:text-[3.45rem]"
