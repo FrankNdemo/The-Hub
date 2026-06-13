@@ -193,6 +193,18 @@ const Navbar = () => {
   }, [open]);
 
   useEffect(() => {
+    const handleHeroMenuToggle = () => {
+      setMenuHoverPath(null);
+      setIsMenuClosing(false);
+      setIsMenuVisible(true);
+      setOpen((currentOpen) => !currentOpen);
+    };
+
+    window.addEventListener("wellness-toggle-mobile-menu", handleHeroMenuToggle);
+    return () => window.removeEventListener("wellness-toggle-mobile-menu", handleHeroMenuToggle);
+  }, []);
+
+  useEffect(() => {
     if (showTherapistHeader) {
       setIsMenuVisible(false);
       setIsMenuClosing(false);
@@ -563,17 +575,7 @@ const Navbar = () => {
             )}
           </div>
         ) : (
-          <div className="flex justify-end">
-            <button
-              type="button"
-              className="mt-6 h-12 w-[3.35rem] bg-transparent p-0 text-white shadow-none transition-all duration-200 ease-out hover:bg-transparent hover:text-white/82 sm:mt-1.5 sm:h-12 sm:w-12"
-              onClick={toggleMenu}
-              aria-label="Open navigation menu"
-              aria-expanded={open}
-            >
-              {open ? <X size={28} strokeWidth={3.1} className="mx-auto" /> : <Menu size={28} strokeWidth={3.1} className="mx-auto" />}
-            </button>
-          </div>
+          <div className="h-0" aria-hidden="true" />
         )}
 
         {isMenuVisible && !showTherapistHeader ? (

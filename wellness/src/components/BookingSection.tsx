@@ -367,7 +367,7 @@ const MobileStatusSheet = ({
   tone = "light",
   indicator,
   bareIndicator = false,
-  height = "default",
+  compactSuccess = false,
   onClose,
   children,
 }: {
@@ -378,7 +378,7 @@ const MobileStatusSheet = ({
   tone?: "light" | "dark" | "destructive" | "success";
   indicator: ReactNode;
   bareIndicator?: boolean;
-  height?: "default" | "half";
+  compactSuccess?: boolean;
   onClose?: () => void;
   children?: ReactNode;
 }) => {
@@ -402,11 +402,16 @@ const MobileStatusSheet = ({
   const modal = (
     <div className="sm:hidden">
       <div className="fixed inset-0 z-[140] bg-foreground/24 backdrop-blur-[3px]" aria-hidden="true" />
-      <div className="fixed inset-0 z-[141] flex items-start justify-center overflow-y-auto px-4 pb-8 pt-32">
+      <div
+        className={cn(
+          "fixed inset-0 z-[141] flex justify-center overflow-y-auto px-4 pb-8 pt-32",
+          compactSuccess ? "items-center" : "items-start",
+        )}
+      >
         <div
           className={cn(
             "relative my-auto max-h-[calc(100vh-6.75rem)] w-full max-w-[21.75rem] overflow-y-auto overflow-x-hidden rounded-[1.85rem] border px-4 pb-4 pt-3 shadow-[0_36px_80px_-34px_rgba(17,24,39,0.42)]",
-            height === "half" && "h-[50svh] max-h-[50svh]",
+            compactSuccess && "flex h-[25svh] max-h-[25svh] items-center justify-center",
             isDark
               ? "border-white/10 bg-[linear-gradient(180deg,hsl(150_18%_16%),hsl(150_19%_12%))] text-white"
               : isSuccess
@@ -416,7 +421,7 @@ const MobileStatusSheet = ({
                   : "border-border/60 bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(246,249,245,0.98))] text-foreground",
           )}
         >
-          <MobileSheetLeaves inverted={isDark} />
+          {!compactSuccess ? <MobileSheetLeaves inverted={isDark} /> : null}
           {onClose ? (
             <Button
               variant="ghost"
@@ -431,36 +436,48 @@ const MobileStatusSheet = ({
               <X className="h-3.5 w-3.5" />
             </Button>
           ) : null}
-          <div className="relative z-10 flex flex-col items-center text-center">
-            <div
-              className={cn(
-                "-mx-4 mb-2.5 w-[calc(100%+2rem)] px-4 pb-1 pt-1",
-                isDark ? "bg-[linear-gradient(180deg,rgba(31,49,41,0.96),rgba(31,49,41,0.72),transparent)]" : "bg-[linear-gradient(180deg,rgba(255,255,255,0.96),rgba(255,255,255,0.72),transparent)]",
-              )}
-            >
-              <div className="flex justify-center">
-                <div className="origin-center scale-[0.78]">
-                  <WellnessLogo variant="navbar" tone={isDark ? "inverse" : "default"} />
+          <div className="relative z-10 flex w-full flex-col items-center text-center">
+            {compactSuccess ? (
+              <>
+                <div className="flex h-14 w-14 items-center justify-center rounded-full border border-primary/20 bg-primary/10 text-primary">
+                  {indicator}
                 </div>
-              </div>
-            </div>
-            <p className={cn("text-[10px] font-semibold uppercase tracking-[0.2em]", isDark ? "text-white/68" : "text-primary/72")}>
-              Step 3 of 3
-            </p>
-            <div className="mt-2 w-full">
-              <MobileStageDots step={step} />
-            </div>
-            <div className="mt-3.5">
-              {bareIndicator ? indicator : <StatusHalo tone={isSuccess ? "success" : isDestructive ? "destructive" : "primary"}>{indicator}</StatusHalo>}
-            </div>
-            <p className={cn("mt-3.5 text-[11px] font-semibold uppercase tracking-[0.18em]", isDark ? "text-white/68" : "text-primary/72")}>
-              {eyebrow}
-            </p>
-            <h3 className={cn("mt-2 font-heading text-[1.56rem] font-semibold leading-tight", isDark ? "text-white" : "text-foreground")}>
-              {title}
-            </h3>
-            <p className={cn("mt-2.5 text-sm leading-6", isDark ? "text-white/78" : "text-muted-foreground")}>{description}</p>
-            {children ? <div className="mt-3.5 w-full">{children}</div> : null}
+                <h3 className="mt-3 font-heading text-xl font-semibold leading-tight text-foreground">{title}</h3>
+                <p className="mt-1.5 text-xs leading-5 text-muted-foreground">{description}</p>
+              </>
+            ) : (
+              <>
+                <div
+                  className={cn(
+                    "-mx-4 mb-2.5 w-[calc(100%+2rem)] px-4 pb-1 pt-1",
+                    isDark ? "bg-[linear-gradient(180deg,rgba(31,49,41,0.96),rgba(31,49,41,0.72),transparent)]" : "bg-[linear-gradient(180deg,rgba(255,255,255,0.96),rgba(255,255,255,0.72),transparent)]",
+                  )}
+                >
+                  <div className="flex justify-center">
+                    <div className="origin-center scale-[0.78]">
+                      <WellnessLogo variant="navbar" tone={isDark ? "inverse" : "default"} />
+                    </div>
+                  </div>
+                </div>
+                <p className={cn("text-[10px] font-semibold uppercase tracking-[0.2em]", isDark ? "text-white/68" : "text-primary/72")}>
+                  Step 3 of 3
+                </p>
+                <div className="mt-2 w-full">
+                  <MobileStageDots step={step} />
+                </div>
+                <div className="mt-3.5">
+                  {bareIndicator ? indicator : <StatusHalo tone={isSuccess ? "success" : isDestructive ? "destructive" : "primary"}>{indicator}</StatusHalo>}
+                </div>
+                <p className={cn("mt-3.5 text-[11px] font-semibold uppercase tracking-[0.18em]", isDark ? "text-white/68" : "text-primary/72")}>
+                  {eyebrow}
+                </p>
+                <h3 className={cn("mt-2 font-heading text-[1.56rem] font-semibold leading-tight", isDark ? "text-white" : "text-foreground")}>
+                  {title}
+                </h3>
+                <p className={cn("mt-2.5 text-sm leading-6", isDark ? "text-white/78" : "text-muted-foreground")}>{description}</p>
+                {children ? <div className="mt-3.5 w-full">{children}</div> : null}
+              </>
+            )}
           </div>
         </div>
       </div>
@@ -729,6 +746,28 @@ const BookingSection = ({ onBookingStarted }: { onBookingStarted?: () => void })
   const requestedServiceMessages = useMemo(() => getRequestedServiceMessages(requestedService), [requestedService]);
   const requestedServiceMessage = requestedServiceMessages[serviceDescriptionIndex % requestedServiceMessages.length];
   const selectableTherapists = slotTherapists ?? availableTherapists;
+
+  useEffect(() => {
+    if (step === "details" || window.matchMedia("(min-width: 640px)").matches) {
+      return;
+    }
+
+    const frameId = window.requestAnimationFrame(() => {
+      const section = sectionRef.current;
+
+      if (!section) {
+        return;
+      }
+
+      const navbarOffset = 112;
+      window.scrollTo({
+        top: Math.max(0, window.scrollY + section.getBoundingClientRect().top - navbarOffset),
+        behavior: "smooth",
+      });
+    });
+
+    return () => window.cancelAnimationFrame(frameId);
+  }, [step]);
   const selectedTherapist =
     selectableTherapists.find((item) => item.id === form.therapistId) ?? selectableTherapists[0] ?? therapist;
   const availableTherapistIds = useMemo(() => availableTherapists.map((item) => item.id).join("|"), [availableTherapists]);
@@ -1580,30 +1619,12 @@ const BookingSection = ({ onBookingStarted }: { onBookingStarted?: () => void })
           <MobileStatusSheet
             step={step}
             tone="success"
-            height="half"
+            compactSuccess
             eyebrow="Session Booked"
             title="Your session is booked"
             description="Your payment details were received. Check your email for the session link and calendar invite."
             indicator={<CheckCircle2 className="h-10 w-10" />}
-          >
-            <div className="rounded-[1.2rem] border border-primary/12 bg-primary/8 px-4 py-4 text-left text-sm leading-6 text-muted-foreground">
-              <p>
-                <span className="font-semibold text-foreground">Code:</span>{" "}
-                {checkout?.payment.transactionId || mpesaConfirmationCode || "Submitted"}
-              </p>
-              <p className="mt-2">
-                <span className="font-semibold text-foreground">Paid mobile name:</span>{" "}
-                {checkout?.payment.payerName || paidMobileName || "Submitted"}
-              </p>
-            </div>
-            <Button
-              variant="hero"
-              className="mt-5 w-full rounded-xl"
-              onClick={() => checkout && navigate(`/manage/${checkout.booking.token}?booking=success`)}
-            >
-              View Booking Details
-            </Button>
-          </MobileStatusSheet>
+          />
 
           <DesktopStatusDialog>
             <div className="rounded-[2rem] border border-border/60 bg-card px-6 py-8 text-center shadow-card sm:px-8">
@@ -1686,26 +1707,12 @@ const BookingSection = ({ onBookingStarted }: { onBookingStarted?: () => void })
           <MobileStatusSheet
             step={step}
             tone="success"
+            compactSuccess
             eyebrow="Payment Successful"
             title="Payment Successful!"
             description="Your deposit has been received. You booked your session successfully."
             indicator={<CheckCircle2 className="h-10 w-10" />}
-          >
-            <div className="rounded-[1.1rem] bg-primary/8 px-4 py-4 text-center">
-              <p className="text-sm text-muted-foreground">You paid</p>
-              <p className="mt-2 text-4xl font-semibold tracking-tight text-primary">{formatCurrencyAmount(bookingAmount, "KES")}</p>
-              <p className="mt-3 text-sm text-muted-foreground">for your booked session.</p>
-            </div>
-            <div className="mt-4">
-              <Button
-                variant="hero"
-                className="w-full rounded-xl"
-                onClick={() => checkout && navigate(`/manage/${checkout.booking.token}?booking=success`)}
-              >
-                View Booking
-              </Button>
-            </div>
-          </MobileStatusSheet>
+          />
 
           <DesktopStatusDialog>
           <div className="no-scrollbar max-h-[calc(100vh-2rem)] overflow-y-auto rounded-[2rem] border border-border/60 bg-card px-6 py-8 text-center shadow-hover sm:px-8">

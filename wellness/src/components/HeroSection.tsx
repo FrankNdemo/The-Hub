@@ -1,5 +1,6 @@
 import { motion, useReducedMotion, useScroll, useSpring, useTransform } from "framer-motion";
-import { CalendarClock, MessageCircle, PhoneCall } from "lucide-react";
+import { useEffect, useState } from "react";
+import { CalendarClock, Menu, MessageCircle, PhoneCall, X } from "lucide-react";
 import { Link } from "react-router-dom";
 
 import heroImg from "@/assets/hero-wellness-custom.png";
@@ -11,6 +12,7 @@ import WellnessLogo from "./WellnessLogo";
 const heroTitleWords = ["Discover", "your"];
 
 const HeroSection = () => {
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const { scrollYProgress } = useScroll();
   const smoothProgress = useSpring(scrollYProgress, { stiffness: 64, damping: 18, mass: 0.28 });
   const heroImageY = useTransform(smoothProgress, [0, 0.28], ["0%", "20%"]);
@@ -18,6 +20,20 @@ const HeroSection = () => {
   const heroGlowY = useTransform(smoothProgress, [0, 0.55], ["0%", "34%"]);
   const desktopImageEffects = useDesktopImageEffects();
   const shouldReduceMotion = useReducedMotion();
+
+  useEffect(() => {
+    const handleMenuState = (event: Event) => {
+      const detail = (event as CustomEvent<{ open?: boolean }>).detail;
+      setIsMobileMenuOpen(Boolean(detail?.open));
+    };
+
+    window.addEventListener("wellness-mobile-menu-state", handleMenuState);
+    return () => window.removeEventListener("wellness-mobile-menu-state", handleMenuState);
+  }, []);
+
+  const toggleMobileMenu = () => {
+    window.dispatchEvent(new CustomEvent("wellness-toggle-mobile-menu"));
+  };
 
   return (
     <section id="home-hero" className="relative pb-0 pt-0 sm:overflow-hidden sm:pb-14" data-nav-theme="inverse">
@@ -74,24 +90,35 @@ const HeroSection = () => {
 
           </div>
 
-          <div className="sticky top-0 z-30 h-0 sm:absolute sm:inset-x-0 sm:top-0 sm:h-auto">
-            <div className="mx-auto max-w-7xl px-4 pt-16 sm:px-6 sm:pt-14 md:px-8 md:pt-14 lg:px-10 lg:pt-14">
-              <div className="pl-2 text-left sm:pl-4 md:pl-6 lg:pl-8">
-                <div className="inline-block">
-                  <div className="relative z-10 origin-left -translate-x-3 translate-y-4 rotate-[1.15deg] scale-[1.03] scale-x-[1.08] scale-y-[1.24] sm:translate-x-[0.15rem] sm:translate-y-3 sm:scale-[1.02] sm:scale-x-[1.04] sm:scale-y-[1.1] md:-translate-x-[0.95rem] md:translate-y-5 md:rotate-[1.2deg] md:scale-x-[1.1] md:scale-y-[1.16] lg:-translate-x-[1.35rem] lg:translate-y-6 lg:rotate-[1.15deg] lg:scale-x-[1.14] lg:scale-y-[1.2]">
-                    <WellnessLogo variant="hero" />
+          <div className="sticky top-0 z-30 h-[70svh] sm:relative sm:top-auto sm:h-auto">
+            <div className="absolute inset-x-0 top-0">
+              <div className="mx-auto max-w-7xl px-4 pt-16 sm:px-6 sm:pt-14 md:px-8 md:pt-14 lg:px-10 lg:pt-14">
+                <div className="pl-2 text-left sm:pl-4 md:pl-6 lg:pl-8">
+                  <div className="inline-block">
+                    <div className="relative z-10 origin-left -translate-x-3 translate-y-4 rotate-[1.15deg] scale-[1.03] scale-x-[1.08] scale-y-[1.24] sm:translate-x-[0.15rem] sm:translate-y-3 sm:scale-[1.02] sm:scale-x-[1.04] sm:scale-y-[1.1] md:-translate-x-[0.95rem] md:translate-y-5 md:rotate-[1.2deg] md:scale-x-[1.1] md:scale-y-[1.16] lg:-translate-x-[1.35rem] lg:translate-y-6 lg:rotate-[1.15deg] lg:scale-x-[1.14] lg:scale-y-[1.2]">
+                      <WellnessLogo variant="hero" />
+                    </div>
                   </div>
                 </div>
               </div>
             </div>
-          </div>
 
-          <div className="sticky top-[40svh] z-20 mx-auto flex max-w-7xl px-4 pb-3 sm:relative sm:top-auto sm:min-h-[36rem] sm:items-start sm:px-6 sm:pb-12 sm:pt-48 md:min-h-[38rem] md:px-8 md:pt-48 lg:min-h-[40rem] lg:px-10 lg:pb-14 lg:pt-52">
-            <div className="animate-fade-up max-w-[24rem] pl-2 text-left sm:mt-10 sm:max-w-[26rem] sm:pl-4 md:mt-14 md:max-w-[30rem] md:pl-6 lg:mt-16 lg:max-w-[33rem] lg:pl-8">
-              <h1
-                className="max-w-[22rem] font-heading text-[2.68rem] font-medium leading-[0.92] text-white [text-shadow:0_12px_30px_rgba(0,0,0,0.42)] sm:max-w-[21rem] sm:text-[2.8rem] md:max-w-[23rem] md:text-[3.1rem] lg:max-w-[26rem] lg:text-[3.45rem]"
-                aria-label="Discover your best self!"
-              >
+            <button
+              type="button"
+              className="absolute right-4 top-[5.5rem] z-40 flex h-12 w-[3.35rem] items-center justify-center bg-transparent p-0 text-white shadow-none transition-colors hover:text-white/82 sm:hidden"
+              onClick={toggleMobileMenu}
+              aria-label={isMobileMenuOpen ? "Close navigation menu" : "Open navigation menu"}
+              aria-expanded={isMobileMenuOpen}
+            >
+              {isMobileMenuOpen ? <X size={28} strokeWidth={3.1} /> : <Menu size={28} strokeWidth={3.1} />}
+            </button>
+
+            <div className="absolute inset-x-0 top-[40svh] mx-auto flex max-w-7xl px-4 pb-3 sm:relative sm:top-auto sm:min-h-[36rem] sm:items-start sm:px-6 sm:pb-12 sm:pt-48 md:min-h-[38rem] md:px-8 md:pt-48 lg:min-h-[40rem] lg:px-10 lg:pb-14 lg:pt-52">
+              <div className="animate-fade-up max-w-[24rem] pl-2 text-left sm:mt-10 sm:max-w-[26rem] sm:pl-4 md:mt-14 md:max-w-[30rem] md:pl-6 lg:mt-16 lg:max-w-[33rem] lg:pl-8">
+                <h1
+                  className="max-w-[22rem] font-heading text-[2.68rem] font-medium leading-[0.92] text-white [text-shadow:0_12px_30px_rgba(0,0,0,0.42)] sm:max-w-[21rem] sm:text-[2.8rem] md:max-w-[23rem] md:text-[3.1rem] lg:max-w-[26rem] lg:text-[3.45rem]"
+                  aria-label="Discover your best self!"
+                >
                 <span className="block whitespace-nowrap">
                   {heroTitleWords.map((word, index) => (
                     <motion.span
@@ -122,13 +149,13 @@ const HeroSection = () => {
                 >
                   best self!
                 </motion.em>
-              </h1>
+                </h1>
 
-              <p className="mt-6 max-w-[18rem] text-[0.84rem] font-semibold leading-6 text-white [text-shadow:0_8px_22px_rgba(0,0,0,0.42)] sm:mt-7 sm:max-w-[19rem] sm:text-[0.92rem] sm:leading-7 md:max-w-[20rem]">
-                Compassionate therapy and consultancy for Corporates, Adults, and Adolescents.
-              </p>
+                <p className="mt-6 max-w-[18rem] text-[0.84rem] font-semibold leading-6 text-white [text-shadow:0_8px_22px_rgba(0,0,0,0.42)] sm:mt-7 sm:max-w-[19rem] sm:text-[0.92rem] sm:leading-7 md:max-w-[20rem]">
+                  Compassionate therapy and consultancy for Corporates, Adults, and Adolescents.
+                </p>
 
-              <div className="mt-10 grid w-full max-w-[19.25rem] grid-cols-3 gap-1.5 sm:mt-9 sm:max-w-[24rem] sm:gap-2 md:mt-10 md:max-w-[33rem] md:gap-2.5 lg:max-w-[37rem]">
+                <div className="mt-10 grid w-full max-w-[19.25rem] grid-cols-3 gap-1.5 sm:mt-9 sm:max-w-[24rem] sm:gap-2 md:mt-10 md:max-w-[33rem] md:gap-2.5 lg:max-w-[37rem]">
                 <Button
                   variant="hero"
                   size="lg"
@@ -171,6 +198,7 @@ const HeroSection = () => {
                     </span>
                   </Link>
                 </Button>
+                </div>
               </div>
             </div>
           </div>
