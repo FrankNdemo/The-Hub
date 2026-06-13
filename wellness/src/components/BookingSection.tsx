@@ -402,7 +402,7 @@ const MobileStatusSheet = ({
   const modal = (
     <div className="sm:hidden">
       <div className="fixed inset-0 z-[140] bg-foreground/24 backdrop-blur-[3px]" aria-hidden="true" />
-      <div className="fixed inset-0 z-[141] flex items-center justify-center overflow-y-auto px-4 pb-6 pt-[5.25rem]">
+      <div className="fixed inset-0 z-[141] flex items-start justify-center overflow-y-auto px-4 pb-8 pt-32">
         <div
           className={cn(
             "relative my-auto max-h-[calc(100vh-6.75rem)] w-full max-w-[21.75rem] overflow-y-auto overflow-x-hidden rounded-[1.85rem] border px-4 pb-4 pt-3 shadow-[0_36px_80px_-34px_rgba(17,24,39,0.42)]",
@@ -2257,7 +2257,7 @@ const BookingSection = ({ onBookingStarted }: { onBookingStarted?: () => void })
                   </>
                 ) : step === "payment" ? (
                   <>
-                    <div className="no-scrollbar relative mx-auto max-h-[75svh] max-w-[21.9rem] overflow-y-auto overflow-x-hidden rounded-[1.85rem] border border-border/60 bg-card p-4 shadow-card sm:hidden">
+                    <div className="relative mx-auto mb-20 max-w-[21.9rem] overflow-hidden rounded-[1.85rem] border border-border/60 bg-card p-4 shadow-card sm:hidden">
                       <MobileSheetLeaves />
                       <div className="relative z-10 flex items-start gap-3">
                         <Button variant="ghost" size="icon" className="h-9 w-9 rounded-full border border-border/60" onClick={() => setStep("summary")}>

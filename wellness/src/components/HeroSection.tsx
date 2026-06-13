@@ -72,20 +72,21 @@ const HeroSection = () => {
             className="pointer-events-none absolute -right-1 bottom-0 z-10 w-28 rotate-[220deg] opacity-[0.52] mix-blend-multiply saturate-170 contrast-135 drop-shadow-[0_16px_30px_rgba(76,106,92,0.18)] animate-float animation-delay-400 sm:right-0 sm:w-32 md:right-1 md:bottom-2 md:w-36 lg:right-3 lg:w-40"
           />
 
-            <div className="absolute inset-x-0 top-0 z-30">
-              <div className="mx-auto max-w-7xl px-4 pt-12 sm:px-6 sm:pt-14 md:px-8 md:pt-14 lg:px-10 lg:pt-14">
-                <div className="pl-2 text-left sm:pl-4 md:pl-6 lg:pl-8">
-                  <div className="inline-block">
-                    <div className="relative z-10 origin-left -translate-x-3 translate-y-4 rotate-[1.15deg] scale-[1.03] scale-x-[1.08] scale-y-[1.24] sm:translate-x-[0.15rem] sm:translate-y-3 sm:scale-[1.02] sm:scale-x-[1.04] sm:scale-y-[1.1] md:-translate-x-[0.95rem] md:translate-y-5 md:rotate-[1.2deg] md:scale-x-[1.1] md:scale-y-[1.16] lg:-translate-x-[1.35rem] lg:translate-y-6 lg:rotate-[1.15deg] lg:scale-x-[1.14] lg:scale-y-[1.2]">
-                      <WellnessLogo variant="hero" />
-                    </div>
+          </div>
+
+          <div className="sticky top-0 z-30 h-0 sm:absolute sm:inset-x-0 sm:top-0 sm:h-auto">
+            <div className="mx-auto max-w-7xl px-4 pt-16 sm:px-6 sm:pt-14 md:px-8 md:pt-14 lg:px-10 lg:pt-14">
+              <div className="pl-2 text-left sm:pl-4 md:pl-6 lg:pl-8">
+                <div className="inline-block">
+                  <div className="relative z-10 origin-left -translate-x-3 translate-y-4 rotate-[1.15deg] scale-[1.03] scale-x-[1.08] scale-y-[1.24] sm:translate-x-[0.15rem] sm:translate-y-3 sm:scale-[1.02] sm:scale-x-[1.04] sm:scale-y-[1.1] md:-translate-x-[0.95rem] md:translate-y-5 md:rotate-[1.2deg] md:scale-x-[1.1] md:scale-y-[1.16] lg:-translate-x-[1.35rem] lg:translate-y-6 lg:rotate-[1.15deg] lg:scale-x-[1.14] lg:scale-y-[1.2]">
+                    <WellnessLogo variant="hero" />
                   </div>
                 </div>
               </div>
             </div>
           </div>
 
-          <div className="sticky top-[32svh] z-20 mx-auto flex max-w-7xl px-4 pb-3 sm:relative sm:top-auto sm:min-h-[36rem] sm:items-start sm:px-6 sm:pb-12 sm:pt-48 md:min-h-[38rem] md:px-8 md:pt-48 lg:min-h-[40rem] lg:px-10 lg:pb-14 lg:pt-52">
+          <div className="sticky top-[40svh] z-20 mx-auto flex max-w-7xl px-4 pb-3 sm:relative sm:top-auto sm:min-h-[36rem] sm:items-start sm:px-6 sm:pb-12 sm:pt-48 md:min-h-[38rem] md:px-8 md:pt-48 lg:min-h-[40rem] lg:px-10 lg:pb-14 lg:pt-52">
             <div className="animate-fade-up max-w-[24rem] pl-2 text-left sm:mt-10 sm:max-w-[26rem] sm:pl-4 md:mt-14 md:max-w-[30rem] md:pl-6 lg:mt-16 lg:max-w-[33rem] lg:pl-8">
               <h1
                 className="max-w-[22rem] font-heading text-[2.68rem] font-medium leading-[0.92] text-white [text-shadow:0_12px_30px_rgba(0,0,0,0.42)] sm:max-w-[21rem] sm:text-[2.8rem] md:max-w-[23rem] md:text-[3.1rem] lg:max-w-[26rem] lg:text-[3.45rem]"

@@ -5,6 +5,7 @@ import BookingSection from "@/components/BookingSection";
 import Footer from "@/components/Footer";
 import PageHeader from "@/components/PageHeader";
 import { softPageBackgroundStyle } from "@/lib/pageBackground";
+import { cn } from "@/lib/utils";
 
 const BookingPage = () => {
   const [hasStartedBooking, setHasStartedBooking] = useState(false);
@@ -25,7 +26,7 @@ const BookingPage = () => {
           />
         </div>
       ) : null}
-      <div className="lg:pt-8">
+      <div className={cn("lg:pt-8", hasStartedBooking && "pt-32 sm:pt-0")}>
         <BookingSection onBookingStarted={() => setHasStartedBooking(true)} />
       </div>
       <Footer />

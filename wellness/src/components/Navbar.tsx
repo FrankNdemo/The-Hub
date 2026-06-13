@@ -438,14 +438,14 @@ const Navbar = () => {
   return (
     <nav
       ref={navRef}
-      className={cn("left-0 right-0 top-0 z-50 overflow-x-hidden", showHeroMenuTrigger ? "absolute" : "fixed")}
+      className="fixed left-0 right-0 top-0 z-50 overflow-x-hidden"
       onMouseLeave={handleNavMouseLeave}
       style={{ backgroundColor: showTherapistHeader ? undefined : "transparent" }}
     >
       <div
         className={`mx-auto transition-[padding] duration-300 ease-out ${
           showHeroMenuTrigger
-            ? "max-w-7xl px-4 pt-12 sm:px-6 sm:pt-14 md:px-8 md:pt-14 lg:px-10 lg:pt-14"
+            ? "max-w-7xl px-4 pt-16 sm:px-6 sm:pt-14 md:px-8 md:pt-14 lg:px-10 lg:pt-14"
             : showTherapistHeader
             ? "max-w-6xl px-4 pt-3 sm:px-6 sm:pt-4"
             : shouldFloatHomeMobileNav
