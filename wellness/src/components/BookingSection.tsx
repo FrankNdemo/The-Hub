@@ -10,7 +10,6 @@ import {
   CircleAlert,
   Clock3,
   Copy,
-  Home,
   LoaderCircle,
   Mail,
   MapPin,
@@ -368,6 +367,7 @@ const MobileStatusSheet = ({
   tone = "light",
   indicator,
   bareIndicator = false,
+  height = "default",
   onClose,
   children,
 }: {
@@ -378,6 +378,7 @@ const MobileStatusSheet = ({
   tone?: "light" | "dark" | "destructive" | "success";
   indicator: ReactNode;
   bareIndicator?: boolean;
+  height?: "default" | "half";
   onClose?: () => void;
   children?: ReactNode;
 }) => {
@@ -405,6 +406,7 @@ const MobileStatusSheet = ({
         <div
           className={cn(
             "relative my-auto max-h-[calc(100vh-6.75rem)] w-full max-w-[21.75rem] overflow-y-auto overflow-x-hidden rounded-[1.85rem] border px-4 pb-4 pt-3 shadow-[0_36px_80px_-34px_rgba(17,24,39,0.42)]",
+            height === "half" && "h-[50svh] max-h-[50svh]",
             isDark
               ? "border-white/10 bg-[linear-gradient(180deg,hsl(150_18%_16%),hsl(150_19%_12%))] text-white"
               : isSuccess
@@ -662,7 +664,7 @@ const getApiErrorCode = (error: unknown) => {
   return typeof code === "string" ? code : "";
 };
 
-const BookingSection = () => {
+const BookingSection = ({ onBookingStarted }: { onBookingStarted?: () => void }) => {
   const { therapist, therapists } = useWellnessHub();
   const { bookingDraft, setBookingDraft } = useFormDrafts();
   const navigate = useNavigate();
@@ -1330,6 +1332,7 @@ const BookingSection = () => {
     }
 
     setStep("summary");
+    onBookingStarted?.();
   };
 
   const handleStartPayment = async () => {
@@ -1577,6 +1580,7 @@ const BookingSection = () => {
           <MobileStatusSheet
             step={step}
             tone="success"
+            height="half"
             eyebrow="Session Booked"
             title="Your session is booked"
             description="Your payment details were received. Check your email for the session link and calendar invite."
@@ -1692,16 +1696,13 @@ const BookingSection = () => {
               <p className="mt-2 text-4xl font-semibold tracking-tight text-primary">{formatCurrencyAmount(bookingAmount, "KES")}</p>
               <p className="mt-3 text-sm text-muted-foreground">for your booked session.</p>
             </div>
-            <div className="mt-4 grid gap-3">
+            <div className="mt-4">
               <Button
                 variant="hero"
                 className="w-full rounded-xl"
                 onClick={() => checkout && navigate(`/manage/${checkout.booking.token}?booking=success`)}
               >
                 View Booking
-              </Button>
-              <Button variant="heroBorder" className="w-full rounded-xl" onClick={() => navigate("/")}>
-                Back to Home
               </Button>
             </div>
           </MobileStatusSheet>
@@ -1727,13 +1728,9 @@ const BookingSection = () => {
                 <p className="mt-2 text-base font-semibold text-foreground">{activePayment?.transactionId ?? "Awaiting receipt"}</p>
               </div>
             </div>
-            <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:justify-center">
+            <div className="mt-6 flex justify-center">
               <Button variant="hero" className="rounded-full" onClick={() => checkout && navigate(`/manage/${checkout.booking.token}?booking=success`)}>
                 View Booking
-              </Button>
-              <Button variant="heroBorder" className="rounded-full" onClick={() => navigate("/")}>
-                <Home className="h-4 w-4" />
-                Back Home
               </Button>
             </div>
             <p className="mt-4 text-xs uppercase tracking-[0.18em] text-primary/60">Opening your booking page automatically...</p>
@@ -2260,7 +2257,7 @@ const BookingSection = () => {
                   </>
                 ) : step === "payment" ? (
                   <>
-                    <div className="relative mx-auto max-w-[21.9rem] overflow-hidden rounded-[1.85rem] border border-border/60 bg-card p-4 shadow-card sm:hidden">
+                    <div className="no-scrollbar relative mx-auto max-h-[75svh] max-w-[21.9rem] overflow-y-auto overflow-x-hidden rounded-[1.85rem] border border-border/60 bg-card p-4 shadow-card sm:hidden">
                       <MobileSheetLeaves />
                       <div className="relative z-10 flex items-start gap-3">
                         <Button variant="ghost" size="icon" className="h-9 w-9 rounded-full border border-border/60" onClick={() => setStep("summary")}>

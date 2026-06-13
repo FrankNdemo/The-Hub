@@ -438,7 +438,7 @@ const Navbar = () => {
   return (
     <nav
       ref={navRef}
-      className="fixed left-0 right-0 top-0 z-50 overflow-x-hidden"
+      className={cn("left-0 right-0 top-0 z-50 overflow-x-hidden", showHeroMenuTrigger ? "absolute" : "fixed")}
       onMouseLeave={handleNavMouseLeave}
       style={{ backgroundColor: showTherapistHeader ? undefined : "transparent" }}
     >
@@ -566,7 +566,7 @@ const Navbar = () => {
           <div className="flex justify-end">
             <button
               type="button"
-              className="mt-3 h-12 w-[3.35rem] bg-transparent p-0 text-white shadow-none transition-all duration-200 ease-out hover:bg-transparent hover:text-white/82 sm:mt-1.5 sm:h-12 sm:w-12"
+              className="mt-6 h-12 w-[3.35rem] bg-transparent p-0 text-white shadow-none transition-all duration-200 ease-out hover:bg-transparent hover:text-white/82 sm:mt-1.5 sm:h-12 sm:w-12"
               onClick={toggleMenu}
               aria-label="Open navigation menu"
               aria-expanded={open}

@@ -23,7 +23,7 @@ const HeroSection = () => {
     <section id="home-hero" className="relative pb-0 pt-0 sm:overflow-hidden sm:pb-14" data-nav-theme="inverse">
       <div className="w-full">
         <div
-          className="relative min-h-[145svh] border-b border-border/60 bg-[linear-gradient(135deg,hsl(42_31%_99%),hsl(42_31%_97%))] shadow-hover sm:min-h-[36rem] sm:overflow-hidden md:min-h-[38rem] lg:min-h-[40rem]"
+          className="relative min-h-[120svh] border-b border-border/60 bg-[linear-gradient(135deg,hsl(42_31%_99%),hsl(42_31%_97%))] shadow-hover sm:min-h-[36rem] sm:overflow-hidden md:min-h-[38rem] lg:min-h-[40rem]"
         >
           <div className="absolute inset-0 overflow-hidden">
             <motion.img
@@ -31,7 +31,7 @@ const HeroSection = () => {
               alt="A smiling client seated in a bright, calm wellness-inspired living room"
               loading="eager"
               decoding="sync"
-              className="absolute inset-y-0 -right-[8%] h-full w-[128%] max-w-none object-cover object-[66%_8%] brightness-[1.03] saturate-[1.03] contrast-[1.05] sm:-right-[4%] sm:w-[112%] sm:object-[82%_16%] sm:brightness-[1.06] sm:saturate-[1.02] sm:contrast-[1.08] md:-right-[5%] md:w-[110%] md:object-[79%_18%] md:brightness-[1.02] md:saturate-[0.92] md:contrast-[1.02] lg:-right-[2%] lg:w-[104%] lg:object-[77%_16%]"
+              className="absolute inset-y-0 right-0 h-full w-full max-w-none object-cover object-[64%_12%] brightness-[1.03] saturate-[1.03] contrast-[1.05] sm:-right-[4%] sm:w-[112%] sm:object-[82%_16%] sm:brightness-[1.06] sm:saturate-[1.02] sm:contrast-[1.08] md:-right-[5%] md:w-[110%] md:object-[79%_18%] md:brightness-[1.02] md:saturate-[0.92] md:contrast-[1.02] lg:-right-[2%] lg:w-[104%] lg:object-[77%_16%]"
               style={desktopImageEffects ? { y: heroImageY, scale: heroImageScale } : undefined}
             />
             <div className="absolute inset-0 bg-[linear-gradient(102deg,rgba(9,24,19,0.78)_0%,rgba(9,24,19,0.52)_38%,rgba(9,24,19,0.15)_70%,rgba(9,24,19,0.02)_100%)] sm:bg-[linear-gradient(108deg,rgba(9,24,19,0.72)_0%,rgba(9,24,19,0.44)_34%,rgba(9,24,19,0.12)_68%,rgba(9,24,19,0.01)_100%)] md:bg-[linear-gradient(90deg,rgba(9,24,19,0.72)_0%,rgba(9,24,19,0.5)_26%,rgba(9,24,19,0.24)_48%,rgba(9,24,19,0.06)_72%,rgba(9,24,19,0.01)_100%),radial-gradient(circle_at_28%_18%,rgba(250,247,242,0.25),transparent_32%)]" />
@@ -85,7 +85,7 @@ const HeroSection = () => {
             </div>
           </div>
 
-          <div className="sticky top-[25svh] z-20 mx-auto flex max-w-7xl px-4 sm:relative sm:top-auto sm:min-h-[36rem] sm:items-start sm:px-6 sm:pb-12 sm:pt-48 md:min-h-[38rem] md:px-8 md:pt-48 lg:min-h-[40rem] lg:px-10 lg:pb-14 lg:pt-52">
+          <div className="sticky top-[32svh] z-20 mx-auto flex max-w-7xl px-4 pb-3 sm:relative sm:top-auto sm:min-h-[36rem] sm:items-start sm:px-6 sm:pb-12 sm:pt-48 md:min-h-[38rem] md:px-8 md:pt-48 lg:min-h-[40rem] lg:px-10 lg:pb-14 lg:pt-52">
             <div className="animate-fade-up max-w-[24rem] pl-2 text-left sm:mt-10 sm:max-w-[26rem] sm:pl-4 md:mt-14 md:max-w-[30rem] md:pl-6 lg:mt-16 lg:max-w-[33rem] lg:pl-8">
               <h1
                 className="max-w-[22rem] font-heading text-[2.68rem] font-medium leading-[0.92] text-white [text-shadow:0_12px_30px_rgba(0,0,0,0.42)] sm:max-w-[21rem] sm:text-[2.8rem] md:max-w-[23rem] md:text-[3.1rem] lg:max-w-[26rem] lg:text-[3.45rem]"
