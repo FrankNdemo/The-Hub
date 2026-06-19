@@ -19,18 +19,18 @@ export interface PageHeaderBackground {
 export const pageHeaderBackgrounds: Record<"about" | "services" | "team" | "blog" | "contact", PageHeaderBackground> = {
   about: {
     src: "https://images.pexels.com/photos/30690397/pexels-photo-30690397.jpeg?auto=compress&cs=tinysrgb&w=1800&h=980&fit=crop",
-    position: "center 38%",
-    className: "object-[center_34%] sm:object-[center_38%]",
+    position: "center 50%",
+    className: "object-[center_48%] sm:object-[center_50%] 2xl:object-[center_52%]",
   },
   services: {
     src: "https://images.pexels.com/photos/8550659/pexels-photo-8550659.jpeg?auto=compress&cs=tinysrgb&w=1800&h=980&fit=crop",
-    position: "center 40%",
-    className: "object-[center_46%] brightness-[0.66] saturate-[0.94] sm:object-[center_50%] lg:object-[center_54%]",
+    position: "center 52%",
+    className: "object-[center_52%] brightness-[0.66] saturate-[0.94] sm:object-[center_54%] lg:object-[center_56%] 2xl:object-[center_58%]",
   },
   team: {
     src: "https://images.pexels.com/photos/9852957/pexels-photo-9852957.jpeg?auto=compress&cs=tinysrgb&w=1800&h=980&fit=crop",
-    position: "center 36%",
-    className: "object-[54%_58%] brightness-[1.02] contrast-[1.04] saturate-[1.03] sm:object-[56%_54%] lg:object-[58%_48%]",
+    position: "center 52%",
+    className: "object-[54%_56%] brightness-[1.02] contrast-[1.04] saturate-[1.03] sm:object-[56%_56%] lg:object-[58%_56%] 2xl:object-[58%_58%]",
   },
   blog: {
     src: "https://images.pexels.com/photos/4467633/pexels-photo-4467633.jpeg?auto=compress&cs=tinysrgb&w=1800&h=980&fit=crop",

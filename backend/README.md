@@ -49,7 +49,8 @@ https://your-backend-project.vercel.app/api/v1
 - `POST /api/v1/auth/refresh/`
 - `POST /api/v1/auth/logout/`
 - `POST /api/v1/auth/verify-passphrase/`
-- `POST /api/v1/auth/reset-password/`
+- `POST /api/v1/auth/password-reset/request/`
+- `POST /api/v1/auth/password-reset/confirm/`
 - `GET /api/v1/auth/me/`
 - `GET /api/v1/dashboard/`
 - `PATCH /api/v1/dashboard/profile/`
@@ -163,6 +164,8 @@ Notes:
 - Blog tags, specialties, locations, and email recipients use `JSONField` for easier Postgres portability.
 - Booking confirmation, reschedule, and cancellation emails are sent through Django's configured email backend. With Brevo SMTP configured, the client and therapist each receive a calendar invite (`.ics`) that can be added to their calendars and updated on reschedule/cancel.
 - Contact-page inquiries use the Brevo transactional API when `BREVO_API_KEY` is configured. Set `DEFAULT_FROM_EMAIL` to a sender verified in Brevo; Caroline Gichia receives the inquiry directly and the other therapist is copied.
+- Therapist reset links use the same Brevo transactional API. Configure `BREVO_API_KEY`, a Brevo-verified `DEFAULT_FROM_EMAIL`, the deployed `FRONTEND_BASE_URL`, and optionally `PASSWORD_RESET_TIMEOUT` in seconds (defaults to `3600`).
+- Before deploying an existing installation, rotate therapist passwords and the shared portal passphrase if test credentials were ever installed. Production now rejects the test-credential bootstrap option.
 
 ## Vercel Booking Troubleshooting
 

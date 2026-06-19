@@ -8,7 +8,7 @@ import Footer from "@/components/Footer";
 import FAQSection from "@/components/FAQSection";
 import HeroSection from "@/components/HeroSection";
 import HomeImage from "@/components/HomeImage";
-import JourneyQuoteSection, { journeyQuoteImage } from "@/components/JourneyQuoteSection";
+import JourneyQuoteSection from "@/components/JourneyQuoteSection";
 import ScrollReveal from "@/components/ScrollReveal";
 import { Button } from "@/components/ui/button";
 import { useWellnessHub } from "@/context/WellnessHubContext";
@@ -98,41 +98,6 @@ const ctaTypedPhrase = "Cherish yourself";
 const careDescriptionQuote =
   "You do not have to carry everything alone. Healing grows in spaces where you feel safe, seen, and gently supported.";
 
-const homeImageSources = [
-  aboutImg,
-  leafDecor,
-  journeyQuoteImage,
-  homepageAwarenessImage,
-  individualServiceImage,
-  familyServiceImage,
-  homeSpecializedSupportImage,
-  homepageApproachImage,
-  homepageCtaImage,
-  homepageCloserLookImage,
-];
-
-const preloadHomeImage = (src: string, priority: "high" | "auto" = "auto") => {
-  if (typeof document === "undefined") {
-    return;
-  }
-
-  if (!document.head.querySelector(`link[data-home-image-preload="${src}"]`)) {
-    const link = document.createElement("link");
-    link.rel = "preload";
-    link.as = "image";
-    link.href = src;
-    link.dataset.homeImagePreload = src;
-    link.setAttribute("fetchpriority", priority);
-    document.head.appendChild(link);
-  }
-
-  const image = new Image();
-  image.decoding = "async";
-  image.loading = "eager";
-  image.fetchPriority = priority;
-  image.src = src;
-};
-
 const Index = () => {
   const { clientStories, therapists } = useWellnessHub();
   const [typedCtaText, setTypedCtaText] = useState("");
@@ -141,10 +106,6 @@ const Index = () => {
   const featuredTherapists = therapists;
   const testimonials = useMemo(() => getClientStoryTestimonials(clientStories), [clientStories]);
   const activeTestimonial = testimonials[testimonialIndex];
-
-  useEffect(() => {
-    homeImageSources.forEach((src, index) => preloadHomeImage(src, index < 5 ? "high" : "auto"));
-  }, []);
 
   const showPreviousTestimonial = () => {
     setTestimonialIndex((current) => (current === 0 ? testimonials.length - 1 : current - 1));
@@ -185,7 +146,7 @@ const Index = () => {
       <HeroSection />
       <JourneyQuoteSection />
 
-    <section className="bg-secondary/30 py-24">
+    <section className="bg-secondary/30 pb-24 pt-8">
       <div className="container mx-auto px-4">
         <ScrollReveal direction="left">
           <div className="grid items-center gap-12 md:grid-cols-2">
@@ -223,7 +184,7 @@ const Index = () => {
                 src={aboutImg}
                 fallbackSrc={aboutImg}
                 alt="Peaceful therapy office"
-                loading="eager"
+                loading="lazy"
                 decoding="async"
                 className="h-auto w-full object-cover"
               />
@@ -234,22 +195,22 @@ const Index = () => {
     </section>
 
     <section className="py-10 sm:py-14">
-      <div className="container mx-auto px-0 sm:px-4">
+      <div className="w-full px-0">
         <ScrollReveal direction="up">
-          <div className="relative overflow-hidden rounded-none border-y border-border/60 shadow-card sm:rounded-[2.4rem] sm:border" data-nav-theme="inverse">
+          <div className="relative overflow-hidden rounded-none border-y border-border/60 shadow-card" data-nav-theme="inverse">
             <HomeImage
               src={homepageAwarenessImage}
               fallbackSrc={aboutImg}
               parallax
               alt="A woman speaking with an African man and woman in a bright, supportive office conversation"
-              loading="eager"
+              loading="lazy"
               decoding="async"
-              className="absolute inset-0 h-full w-full object-cover object-[center_50%] sm:object-[center_50%] lg:object-[center_54%]"
+              className="absolute inset-0 h-full w-full object-cover object-[center_52%] sm:object-[center_54%] lg:object-[center_58%] 2xl:object-[center_60%]"
             />
             <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(22,39,34,0.64),rgba(22,39,34,0.32),rgba(22,39,34,0.58))]" />
             <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,hsl(136_22%_90%_/_0.16),transparent_34%)]" />
 
-            <div className="relative z-10 mx-auto flex min-h-[26rem] max-w-3xl flex-col items-center justify-center px-6 py-12 text-center sm:min-h-[30rem] sm:px-10">
+            <div className="relative z-10 mx-auto flex min-h-[26rem] max-w-3xl flex-col items-center justify-center px-6 py-12 text-center sm:min-h-[30rem] sm:px-10 lg:min-h-[34rem] 2xl:min-h-[38rem]">
               <h2 className="font-heading text-4xl font-semibold leading-[1.05] text-white [text-shadow:0_10px_30px_rgba(0,0,0,0.34)] sm:text-5xl">
                 <span className="sm:hidden">Feel calm, safe, and supported from the first conversation</span>
                 <span className="hidden sm:block">
@@ -324,7 +285,7 @@ const Index = () => {
                     src={service.image}
                     fallbackSrc={service.title === "Specialized Wellness Support" ? specializedServiceImage : aboutImg}
                     alt={service.imageAlt}
-                    loading="eager"
+                    loading="lazy"
                     decoding="async"
                     className={`h-full w-full object-cover transition-transform duration-500 hover:scale-105 ${
                       service.imageClassName ?? ""
@@ -373,7 +334,7 @@ const Index = () => {
                         src={profile.image}
                         fallbackSrc={aboutImg}
                         alt={profile.name}
-                        loading="eager"
+                        loading="lazy"
                         decoding="async"
                         className={cn(
                           "h-full w-full object-cover object-top",
@@ -408,17 +369,16 @@ const Index = () => {
 
     <section className="py-16">
       <div className="w-full px-0">
-        <ScrollReveal direction="right">
-          <div className="relative overflow-hidden border-y border-border/60 px-4 py-6 shadow-card sm:px-6 sm:py-8 lg:px-8 lg:py-10">
+          <div className="relative overflow-hidden border-y border-border/60 px-4 py-6 shadow-card sm:px-6 sm:py-8 lg:px-8 lg:py-12">
             <HomeImage
               src={homepageApproachImage}
               fallbackSrc={aboutImg}
               parallax
               alt=""
               aria-hidden="true"
-              loading="eager"
+              loading="lazy"
               decoding="async"
-              className="absolute inset-0 h-full w-full object-cover object-[center_44%] opacity-[0.97] brightness-[0.99] contrast-[1.04] saturate-[1.02] sm:object-[center_50%] lg:object-[center_56%]"
+              className="absolute inset-0 h-full w-full object-cover object-[center_52%] opacity-[0.97] brightness-[0.99] contrast-[1.04] saturate-[1.02] sm:object-[center_54%] lg:object-[center_58%] 2xl:object-[center_60%]"
             />
             <div className="absolute inset-0 bg-[linear-gradient(180deg,hsl(42_31%_98%_/_0.48),hsl(42_31%_98%_/_0.14),hsl(42_31%_97%_/_0.4))]" />
             <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,hsl(42_31%_99%_/_0.22),transparent_40%)]" />
@@ -436,14 +396,14 @@ const Index = () => {
               className="pointer-events-none absolute right-2 top-2 hidden w-24 rotate-180 opacity-18 sm:block lg:w-28"
             />
 
-            <div className="relative z-10 mx-auto max-w-7xl text-center">
+            <div className="relative z-10 mx-auto max-w-[112rem] text-center">
               <p className="text-sm font-semibold uppercase tracking-[0.3em] text-primary/75">Our approach</p>
               <h2 className="mx-auto mt-4 max-w-5xl font-heading text-4xl font-semibold leading-tight text-foreground sm:text-5xl lg:text-[4rem]">
                 Healing that feels human, thoughtful, and grounded.
               </h2>
             </div>
 
-            <div className="relative z-10 mx-auto mt-8 grid max-w-7xl gap-4 md:grid-cols-3 lg:mt-10 lg:gap-6">
+            <div className="relative z-10 mx-auto mt-8 grid max-w-[112rem] gap-4 md:grid-cols-3 lg:mt-10 lg:gap-6 2xl:gap-8">
               {approachPillars.map((pillar) => (
                 <div
                   key={pillar.title}
@@ -462,7 +422,6 @@ const Index = () => {
               ))}
             </div>
           </div>
-        </ScrollReveal>
       </div>
     </section>
 
@@ -494,7 +453,7 @@ const Index = () => {
                     src={activeTestimonial.image}
                     fallbackSrc={aboutImg}
                     alt={activeTestimonial.name}
-                    loading="eager"
+                    loading="lazy"
                     decoding="async"
                     className="h-full w-full object-cover"
                   />
@@ -556,7 +515,7 @@ const Index = () => {
                         src={testimonial.image}
                         fallbackSrc={aboutImg}
                         alt={testimonial.name}
-                        loading="eager"
+                      loading="lazy"
                         decoding="async"
                         className="h-full w-full object-cover"
                       />
@@ -575,17 +534,17 @@ const Index = () => {
     </section>
 
     <section className="py-0 md:py-20">
-      <div className="container mx-auto px-0 md:px-4">
+      <div className="w-full px-0">
         <ScrollReveal direction="up">
-          <div className="relative min-h-[100svh] overflow-hidden shadow-hover md:min-h-0 md:rounded-[2.5rem]" data-nav-theme="inverse">
+          <div className="relative min-h-[100svh] overflow-hidden shadow-hover md:min-h-0" data-nav-theme="inverse">
             <HomeImage
               src={homepageCtaImage}
               fallbackSrc={aboutImg}
               parallax
               alt="A calm Black woman seated on a sofa near indoor plants in a bright wellness-inspired room"
-              loading="eager"
+              loading="lazy"
               decoding="async"
-              className="h-[100svh] w-full object-cover object-[56%_50%] brightness-[1.04] contrast-[1.04] saturate-[1.03] sm:h-[540px] sm:object-[54%_44%] md:h-[560px] md:object-[52%_40%]"
+              className="h-[100svh] w-full object-cover object-[56%_52%] brightness-[1.04] contrast-[1.04] saturate-[1.03] sm:h-[560px] sm:object-[54%_48%] md:h-[620px] md:object-[52%_48%] xl:h-[700px] 2xl:h-[780px]"
             />
             <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(26,37,31,0.24),rgba(26,37,31,0.34))] sm:bg-[linear-gradient(180deg,rgba(26,37,31,0.2),rgba(26,37,31,0.3))]" />
             <div className="absolute inset-0 flex items-center justify-center px-6 text-center md:px-8">
@@ -660,7 +619,7 @@ const Index = () => {
                   src={homepageCloserLookImage}
                   fallbackSrc={aboutImg}
                   alt="Portrait of an African woman in a calm indoor setting"
-                  loading="eager"
+                  loading="lazy"
                   decoding="async"
                   className="h-full min-h-[20rem] w-full object-cover object-[center_24%] md:min-h-[24rem]"
                 />

@@ -166,7 +166,7 @@ const ServicesPage = () => (
     />
 
     <section className="pb-16">
-      <div className="container mx-auto px-4">
+      <div className="mx-auto w-full max-w-[112rem] px-4 sm:px-6 lg:px-8 2xl:px-12">
         <div className="mx-auto mb-10 max-w-4xl text-center">
           <h2 className="mx-auto mt-5 font-heading text-4xl font-semibold leading-[1.04] text-foreground md:text-5xl">
             <span className="sm:hidden">Awareness today, better mental health tomorrow</span>
@@ -183,13 +183,13 @@ const ServicesPage = () => (
           </p>
         </div>
 
-        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 xl:gap-8 2xl:gap-10">
           {[...featuredServices, ...therapyServices].map((service) => (
             <div
               key={service.title}
               className="group overflow-hidden rounded-[2rem] border border-border/60 bg-card text-left shadow-[0_20px_40px_-32px_rgba(35,72,61,0.34)] transition-all duration-300 ease-out hover:-translate-y-3 hover:shadow-[0_28px_56px_-28px_rgba(35,72,61,0.42)]"
             >
-              <div className="h-56 overflow-hidden bg-secondary/40">
+              <div className="h-56 overflow-hidden bg-secondary/40 xl:h-64 2xl:h-72">
                 <img
                   src={service.image}
                   alt={service.imageAlt}
@@ -198,11 +198,11 @@ const ServicesPage = () => (
                   className={`h-full w-full object-cover transition-transform duration-500 group-hover:scale-105 ${service.imageClassName}`}
                 />
               </div>
-              <div className="wellness-panel flex min-h-[22rem] flex-col p-6">
-                <h3 className="font-heading text-2xl font-semibold leading-tight text-foreground transition-colors duration-300 group-hover:text-primary md:text-[1.7rem]">
+              <div className="wellness-panel flex min-h-[22rem] flex-col p-6 xl:min-h-[24rem] xl:p-7 2xl:min-h-[25rem] 2xl:p-8">
+                <h3 className="font-heading text-2xl font-semibold leading-tight text-foreground transition-colors duration-300 group-hover:text-primary md:text-[1.7rem] 2xl:text-[2rem]">
                   {service.title}
                 </h3>
-                <p className="mt-4 flex-1 text-sm leading-7 text-muted-foreground transition-colors duration-300 group-hover:text-foreground/80">
+                <p className="mt-4 flex-1 text-sm leading-7 text-muted-foreground transition-colors duration-300 group-hover:text-foreground/80 2xl:text-[0.98rem] 2xl:leading-8">
                   {service.description}
                 </p>
                 <Button variant="hero" className="mt-6 w-full rounded-full sm:w-auto" asChild>
@@ -216,8 +216,8 @@ const ServicesPage = () => (
     </section>
 
     <section className="py-16">
-      <div className="container mx-auto px-4">
-        <div className="px-0 py-0 sm:rounded-[2.25rem] sm:bg-secondary/40 sm:px-6 sm:py-8 lg:px-8">
+      <div className="mx-auto w-full max-w-[112rem] px-4 sm:px-6 lg:px-8 2xl:px-12">
+        <div className="px-0 py-0 sm:rounded-[2.25rem] sm:bg-secondary/40 sm:px-6 sm:py-8 lg:px-8 2xl:px-10">
           <div className="mx-auto max-w-4xl text-center">
             <p className="inline-flex items-center justify-center gap-2 rounded-full bg-background/95 px-5 py-2.5 text-sm font-bold uppercase tracking-[0.24em] text-primary shadow-card sm:bg-transparent sm:px-0 sm:py-0 sm:font-semibold sm:tracking-[0.28em] sm:text-primary/75 sm:shadow-none">
               <Sparkles className="h-3.5 w-3.5 text-primary" />
@@ -225,13 +225,13 @@ const ServicesPage = () => (
             </p>
           </div>
 
-          <div className="mt-10 grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+          <div className="mt-10 grid gap-6 md:grid-cols-2 lg:grid-cols-3 xl:gap-8 2xl:gap-10">
             {specialProgrammes.map((service) => (
               <div
                 key={service.title}
                 className="group overflow-hidden rounded-[2rem] border border-border/60 bg-card text-left shadow-[0_20px_40px_-32px_rgba(35,72,61,0.34)] transition-all duration-300 ease-out hover:-translate-y-3 hover:shadow-[0_28px_56px_-28px_rgba(35,72,61,0.42)]"
               >
-                <div className="h-56 overflow-hidden bg-secondary/40">
+                <div className="h-56 overflow-hidden bg-secondary/40 xl:h-64 2xl:h-72">
                   <img
                     src={service.image}
                     alt={service.imageAlt}
@@ -240,11 +240,11 @@ const ServicesPage = () => (
                     className={`h-full w-full object-cover transition-transform duration-500 group-hover:scale-105 ${service.imageClassName}`}
                   />
                 </div>
-                <div className="wellness-panel flex min-h-[22rem] flex-col p-6">
-                  <h3 className="font-heading text-2xl font-semibold leading-tight text-foreground transition-colors duration-300 group-hover:text-primary md:text-[1.7rem]">
+                <div className="wellness-panel flex min-h-[22rem] flex-col p-6 xl:min-h-[24rem] xl:p-7 2xl:min-h-[25rem] 2xl:p-8">
+                  <h3 className="font-heading text-2xl font-semibold leading-tight text-foreground transition-colors duration-300 group-hover:text-primary md:text-[1.7rem] 2xl:text-[2rem]">
                     {service.title}
                   </h3>
-                  <p className="mt-4 flex-1 text-sm leading-7 text-muted-foreground transition-colors duration-300 group-hover:text-foreground/80">
+                  <p className="mt-4 flex-1 text-sm leading-7 text-muted-foreground transition-colors duration-300 group-hover:text-foreground/80 2xl:text-[0.98rem] 2xl:leading-8">
                     {service.description}
                   </p>
                   <Button variant="hero" className="mt-6 w-full rounded-full sm:w-auto" asChild>

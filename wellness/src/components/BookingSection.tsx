@@ -1822,7 +1822,7 @@ const BookingSection = ({ onBookingStarted }: { onBookingStarted?: () => void })
                     title="Book your first session with confidence."
                     className="-mx-6 -mt-6 sm:-mx-8 sm:-mt-8"
                     innerClassName="px-6 py-6 sm:px-8 sm:py-7"
-                    titleClassName="text-4xl md:text-5xl"
+                    titleClassName="text-3xl"
                   />
                   <p className="mt-4 max-w-lg text-muted-foreground leading-8">
                     Choose your therapist, review your session summary, pay a small refundable booking fee, and receive

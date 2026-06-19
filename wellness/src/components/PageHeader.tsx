@@ -36,8 +36,8 @@ const PageHeader = ({
     offset: ["start start", "end start"],
   });
   const smoothProgress = useSpring(scrollYProgress, { stiffness: 64, damping: 18, mass: 0.28 });
-  const backgroundY = useTransform(smoothProgress, [0, 1], ["0%", "16%"]);
-  const backgroundScale = useTransform(smoothProgress, [0, 1], [1.06, 1.16]);
+  const backgroundY = useTransform(smoothProgress, [0, 1], ["0%", "6%"]);
+  const backgroundScale = useTransform(smoothProgress, [0, 1], [1.01, 1.06]);
   const desktopImageEffects = useDesktopImageEffects();
   const titleWords = title.split(" ");
 
@@ -47,8 +47,8 @@ const PageHeader = ({
         <div
           ref={headerRef}
           className={cn(
-            "relative overflow-hidden border border-border/60 px-4 pb-8 pt-24 shadow-card sm:px-8 sm:pb-10 sm:pt-32 lg:px-10 lg:pb-12 lg:pt-36",
-            hasBackgroundImage ? "min-h-[22rem] sm:min-h-[27rem] lg:min-h-[31rem]" : "",
+            "relative overflow-hidden border border-border/60 px-4 pb-8 pt-24 shadow-card sm:px-8 sm:pb-10 sm:pt-32 lg:px-10 lg:pb-12 lg:pt-36 2xl:px-16",
+            hasBackgroundImage ? "min-h-[22rem] sm:min-h-[27rem] lg:min-h-[34rem] xl:min-h-[38rem] 2xl:min-h-[42rem]" : "",
             hasBackgroundImage ? "rounded-none" : "rounded-none",
             hasBackgroundImage
               ? "bg-[hsl(150_19%_18%)] text-white [&_h1]:text-white [&_h2]:text-white [&_h3]:text-white [&_label]:text-white [&_p]:text-white [&_span]:text-white/90 [&_svg]:text-white/80"
@@ -64,7 +64,7 @@ const PageHeader = ({
                 loading="eager"
                 fetchpriority="high"
                 decoding="async"
-                className={cn("absolute inset-0 h-full w-full object-cover", backgroundImageClassName)}
+                className={cn("absolute inset-0 h-full w-full object-cover object-center", backgroundImageClassName)}
                 style={{
                   ...(backgroundImageClassName ? {} : { objectPosition: backgroundPosition }),
                   ...(desktopImageEffects ? { y: backgroundY, scale: backgroundScale } : {}),
@@ -80,6 +80,7 @@ const PageHeader = ({
               "mx-auto max-w-4xl text-center",
               hasBackgroundImage && "relative z-10 text-white",
               contentClassName,
+              hasBackgroundImage && "pt-12 sm:pt-16 lg:pt-24 xl:pt-28",
             )}
           >
             {eyebrow ? (

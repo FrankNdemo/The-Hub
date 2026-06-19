@@ -1,41 +1,43 @@
 import { Quote } from "lucide-react";
 
-import aboutImg from "@/assets/about-therapy.jpg";
+import journeyHealingPath from "@/assets/journey-healing-path.jpg";
 import HomeImage from "@/components/HomeImage";
 import ScrollReveal from "@/components/ScrollReveal";
 
-export const journeyQuoteImage =
-  "https://images.pexels.com/photos/23385268/pexels-photo-23385268.jpeg?auto=compress&cs=tinysrgb&w=1400&h=700&fit=crop";
+const journeyQuoteImage = journeyHealingPath;
 
 const JourneyQuoteSection = () => (
-  <section className="relative z-10 mt-24 pb-10 sm:-mt-4 sm:pb-12">
+  <section className="relative z-10 -mt-px bg-secondary/30">
     <ScrollReveal direction="up">
-      <div className="relative w-full overflow-hidden">
-        <div className="grid min-h-[7.5rem] grid-cols-[minmax(0,1.45fr)_minmax(6.75rem,0.95fr)] sm:min-h-[8.5rem] sm:grid-cols-[minmax(0,1.55fr)_minmax(9rem,0.9fr)] lg:min-h-[9.5rem] lg:grid-cols-[minmax(0,1.72fr)_minmax(15rem,0.78fr)]">
-          <div className="relative z-10 flex items-center bg-[linear-gradient(90deg,hsl(136_18%_89%_/_0.98)_0%,hsl(42_24%_94%_/_0.95)_56%,hsl(42_24%_94%_/_0.72)_76%,transparent_100%)] px-4 py-4 sm:px-8 md:px-12 lg:px-16">
-            <div className="absolute inset-0 bg-[radial-gradient(circle_at_12%_28%,rgba(255,255,255,0.52),transparent_34%),linear-gradient(90deg,rgba(235,244,236,0.3),rgba(235,244,236,0.08),transparent_74%)]" />
-            <div className="relative z-10 flex items-start gap-3 sm:gap-4">
-              <Quote className="mt-0.5 h-4.5 w-4.5 shrink-0 text-primary/72 sm:h-5 sm:w-5 lg:h-5.5 lg:w-5.5" />
-              <p className="max-w-[38rem] font-heading text-[clamp(0.98rem,2vw,1.72rem)] leading-[1.42] text-foreground">
-                Healing is not a destination,
-                <span className="block sm:inline"> it&apos;s a journey. </span>
-                <em className="font-normal italic text-primary/90">Let&apos;s take it together.</em>
-              </p>
+      <div className="relative grid min-h-[8.5rem] w-full grid-cols-[minmax(0,1.4fr)_minmax(9.5rem,0.6fr)] overflow-hidden border-y border-primary/10 sm:min-h-[10rem] sm:grid-cols-[minmax(0,1.52fr)_minmax(18rem,0.72fr)] lg:min-h-[11rem] lg:grid-cols-[minmax(0,1.65fr)_minmax(27rem,0.75fr)]">
+        <div className="relative z-10 flex items-center gap-4 px-5 py-6 sm:gap-7 sm:px-10 md:px-14 lg:px-16">
+          <div className="flex shrink-0 items-center gap-4 sm:gap-6">
+            <div className="flex h-11 w-11 items-center justify-center rounded-full border border-primary/70 bg-white/60 text-primary shadow-sm sm:h-14 sm:w-14">
+              <Quote className="h-5 w-5 fill-primary/15 sm:h-6 sm:w-6" aria-hidden="true" />
             </div>
+            <div className="h-14 w-px bg-primary/55 sm:h-20" />
           </div>
 
-          <div className="relative z-0 min-h-[7.5rem] overflow-hidden sm:min-h-[8.5rem] lg:min-h-[9.5rem]">
-            <HomeImage
-              src={journeyQuoteImage}
-              fallbackSrc={aboutImg}
-              alt="A lit candle beside books and a plant in soft warm light"
-              loading="eager"
-              decoding="async"
-              className="absolute inset-0 h-full w-full object-cover object-center"
-            />
-            <div className="absolute inset-y-0 left-0 w-12 bg-[linear-gradient(90deg,rgba(229,238,226,0.82),rgba(229,238,226,0.44),transparent)] blur-xl sm:w-16 lg:w-24" />
-            <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(229,238,226,0.7)_0%,rgba(243,236,227,0.26)_14%,rgba(243,236,227,0.04)_32%,rgba(243,236,227,0)_46%,rgba(32,26,21,0.14)_100%)]" />
+          <div className="min-w-0 pr-2 sm:pr-10 lg:pr-20">
+            <p className="max-w-[35rem] font-heading text-[clamp(1rem,1.65vw,1.55rem)] leading-[1.35] text-foreground">
+              Healing is not a destination.
+              <span className="block">
+                It&apos;s a journey, we take it <em className="font-normal italic text-[#35a853]">together.</em>
+              </span>
+            </p>
           </div>
+        </div>
+
+        <div className="relative min-h-full overflow-hidden rounded-tl-[100%] border-l border-t border-primary/60 bg-primary/10">
+          <HomeImage
+            src={journeyQuoteImage}
+            fallbackSrc={journeyHealingPath}
+            alt="Bright green woodland illuminated by warm sunlight"
+            loading="eager"
+            decoding="async"
+            className="absolute inset-0 h-full w-full object-cover object-[42%_center] brightness-[1.12] saturate-[1.08]"
+          />
+          <div className="absolute inset-0 bg-primary/5" />
         </div>
       </div>
     </ScrollReveal>

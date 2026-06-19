@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { lazy, Suspense, useEffect, useRef } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Route, Routes, useLocation } from "react-router-dom";
 
@@ -17,22 +17,23 @@ import {
   useFormDrafts,
 } from "@/context/FormDraftContext";
 import { NavigationPreviewProvider, useNavigationPreview } from "@/context/NavigationPreviewContext";
-import { WellnessHubProvider } from "@/context/WellnessHubContext";
-import AboutPage from "./pages/AboutPage";
-import BlogPage from "./pages/BlogPage";
-import BlogPostPage from "./pages/BlogPostPage";
-import BookingPage from "./pages/BookingPage";
-import ContactPage from "./pages/ContactPage";
-import ExplorationCallPage from "./pages/ExplorationCallPage";
+import { WellnessHubProvider, useWellnessHub } from "@/context/WellnessHubContext";
 import Index from "./pages/Index";
-import JoinSessionPage from "./pages/JoinSessionPage";
-import ManageBookingPage from "./pages/ManageBookingPage";
-import NotFound from "./pages/NotFound";
-import ServicesPage from "./pages/ServicesPage";
-import StoryPage from "./pages/StoryPage";
-import TeamPage from "./pages/TeamPage";
-import TherapistDashboardPage from "./pages/TherapistDashboardPage";
-import TherapistSessionPage from "./pages/TherapistSessionPage";
+
+const AboutPage = lazy(() => import("./pages/AboutPage"));
+const BlogPage = lazy(() => import("./pages/BlogPage"));
+const BlogPostPage = lazy(() => import("./pages/BlogPostPage"));
+const BookingPage = lazy(() => import("./pages/BookingPage"));
+const ContactPage = lazy(() => import("./pages/ContactPage"));
+const ExplorationCallPage = lazy(() => import("./pages/ExplorationCallPage"));
+const JoinSessionPage = lazy(() => import("./pages/JoinSessionPage"));
+const ManageBookingPage = lazy(() => import("./pages/ManageBookingPage"));
+const NotFound = lazy(() => import("./pages/NotFound"));
+const ServicesPage = lazy(() => import("./pages/ServicesPage"));
+const StoryPage = lazy(() => import("./pages/StoryPage"));
+const TeamPage = lazy(() => import("./pages/TeamPage"));
+const TherapistDashboardPage = lazy(() => import("./pages/TherapistDashboardPage"));
+const TherapistSessionPage = lazy(() => import("./pages/TherapistSessionPage"));
 
 const queryClient = new QueryClient();
 
@@ -103,6 +104,7 @@ const PreviewRoutes = () => {
       : location;
 
   return (
+    <Suspense fallback={<div className="min-h-screen bg-background" aria-hidden="true" />}>
     <Routes location={routeLocation}>
       <Route path="/" element={<Index />} />
       <Route path="/about" element={<AboutPage />} />
@@ -120,6 +122,7 @@ const PreviewRoutes = () => {
       <Route path="/therapist/session/:token" element={<TherapistSessionPage />} />
       <Route path="*" element={<NotFound />} />
     </Routes>
+    </Suspense>
   );
 };
 
@@ -153,6 +156,26 @@ const NavigationDraftResetter = () => {
   return null;
 };
 
+const TherapistPortalSessionGuard = () => {
+  const location = useLocation();
+  const { isTherapistAuthenticated, logoutTherapist } = useWellnessHub();
+  const previousPathRef = useRef(location.pathname);
+
+  useEffect(() => {
+    const previousPath = previousPathRef.current;
+    const wasInPortal = previousPath === "/therapist/portal";
+    const isInPortal = location.pathname === "/therapist/portal";
+
+    previousPathRef.current = location.pathname;
+
+    if (wasInPortal && !isInPortal && isTherapistAuthenticated) {
+      void logoutTherapist();
+    }
+  }, [isTherapistAuthenticated, location.pathname, logoutTherapist]);
+
+  return null;
+};
+
 const AppRouter = () => (
   <BrowserRouter>
     <WellnessHubProvider>
@@ -160,6 +183,7 @@ const AppRouter = () => (
         <FormDraftProvider>
           <ScrollAndPreviewManager />
           <NavigationDraftResetter />
+          <TherapistPortalSessionGuard />
           <NavigationImagePreloader />
           <Navbar />
           <PreviewRoutes />

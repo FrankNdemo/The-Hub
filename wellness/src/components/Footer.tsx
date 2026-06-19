@@ -27,7 +27,7 @@ const Footer = () => {
   const mapLocationLines = ["1st Floor Realite Building", "Crescent Lane off Parklands Road"];
   const mapQuery = "Real Lite by Broadcom, Nairobi";
   const mapHref = WELLNESS_HUB_MAP_URL;
-  const mapEmbedSrc = `https://www.google.com/maps?q=${encodeURIComponent(mapQuery)}&z=18&hl=en&output=embed`;
+  const mapEmbedSrc = `https://maps.google.com/maps?q=${encodeURIComponent(mapQuery)}&t=k&z=18&hl=en&ie=UTF8&iwloc=A&output=embed`;
   const handleRouteLinkClick = () => {
     window.scrollTo({ top: 0, left: 0, behavior: "auto" });
   };
@@ -93,57 +93,45 @@ const Footer = () => {
             <p className="mt-2 text-sm text-primary-foreground/65">Your path to care starts here. Tap for directions.</p>
           </div>
 
-          <a
-            href={mapHref}
-            target="_blank"
-            rel="noreferrer"
-            className="group mx-auto block w-[18rem] max-w-full overflow-hidden border border-white/12 bg-white/5 transition-all duration-300 hover:border-white/20 hover:shadow-[0_24px_48px_-32px_rgba(6,12,10,0.55)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/45 focus-visible:ring-offset-2 focus-visible:ring-offset-foreground md:mx-auto md:w-3/4 md:max-w-3xl"
-            aria-label={`Open map for ${mapQuery}`}
-          >
-            <div className="relative h-32 overflow-hidden sm:h-40 md:h-64">
+          <div className="group mx-auto block w-full max-w-5xl overflow-hidden rounded-[1.75rem] border border-white/12 bg-white/5 shadow-[0_24px_52px_-34px_rgba(6,12,10,0.62)] transition-all duration-300 hover:border-white/20 hover:shadow-[0_30px_64px_-34px_rgba(6,12,10,0.72)]">
+            <div className="relative h-64 overflow-hidden bg-primary/20 sm:h-80 md:h-[24rem] lg:h-[28rem]">
               <iframe
                 title="The Wellness Hub location map"
                 src={mapEmbedSrc}
                 loading="lazy"
                 referrerPolicy="no-referrer-when-downgrade"
-                className="pointer-events-none absolute -top-12 left-0 h-[calc(100%+3rem)] w-full border-0 sm:-top-14 sm:h-[calc(100%+3.5rem)]"
+                className="absolute inset-0 h-full w-full border-0 grayscale-[0.12] contrast-[1.04] saturate-[1.18]"
               />
-              <div className="pointer-events-none absolute hidden border border-primary-foreground/18 bg-primary text-left text-primary-foreground shadow-[0_16px_34px_-24px_rgba(6,12,10,0.65)] sm:left-3 sm:top-3 sm:block sm:w-auto sm:max-w-sm sm:rounded-xl sm:p-3 md:left-4 md:top-4">
-                <div className="flex items-start gap-2 sm:gap-3">
-                  <span className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-primary-foreground/14 text-primary-foreground sm:h-9 sm:w-9">
-                    <MapPin className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+              <div className="pointer-events-none absolute inset-x-0 bottom-0 h-28 bg-gradient-to-t from-foreground/48 via-foreground/12 to-transparent" />
+              <div className="absolute left-0 top-0 min-h-[10rem] w-[min(25rem,100%)] rounded-br-2xl rounded-tl-[1.75rem] border border-primary-foreground/18 bg-primary p-5 text-left text-primary-foreground shadow-[0_20px_44px_-24px_rgba(6,12,10,0.75)] sm:min-h-[10.25rem] sm:w-[26rem] sm:p-6">
+                <div className="flex items-start gap-3">
+                  <span className="mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary-foreground/14 text-primary-foreground">
+                    <MapPin className="h-5 w-5" />
                   </span>
                   <span className="min-w-0">
-                    <span className="flex items-center gap-1 text-[0.55rem] font-semibold uppercase tracking-[0.14em] text-primary-foreground/72 sm:gap-1.5 sm:text-xs sm:tracking-[0.18em]">
-                      Open in Maps
-                      <ExternalLink className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
+                    <span className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-[0.18em] text-primary-foreground/72">
+                      Find us here
                     </span>
-                    <span className="mt-0.5 block truncate text-[0.68rem] font-semibold leading-4 text-primary-foreground sm:mt-1 sm:text-sm sm:leading-5">
+                    <span className="mt-1 block text-sm font-semibold leading-5 text-primary-foreground sm:text-base sm:leading-6">
                       {mapLocationLines[0]}
-                      <span className="hidden sm:inline">
-                        <br />
-                        {mapLocationLines[1]}
-                      </span>
+                      <br />
+                      {mapLocationLines[1]}
                     </span>
+                    <a
+                      href={mapHref}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="mt-3 inline-flex items-center gap-2 rounded-full border border-primary-foreground/28 bg-primary-foreground/14 px-4 py-2 text-xs font-bold uppercase tracking-[0.12em] text-primary-foreground transition-colors hover:bg-primary-foreground hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-foreground/70"
+                      aria-label={`Open map for ${mapQuery}`}
+                    >
+                      Open in Maps
+                      <ExternalLink className="h-3.5 w-3.5" />
+                    </a>
                   </span>
                 </div>
               </div>
             </div>
-            <div className="flex items-center gap-2 border-t border-white/12 bg-primary px-3 py-2 text-left text-primary-foreground sm:hidden">
-              <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary-foreground/14">
-                <MapPin className="h-4 w-4" />
-              </span>
-              <span className="min-w-0 flex-1">
-                <span className="flex items-center gap-1 text-[0.58rem] font-semibold uppercase tracking-[0.14em] text-primary-foreground/72">
-                  Open in Maps
-                  <ExternalLink className="h-3 w-3" />
-                </span>
-                <span className="mt-0.5 block truncate text-xs font-semibold leading-4 text-primary-foreground">
-                  {mapLocationLines[0]}
-                </span>
-              </span>
-            </div>
-          </a>
+          </div>
         </div>
 
         <div className="mt-10 border-t border-primary-foreground/10 pt-8 text-center">

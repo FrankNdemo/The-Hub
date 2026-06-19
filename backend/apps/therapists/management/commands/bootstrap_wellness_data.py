@@ -1,4 +1,5 @@
 from django.conf import settings
+from django.contrib.auth.hashers import is_password_usable
 from django.contrib.auth.models import User
 from django.core.management.base import BaseCommand, CommandError
 from django.db import transaction
@@ -92,6 +93,9 @@ class Command(BaseCommand):
     @transaction.atomic
     def handle(self, *args, **options):
         with_test_credentials = bool(options.get("with_test_credentials"))
+        allow_test_credentials = settings.DEBUG or getattr(settings, "ALLOW_TEST_THERAPIST_CREDENTIALS", False)
+        if with_test_credentials and not allow_test_credentials:
+            raise CommandError("Test therapist credentials cannot be installed when DJANGO_DEBUG=False.")
 
         for therapist_data in THERAPISTS:
             email = therapist_data["email"]
@@ -136,12 +140,12 @@ class Command(BaseCommand):
             profile.is_primary = therapist_data["is_primary"]
             if with_test_credentials:
                 profile.set_secret_passphrase("gichia")
-            elif not profile.secret_passphrase_hash:
-                if not settings.THERAPIST_BOOTSTRAP_SECRET_PASSPHRASE:
-                    raise CommandError(
-                        "THERAPIST_BOOTSTRAP_SECRET_PASSPHRASE is required when creating therapist profiles."
-                    )
+            elif settings.THERAPIST_BOOTSTRAP_SECRET_PASSPHRASE:
                 profile.set_secret_passphrase(settings.THERAPIST_BOOTSTRAP_SECRET_PASSPHRASE)
+            elif not profile.secret_passphrase_hash or not is_password_usable(profile.secret_passphrase_hash):
+                raise CommandError(
+                    "THERAPIST_BOOTSTRAP_SECRET_PASSPHRASE is required when creating therapist profiles."
+                )
             profile.save()
 
         self.stdout.write(self.style.SUCCESS("Therapist profiles are ready."))

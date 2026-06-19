@@ -13,7 +13,7 @@ type LogoLayout = {
 
 const layouts: Record<NonNullable<WellnessLogoProps["variant"]>, LogoLayout> = {
   navbar: {
-    frame: "h-[3.65rem] w-[10.25rem]",
+    frame: "h-[3.65rem] w-[10.25rem] lg:h-[4.2rem] lg:w-[11.8rem] xl:h-[4.65rem] xl:w-[13.1rem] 2xl:h-[5rem] 2xl:w-[14.2rem]",
   },
   hero: {
     frame: "h-[5.65rem] w-[13.3rem] sm:h-[6.2rem] sm:w-[16.2rem] md:h-[8rem] md:w-[21.8rem] lg:h-[9.35rem] lg:w-[25.8rem]",

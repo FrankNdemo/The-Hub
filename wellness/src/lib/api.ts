@@ -282,22 +282,12 @@ const parseStoredTokens = (): AuthTokens | null => {
 
   try {
     window.localStorage.removeItem(AUTH_STORAGE_KEY);
-
-    const raw = window.sessionStorage.getItem(AUTH_STORAGE_KEY);
-
-    if (!raw) {
-      return null;
-    }
-
-    const parsed = JSON.parse(raw) as Partial<AuthTokens>;
-    if (typeof parsed.access !== "string" || typeof parsed.refresh !== "string") {
-      return null;
-    }
-
-    return { access: parsed.access, refresh: parsed.refresh };
+    window.sessionStorage.removeItem(AUTH_STORAGE_KEY);
   } catch {
     return null;
   }
+
+  return null;
 };
 
 let authTokens: AuthTokens | null = parseStoredTokens();
@@ -343,12 +333,7 @@ const persistTokens = (tokens: AuthTokens | null) => {
 
   window.localStorage.removeItem(AUTH_STORAGE_KEY);
 
-  if (!tokens) {
-    window.sessionStorage.removeItem(AUTH_STORAGE_KEY);
-    return;
-  }
-
-  window.sessionStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(tokens));
+  window.sessionStorage.removeItem(AUTH_STORAGE_KEY);
 };
 
 const extractErrorMessage = (value: unknown): string | null => {
@@ -754,12 +739,22 @@ export const loginTherapistRequest = async (email: string, password: string) => 
   return payload;
 };
 
-export const resetTherapistPasswordRequest = (email: string, secretPassphrase: string, nextPassword: string) =>
+export const requestTherapistPasswordResetRequest = (email: string) =>
   request<SuccessResponse>(
-    "/auth/reset-password/",
+    "/auth/password-reset/request/",
     {
       method: "POST",
-      body: JSON.stringify({ email, secretPassphrase, nextPassword }),
+      body: JSON.stringify({ email }),
+    },
+    { auth: false },
+  );
+
+export const confirmTherapistPasswordResetRequest = (uid: string, token: string, nextPassword: string) =>
+  request<SuccessResponse>(
+    "/auth/password-reset/confirm/",
+    {
+      method: "POST",
+      body: JSON.stringify({ uid, token, nextPassword }),
     },
     { auth: false },
   );

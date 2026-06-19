@@ -1,11 +1,10 @@
 import { Link } from "react-router-dom";
-import { Eye, Heart, Leaf, Shield, Sun, Target } from "lucide-react";
+import { Eye, Heart, Leaf, Shield, Sprout, Sun, Target } from "lucide-react";
 
 import aboutImg from "@/assets/about-therapy.jpg";
 import founderGichiaImg from "@/assets/founder-gichia-cutout.png";
 import leafDecor from "@/assets/leaf-decoration.png";
 import Footer from "@/components/Footer";
-import LeafBannerHeading from "@/components/LeafBannerHeading";
 import PageHeader from "@/components/PageHeader";
 import ParallaxBackgroundImage from "@/components/ParallaxBackgroundImage";
 import { Button } from "@/components/ui/button";
@@ -30,6 +29,12 @@ const aboutValueBackgroundImage =
 
 const aboutApproachBackgroundImage =
   "https://images.pexels.com/photos/30688913/pexels-photo-30688913.jpeg?auto=compress&cs=tinysrgb&w=1800&h=980&fit=crop";
+
+const aboutMissionBackgroundImage =
+  "https://images.pexels.com/photos/6621441/pexels-photo-6621441.jpeg?auto=compress&cs=tinysrgb&w=900&h=1100&fit=crop";
+
+const aboutVisionBackgroundImage =
+  "https://images.pexels.com/photos/6621452/pexels-photo-6621452.jpeg?auto=compress&cs=tinysrgb&w=900&h=1100&fit=crop";
 
 const WhatsAppIcon = ({ className }: { className?: string }) => (
   <svg viewBox="0 0 32 32" aria-hidden="true" className={className} fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -118,16 +123,16 @@ const AboutPage = () => {
       </section>
 
       <section className="py-0 md:py-16">
-        <div className="container mx-auto px-0 md:px-4">
+        <div className="w-full px-0">
           <div
-            className="relative overflow-hidden border-y border-border/60 bg-[linear-gradient(135deg,hsl(42_31%_99%),hsl(42_31%_97%))] px-6 py-10 shadow-card md:rounded-[2.5rem] md:border md:px-8 lg:px-10 lg:py-12"
+            className="relative overflow-hidden border-y border-border/60 bg-[linear-gradient(135deg,hsl(42_31%_99%),hsl(42_31%_97%))] px-6 py-10 shadow-card md:px-8 lg:px-10 lg:py-14 2xl:py-20"
             data-nav-theme="inverse"
           >
             <ParallaxBackgroundImage
               src={aboutValueBackgroundImage}
               alt=""
               aria-hidden="true"
-              className="absolute inset-0 h-full w-full object-cover object-[center_76%] opacity-[0.94] brightness-[0.62] contrast-[1.02] saturate-[0.82] sm:object-[center_78%] md:object-[center_80%]"
+              className="absolute inset-0 h-full w-full object-cover object-[center_70%] opacity-[0.94] brightness-[0.62] contrast-[1.02] saturate-[0.82] sm:object-[center_72%] md:object-[center_74%] 2xl:object-[center_76%]"
             />
             <div className="absolute inset-0 bg-[linear-gradient(125deg,rgba(24,33,30,0.82),rgba(24,33,30,0.5),rgba(24,33,30,0.78))]" />
             <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,hsl(145_24%_34%_/_0.18),transparent_30%),radial-gradient(circle_at_bottom_right,hsl(42_34%_26%_/_0.18),transparent_34%)]" />
@@ -153,26 +158,53 @@ const AboutPage = () => {
 
       <section className="py-16">
         <div className="container mx-auto px-4">
-          <div className="grid gap-6 lg:grid-cols-2">
-            <div className="wellness-panel rounded-[2rem] border border-border/60 p-7 text-center shadow-card lg:text-left">
-              <p className="text-sm font-semibold uppercase tracking-[0.24em] text-primary/75">Mission</p>
-              <h2 className="mt-4 font-heading text-4xl font-semibold text-foreground">To improve mental health outcomes with compassionate, evidence-based care.</h2>
-              <p className="mt-4 text-muted-foreground leading-8">
-                We support individuals and communities through therapy and wellbeing guidance that helps people feel more
-                understood, better resourced, and more able to thrive.
-              </p>
+          <div className="mx-auto grid max-w-6xl gap-6 lg:grid-cols-2">
+            <div className="relative min-h-[30rem] overflow-hidden rounded-[1.65rem] border border-border/70 bg-card p-8 text-center shadow-card sm:p-10 lg:text-left">
+              <img
+                src={aboutMissionBackgroundImage}
+                alt=""
+                aria-hidden="true"
+                className="absolute inset-0 h-full w-full object-cover object-[70%_center] opacity-45"
+              />
+              <div className="absolute inset-0 bg-[linear-gradient(90deg,hsl(42_31%_99%_/_0.96),hsl(42_31%_99%_/_0.78),hsl(42_31%_99%_/_0.38))]" />
+              <div className="relative z-10">
+                <div className="mx-auto flex h-12 w-12 items-center justify-center text-primary">
+                  <Sprout className="h-7 w-7" strokeWidth={1.5} />
+                </div>
+                <p className="mt-5 text-xs font-semibold uppercase tracking-[0.34em] text-primary/75">Mission</p>
+                <h2 className="mt-5 max-w-md font-heading text-[2rem] font-semibold leading-tight text-foreground sm:text-[2.35rem]">
+                  To improve mental health outcomes with compassionate, evidence-based care.
+                </h2>
+                <div className="mx-auto mt-6 h-px w-16 bg-primary/45" />
+                <p className="mt-6 max-w-md text-sm font-medium leading-7 text-muted-foreground">
+                  We support individuals and communities through therapy and wellbeing guidance that helps people feel more
+                  understood, better resourced, and more able to thrive.
+                </p>
+              </div>
             </div>
 
-            <div className="wellness-panel overflow-hidden rounded-[2rem] border border-border/60 p-7 text-center shadow-card lg:text-left">
-              <LeafBannerHeading
-                eyebrow="Vision"
-                title="A world where every person can discover their best self."
-                className="-mx-7 -mt-7"
-                innerClassName="px-7 py-6"
-                titleClassName="text-4xl"
-                description="We imagine a future where mental wellness is accessible, prioritized, and free from stigma, and where people feel supported enough to live purposeful inner lives."
-                descriptionClassName="max-w-none"
+            <div className="relative min-h-[30rem] overflow-hidden rounded-[1.65rem] border border-primary/20 bg-primary p-8 text-center text-primary-foreground shadow-card sm:p-10 lg:text-left">
+              <img
+                src={aboutVisionBackgroundImage}
+                alt=""
+                aria-hidden="true"
+                className="absolute inset-0 h-full w-full object-cover object-center opacity-48"
               />
+              <div className="absolute inset-0 bg-[linear-gradient(90deg,hsl(var(--primary)_/_0.98),hsl(var(--primary)_/_0.82),hsl(var(--primary)_/_0.42))]" />
+              <div className="relative z-10">
+                <div className="mx-auto flex h-12 w-12 items-center justify-center text-primary-foreground/88">
+                  <Eye className="h-7 w-7" strokeWidth={1.5} />
+                </div>
+                <p className="mt-5 text-xs font-semibold uppercase tracking-[0.34em] text-primary-foreground/76">Vision</p>
+                <h2 className="mt-5 max-w-md font-heading text-[2rem] font-semibold leading-tight text-primary-foreground sm:text-[2.35rem]">
+                  A world where every person can discover their best self.
+                </h2>
+                <div className="mx-auto mt-6 h-px w-16 bg-primary-foreground/55" />
+                <p className="mt-6 max-w-md text-sm font-medium leading-7 text-primary-foreground/82">
+                  We imagine a future where mental wellness is accessible, prioritized, and free from stigma, and where
+                  people feel supported enough to live purposeful lives.
+                </p>
+              </div>
             </div>
           </div>
         </div>
@@ -200,12 +232,12 @@ const AboutPage = () => {
 
       <section className="py-16">
         <div className="w-full px-0">
-          <div className="relative overflow-hidden border-y border-border/60 px-6 py-8 shadow-card lg:px-8 lg:py-10">
+          <div className="relative overflow-hidden border-y border-border/60 px-6 py-8 shadow-card lg:px-8 lg:py-12 2xl:py-16">
             <ParallaxBackgroundImage
               src={aboutApproachBackgroundImage}
               alt=""
               aria-hidden="true"
-              className="absolute inset-0 h-full w-full object-cover object-[center_50%] opacity-[0.96] brightness-[0.74] contrast-[1.03] saturate-[0.9] sm:object-[center_52%] lg:object-[center_54%]"
+              className="absolute inset-0 h-full w-full object-cover object-[center_52%] opacity-[0.96] brightness-[0.74] contrast-[1.03] saturate-[0.9] sm:object-[center_54%] lg:object-[center_58%] 2xl:object-[center_60%]"
             />
             <div className="absolute inset-0 bg-[linear-gradient(180deg,hsl(42_31%_98%_/_0.58),hsl(42_31%_98%_/_0.2),hsl(42_31%_97%_/_0.52))]" />
             <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,hsl(42_31%_99%_/_0.18),transparent_42%)]" />
@@ -253,41 +285,23 @@ const AboutPage = () => {
             </h2>
           </div>
 
-          <div className="mx-auto mt-10 grid max-w-6xl overflow-hidden bg-background shadow-card lg:grid-cols-[0.92fr_1.08fr]">
-            <div className="relative flex min-h-[420px] items-end justify-center overflow-hidden bg-background sm:min-h-[520px] lg:min-h-[560px]">
+          <div className="mx-auto mt-10 grid max-w-[92rem] overflow-hidden bg-background shadow-card lg:grid-cols-[1.12fr_0.88fr] 2xl:max-w-[104rem]">
+            <div className="relative flex min-h-[420px] items-end justify-start overflow-hidden bg-background sm:min-h-[520px] lg:min-h-[620px] 2xl:min-h-[700px]">
               <img
                 src={founderGichiaImg}
                 alt={`${therapist.name}, founder of The Wellness Hub`}
-                className="h-full min-h-[420px] w-full object-contain object-bottom drop-shadow-[0_28px_44px_hsl(var(--foreground)/0.22)] sm:min-h-[520px] lg:min-h-[560px]"
+                className="h-full min-h-[420px] w-[112%] max-w-none -translate-x-[5%] object-contain object-bottom drop-shadow-[0_28px_44px_hsl(var(--foreground)/0.22)] sm:min-h-[520px] lg:min-h-[620px] lg:w-[118%] lg:-translate-x-[9%] 2xl:min-h-[700px] 2xl:w-[122%] 2xl:-translate-x-[11%]"
               />
             </div>
 
-            <div className="relative flex min-h-[420px] flex-col items-center justify-center overflow-hidden bg-foreground px-6 py-12 text-center text-primary-foreground sm:px-10 lg:px-12">
-              <div className="pointer-events-none absolute inset-0" aria-hidden="true">
-                <span className="absolute -right-2 top-4 block animate-founder-leaf-bounce sm:right-4 sm:top-7">
-                  <img
-                    src={leafDecor}
-                    alt=""
-                    aria-hidden="true"
-                    className="w-12 rotate-[142deg] opacity-55 mix-blend-screen sm:w-16"
-                  />
-                </span>
-                <span className="absolute -bottom-1 left-1 block animate-founder-leaf-bounce animation-delay-400 sm:bottom-4 sm:left-6">
-                  <img
-                    src={leafDecor}
-                    alt=""
-                    aria-hidden="true"
-                    className="w-12 -rotate-12 opacity-40 mix-blend-screen sm:w-16"
-                  />
-                </span>
-              </div>
-              <div className="relative z-10 -mt-10 sm:-mt-14">
-                <h3 className="font-heading text-3xl font-semibold leading-tight text-[#d99a2b] sm:text-4xl">
+            <div className="relative flex min-h-[420px] flex-col items-center justify-center overflow-hidden bg-foreground px-6 py-12 text-center text-primary-foreground sm:px-10 lg:min-h-[620px] lg:px-12 2xl:min-h-[700px] 2xl:px-16">
+              <div className="relative z-10 -mt-10 sm:-mt-14 lg:ml-auto lg:max-w-[34rem]">
+                <h3 className="font-heading text-3xl font-semibold leading-tight text-[#d99a2b] sm:text-4xl 2xl:text-5xl">
                   Dr. Caroline Gichia
                 </h3>
                 <div className="mt-5 font-heading text-6xl leading-none text-[#d99a2b]">“</div>
-                <p className="mx-auto mt-2 max-w-sm text-2xl font-semibold leading-snug sm:text-3xl">
-                  Empowering minds, transforming lives, one conversation at a time.
+                <p className="mx-auto mt-2 max-w-sm text-2xl font-semibold leading-snug sm:text-3xl 2xl:max-w-md 2xl:text-[2.35rem]">
+                  Rewriting mental wellness through meaningful human connection.
                 </p>
                 <div className="mx-auto mt-8 flex max-w-xs items-center justify-center gap-3 text-[#d99a2b]">
                   <span className="h-px flex-1 bg-current" />

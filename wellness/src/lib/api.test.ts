@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { ApiError, getApiErrorMessage } from "./api";
+import { ApiError, clearStoredAuthTokens, getApiErrorMessage, getStoredAuthTokens, setStoredAuthTokens } from "./api";
 
 describe("getApiErrorMessage", () => {
   it("shows a user-friendly network message", () => {
@@ -36,5 +36,22 @@ describe("getApiErrorMessage", () => {
     expect(
       getApiErrorMessage(new Error("The booking response was incomplete."), "We could not confirm your booking."),
     ).toBe("We could not confirm your booking.");
+  });
+});
+
+describe("therapist auth token storage", () => {
+  it("keeps therapist tokens in memory only", () => {
+    window.localStorage.setItem("wellness-auth-v1", "stale");
+    window.sessionStorage.setItem("wellness-auth-v1", "stale");
+
+    setStoredAuthTokens({ access: "access-token", refresh: "refresh-token" });
+
+    expect(getStoredAuthTokens()).toEqual({ access: "access-token", refresh: "refresh-token" });
+    expect(window.localStorage.getItem("wellness-auth-v1")).toBeNull();
+    expect(window.sessionStorage.getItem("wellness-auth-v1")).toBeNull();
+
+    clearStoredAuthTokens();
+
+    expect(getStoredAuthTokens()).toBeNull();
   });
 });

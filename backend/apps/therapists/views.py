@@ -1,7 +1,14 @@
+import logging
+
 from django.contrib.auth import authenticate
 from django.contrib.auth.models import User
+from django.contrib.auth.password_validation import validate_password
+from django.contrib.auth.tokens import default_token_generator
+from django.core.exceptions import ValidationError
 from django.db import transaction
 from django.utils import timezone
+from django.utils.encoding import force_str
+from django.utils.http import urlsafe_base64_decode
 from rest_framework import status
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
@@ -18,12 +25,20 @@ from .serializers import (
     ClientStorySerializer,
     ClientStoryUpdateSerializer,
     LoginSerializer,
-    ResetPasswordSerializer,
+    PasswordResetConfirmSerializer,
+    PasswordResetRequestSerializer,
     TherapistProfilePublicSerializer,
     TherapistProfileUpdateSerializer,
     TherapistSessionSerializer,
     VerifyPassphraseSerializer,
     build_therapist_session,
+)
+from .password_reset import send_therapist_password_reset_email
+
+
+logger = logging.getLogger(__name__)
+PASSWORD_RESET_REQUEST_MESSAGE = (
+    "If this email is registered, a password reset link has been sent. Please check your inbox."
 )
 
 
@@ -181,29 +196,55 @@ class VerifyPassphraseView(APIView):
         return Response({"success": True, "email": therapist.email if therapist else ""})
 
 
-class ResetPasswordView(APIView):
+class PasswordResetRequestView(APIView):
+    permission_classes = []
+    authentication_classes = []
+
+    def post(self, request):
+        serializer = PasswordResetRequestSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        email = serializer.validated_data["email"].strip().lower()
+        therapist = TherapistProfile.objects.select_related("user").filter(email__iexact=email).first()
+        if therapist:
+            try:
+                send_therapist_password_reset_email(therapist)
+            except Exception:
+                logger.exception("Unable to send therapist password reset email.")
+
+        return Response({"success": True, "detail": PASSWORD_RESET_REQUEST_MESSAGE})
+
+
+class PasswordResetConfirmView(APIView):
     permission_classes = []
     authentication_classes = []
 
     @transaction.atomic
     def post(self, request):
-        serializer = ResetPasswordSerializer(data=request.data)
+        serializer = PasswordResetConfirmSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
-        email = serializer.validated_data["email"].strip().lower()
-        secret = serializer.validated_data["secretPassphrase"]
-        next_password = serializer.validated_data["nextPassword"]
-
         try:
-            therapist = TherapistProfile.objects.select_related("user").get(email__iexact=email)
-        except TherapistProfile.DoesNotExist:
-            return Response({"detail": "That email does not match the therapist account."}, status=status.HTTP_400_BAD_REQUEST)
+            user_id = force_str(urlsafe_base64_decode(serializer.validated_data["uid"]))
+            user = User.objects.select_related("therapist_profile").get(pk=user_id)
+        except (TypeError, ValueError, OverflowError, User.DoesNotExist):
+            user = None
 
-        if not therapist.check_secret_passphrase(secret):
-            return Response({"detail": "Secret passphrase not recognized."}, status=status.HTTP_400_BAD_REQUEST)
+        token = serializer.validated_data["token"]
+        if not user or not hasattr(user, "therapist_profile") or not default_token_generator.check_token(user, token):
+            return Response(
+                {"detail": "This password reset link is invalid or has expired."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
 
-        therapist.user.set_password(next_password)
-        therapist.user.save(update_fields=["password"])
+        next_password = serializer.validated_data["nextPassword"]
+        try:
+            validate_password(next_password, user=user)
+        except ValidationError as exc:
+            return Response({"nextPassword": list(exc.messages)}, status=status.HTTP_400_BAD_REQUEST)
+
+        user.set_password(next_password)
+        user.save(update_fields=["password"])
         return Response({"success": True})
 
 

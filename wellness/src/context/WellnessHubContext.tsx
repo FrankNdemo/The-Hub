@@ -30,7 +30,8 @@ import {
   rescheduleManageBooking,
   cancelManageBooking as cancelManageBookingRequest,
   completeBookingRequest,
-  resetTherapistPasswordRequest,
+  confirmTherapistPasswordResetRequest,
+  requestTherapistPasswordResetRequest,
   saveBlogPostRequest,
   submitClientStoryRequest,
   unpublishClientStoryRequest,
@@ -88,11 +89,8 @@ interface WellnessHubContextValue extends WellnessHubState {
     currentSecretPassphrase: string,
     nextSecretPassphrase: string,
   ) => Promise<ActionResult>;
-  resetTherapistPassword: (
-    email: string,
-    secretPassphrase: string,
-    nextPassword: string,
-  ) => Promise<ActionResult>;
+  requestTherapistPasswordReset: (email: string) => Promise<ActionResult>;
+  confirmTherapistPasswordReset: (uid: string, token: string, nextPassword: string) => Promise<ActionResult>;
   logoutTherapist: () => Promise<void>;
 }
 
@@ -1058,9 +1056,21 @@ export const WellnessHubProvider = ({ children }: { children: React.ReactNode })
     }
   };
 
-  const resetTherapistPassword = async (
-    email: string,
-    secretPassphrase: string,
+  const requestTherapistPasswordReset = async (email: string): Promise<ActionResult> => {
+    try {
+      await requestTherapistPasswordResetRequest(email);
+      return { success: true };
+    } catch (error) {
+      return {
+        success: false,
+        error: getApiErrorMessage(error, "Unable to send the password reset email right now."),
+      };
+    }
+  };
+
+  const confirmTherapistPasswordReset = async (
+    uid: string,
+    token: string,
     nextPassword: string,
   ): Promise<ActionResult> => {
     if (!nextPassword.trim()) {
@@ -1068,7 +1078,7 @@ export const WellnessHubProvider = ({ children }: { children: React.ReactNode })
     }
 
     try {
-      await resetTherapistPasswordRequest(email, secretPassphrase, nextPassword);
+      await confirmTherapistPasswordResetRequest(uid, token, nextPassword);
       return { success: true };
     } catch (error) {
       return {
@@ -1120,7 +1130,8 @@ export const WellnessHubProvider = ({ children }: { children: React.ReactNode })
     loginTherapist,
     updateTherapistPassword,
     updateTherapistSecretPassphrase,
-    resetTherapistPassword,
+    requestTherapistPasswordReset,
+    confirmTherapistPasswordReset,
     logoutTherapist,
   };
 

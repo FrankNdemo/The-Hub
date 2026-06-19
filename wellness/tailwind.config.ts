@@ -82,10 +82,20 @@ export default {
           from: { height: "var(--radix-accordion-content-height)" },
           to: { height: "0" },
         },
+        "mobile-contact-float": {
+          "0%, 100%": { transform: "translateY(0)" },
+          "50%": { transform: "translateY(-7px)" },
+        },
+        "mobile-contact-glow": {
+          "0%, 100%": { opacity: "0.78", transform: "scale(1)" },
+          "50%": { opacity: "1", transform: "scale(1.035)" },
+        },
       },
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
         "accordion-up": "accordion-up 0.2s ease-out",
+        "mobile-contact-float": "mobile-contact-float 4.8s ease-in-out infinite",
+        "mobile-contact-glow": "mobile-contact-glow 3.8s ease-in-out infinite",
       },
     },
   },

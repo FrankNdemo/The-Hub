@@ -64,7 +64,7 @@ def seed_kelvin_therapist(apps, schema_editor):
     ]
     profile.image_url = KELVIN_IMAGE_URL
     profile.is_primary = False
-    profile.secret_passphrase_hash = primary_secret_hash or make_password("gichia")
+    profile.secret_passphrase_hash = primary_secret_hash or make_password(None)
     profile.save()
 
 

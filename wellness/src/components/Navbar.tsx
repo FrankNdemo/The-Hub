@@ -457,19 +457,19 @@ const Navbar = () => {
       <div
         className={`mx-auto transition-[padding] duration-300 ease-out ${
           showHeroMenuTrigger
-            ? "max-w-7xl px-4 pt-16 sm:px-6 sm:pt-14 md:px-8 md:pt-14 lg:px-10 lg:pt-14"
+            ? "max-w-[112rem] px-4 pt-16 sm:px-6 sm:pt-14 md:px-8 md:pt-14 lg:px-10 lg:pt-14 2xl:px-14"
             : showTherapistHeader
             ? "max-w-6xl px-4 pt-3 sm:px-6 sm:pt-4"
             : shouldFloatHomeMobileNav
-              ? "container px-3 pt-5 sm:px-4 sm:pt-4"
-              : "container px-3 pt-3 sm:px-4 sm:pt-4"
+              ? "mx-auto max-w-[112rem] px-3 pt-5 sm:px-4 sm:pt-4 lg:px-8 2xl:px-12"
+              : "mx-auto max-w-[112rem] px-3 pt-3 sm:px-4 sm:pt-4 lg:px-8 2xl:px-12"
         }`}
       >
         {showMainNavbar ? (
           <div
             ref={navShellRef}
             className={cn(
-              "flex min-h-[4.5rem] items-center justify-between gap-3 rounded-[2rem] px-3 py-3 transition-[background-color,border-color,box-shadow,color] duration-300 ease-out sm:h-20 sm:rounded-full sm:px-5",
+              "flex min-h-[4.5rem] items-center justify-between gap-3 rounded-[2rem] px-3 py-3 transition-[background-color,border-color,box-shadow,color] duration-300 ease-out sm:h-20 sm:rounded-full sm:px-5 lg:h-[5.75rem] lg:px-6 xl:h-[6.15rem] xl:px-7 2xl:px-10",
               showTherapistHeader
                 ? "bg-white/10 shadow-[0_20px_40px_-32px_rgba(35,72,61,0.16)]"
                 : isInverseTone
@@ -477,13 +477,13 @@ const Navbar = () => {
                   : "bg-transparent shadow-none backdrop-blur-none md:bg-background/80 md:shadow-[0_18px_40px_-32px_rgba(35,72,61,0.28)] md:backdrop-blur-xl",
             )}
           >
-            <div className="relative ml-2 min-w-0 shrink origin-left sm:ml-0">
+            <div className="relative ml-2 shrink-0 origin-left sm:ml-0">
               <img
                 src={leafDecor}
                 alt=""
                 className="pointer-events-none absolute -left-4 -top-4 z-0 w-16 opacity-24 animate-float md:hidden"
               />
-              <div className="relative z-10 scale-[0.96] sm:scale-[1.04]">
+              <div className="relative z-10 scale-[0.96] sm:scale-[1.04] lg:scale-[1.06] xl:scale-[1.08]">
                 <WellnessLogo variant="navbar" tone={isInverseTone ? "inverse" : "default"} />
               </div>
             </div>
@@ -510,7 +510,7 @@ const Navbar = () => {
               </div>
             ) : (
               <>
-                <div className="hidden items-center gap-2 md:flex">
+                <div className="ml-4 hidden items-center gap-1.5 md:flex lg:ml-6 lg:gap-2 xl:ml-8 xl:gap-2.5 2xl:ml-14 2xl:gap-3">
                   {navLinks.map((link) => {
                     const isActive = matchesPath(activePath, link.href);
 
@@ -521,7 +521,7 @@ const Navbar = () => {
                         onMouseEnter={() => handleDesktopHover(link.href)}
                         onClick={handleLinkClick}
                         className={cn(
-                          "rounded-full px-4 py-2 text-sm font-medium transition-all duration-300 ease-out",
+                          "rounded-full px-3.5 py-2 text-sm font-medium transition-all duration-300 ease-out lg:px-3.5 lg:py-2.5 xl:px-4 xl:text-[0.96rem] 2xl:px-5",
                           isInverseTone
                             ? isActive
                               ? "bg-white/20 text-white hover:bg-white/20 hover:text-white"
@@ -540,7 +540,7 @@ const Navbar = () => {
                     variant={isInverseTone ? "heroBorder" : "hero"}
                     size="sm"
                     className={cn(
-                      "ml-3 rounded-full px-5 ease-out transition-all duration-300",
+                      "ml-1 rounded-full px-4 ease-out transition-all duration-300 lg:px-4 xl:px-5 xl:text-[0.96rem] 2xl:ml-2 2xl:px-7",
                       isInverseTone &&
                         "border-white/35 bg-white/8 text-white shadow-[0_18px_36px_-24px_rgba(7,13,11,0.45)] hover:bg-white hover:text-foreground",
                     )}
@@ -552,7 +552,7 @@ const Navbar = () => {
                       onClick={handleLinkClick}
                       style={{ transitionDuration: "100ms" }}
                     >
-                      Book a Session
+                      Book Session
                     </Link>
                   </Button>
                 </div>
@@ -696,7 +696,7 @@ const Navbar = () => {
                       >
                         <Link to="/booking#schedule-appointment" onClick={handleLinkClick}>
                           <CalendarDays className="h-[1rem] w-[1rem] md:h-[1.35rem] md:w-[1.35rem]" />
-                          Book a Session
+                          Book Session
                         </Link>
                       </Button>
                     </div>

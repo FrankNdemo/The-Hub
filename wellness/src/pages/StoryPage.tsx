@@ -218,7 +218,7 @@ const StoryPage = () => {
               initial={{ opacity: 0, y: 28 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.9, ease: [0.22, 1, 0.36, 1] }}
-              className="flex max-w-4xl flex-col items-center pt-10 text-white"
+              className="flex max-w-4xl flex-col items-center pt-24 text-white sm:pt-32 lg:pt-44 xl:pt-52"
             >
               <h1 className="max-w-4xl font-heading text-[clamp(2.15rem,5.8vw,4.75rem)] font-semibold leading-[1.05] tracking-normal text-white [text-shadow:0_16px_44px_rgba(0,0,0,0.28)]">
                 Your story matters. Your voice can help someone heal.

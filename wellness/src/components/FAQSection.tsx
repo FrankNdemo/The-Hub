@@ -11,10 +11,10 @@ const faqs = [
 ];
 
 const FAQSection = () => (
-  <section id="faqs" className="scroll-mt-28 py-16">
-    <div className="container mx-auto px-4 sm:px-6 lg:px-8">
+  <section id="faqs" className="scroll-mt-28 py-16 lg:py-20">
+    <div className="mx-auto w-full max-w-[112rem] px-4 sm:px-6 lg:px-8 2xl:px-12">
       <ScrollReveal direction="up">
-      <div className="wellness-section-surface mx-auto w-full max-w-6xl rounded-[2.5rem] border border-border/60 px-5 py-10 shadow-card sm:px-8 md:px-10 lg:px-14 xl:px-16">
+      <div className="wellness-section-surface mx-auto w-full rounded-[2.5rem] border border-border/60 px-5 py-10 shadow-card sm:px-8 md:px-10 lg:px-14 lg:py-14 xl:px-16 2xl:px-20">
         <h2 className="text-center font-heading text-4xl font-semibold text-foreground md:text-5xl">
           Frequently Asked Questions
         </h2>
@@ -22,7 +22,7 @@ const FAQSection = () => (
           Clear answers for common questions about therapy, privacy, scheduling, and getting started.
         </p>
 
-        <Accordion type="single" collapsible className="mx-auto mt-12 max-w-5xl space-y-3">
+        <Accordion type="single" collapsible className="mx-auto mt-12 w-full max-w-[96rem] space-y-3 lg:space-y-4">
         {faqs.map((f, i) => (
           <AccordionItem
             key={i}

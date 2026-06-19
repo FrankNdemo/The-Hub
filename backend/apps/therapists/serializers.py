@@ -164,9 +164,13 @@ class VerifyPassphraseSerializer(serializers.Serializer):
     passphrase = serializers.CharField(trim_whitespace=True)
 
 
-class ResetPasswordSerializer(serializers.Serializer):
+class PasswordResetRequestSerializer(serializers.Serializer):
     email = serializers.EmailField()
-    secretPassphrase = serializers.CharField(trim_whitespace=True)
+
+
+class PasswordResetConfirmSerializer(serializers.Serializer):
+    uid = serializers.CharField(trim_whitespace=True)
+    token = serializers.CharField(trim_whitespace=True)
     nextPassword = serializers.CharField(trim_whitespace=False, min_length=8)
 
 

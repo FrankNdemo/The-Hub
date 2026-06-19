@@ -192,7 +192,7 @@ const BlogPage = () => {
       </PageHeader>
 
       <section className="pb-24">
-        <div className="container mx-auto px-4">
+        <div className="mx-auto w-full max-w-[112rem] px-4 sm:px-6 lg:px-8 2xl:px-12">
           {shouldShowLoadingArticles ? (
             <div className="rounded-[2rem] bg-card p-10 text-center shadow-card">
               <p className="text-muted-foreground">Loading the latest articles...</p>
@@ -200,20 +200,20 @@ const BlogPage = () => {
           ) : null}
 
           {featuredPost ? (
-            <div className="rounded-[2rem] border border-border/60 bg-card p-5 shadow-card">
-              <div className="grid gap-6 lg:grid-cols-[1.1fr_0.9fr]">
+            <div className="rounded-[2rem] border border-border/60 bg-card p-5 shadow-card lg:p-6 xl:p-7">
+              <div className="grid gap-6 lg:grid-cols-[1.16fr_0.84fr] xl:gap-8">
                 <div className="overflow-hidden rounded-[1.75rem] bg-secondary/45">
                   <img
                     src={featuredPostImage}
                     alt={featuredPost.title}
-                    className="h-full w-full object-cover"
+                    className="h-full min-h-[22rem] w-full object-cover xl:min-h-[28rem] 2xl:min-h-[32rem]"
                     loading="eager"
                     decoding="sync"
                     fetchpriority="high"
                     onError={(event) => restoreBlogImage(event, featuredPost)}
                   />
                 </div>
-                <div className="flex flex-col justify-center text-center lg:text-left">
+                <div className="flex flex-col justify-center text-center lg:text-left xl:pr-4">
                   <p className="text-sm font-semibold uppercase tracking-[0.24em] text-primary/75">Featured read</p>
                   <h2 className="mt-4 font-heading text-3xl font-semibold text-foreground md:text-4xl">
                     {featuredPost.title}
@@ -240,11 +240,11 @@ const BlogPage = () => {
           ) : null}
 
           {remainingPosts.length ? (
-            <div className="mt-10 grid gap-8 md:grid-cols-2 xl:grid-cols-3">
+            <div className="mt-10 grid gap-8 md:grid-cols-2 xl:grid-cols-3 2xl:gap-10">
               {remainingPosts.map((post) => (
                 <article key={post.id} className="group overflow-hidden rounded-[2rem] border border-border/60 bg-card shadow-card transition-all hover:-translate-y-1 hover:shadow-hover">
                   <Link to={`/blog/${post.slug}`} className="block h-full">
-                    <div className="h-56 overflow-hidden bg-secondary/45">
+                    <div className="h-56 overflow-hidden bg-secondary/45 xl:h-64 2xl:h-72">
                       <img
                         src={resolveInstantBlogImage(post)}
                         alt={post.title}
@@ -254,13 +254,13 @@ const BlogPage = () => {
                         onError={(event) => restoreBlogImage(event, post)}
                       />
                     </div>
-                    <div className="p-6 text-center">
+                    <div className="p-6 text-center xl:p-7 2xl:p-8">
                       <div className="flex flex-wrap items-center justify-center gap-3 text-xs uppercase tracking-[0.2em] text-primary/70">
                         <span>{post.category}</span>
                         <span>{post.readTime}</span>
                       </div>
-                      <h3 className="mt-4 font-heading text-2xl font-semibold leading-8 text-foreground">{post.title}</h3>
-                      <p className="mt-4 text-sm leading-7 text-muted-foreground">{post.excerpt}</p>
+                      <h3 className="mt-4 font-heading text-2xl font-semibold leading-8 text-foreground 2xl:text-[1.85rem] 2xl:leading-9">{post.title}</h3>
+                      <p className="mt-4 text-sm leading-7 text-muted-foreground 2xl:text-[0.98rem] 2xl:leading-8">{post.excerpt}</p>
                       <div className="mt-6 flex flex-col items-center gap-3 border-t border-border/50 pt-4 text-sm text-muted-foreground sm:flex-row sm:justify-between">
                         <span className="inline-flex items-center gap-2">
                           <CalendarDays className="h-4 w-4 text-primary" />

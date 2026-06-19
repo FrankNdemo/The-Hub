@@ -14,8 +14,8 @@ const ParallaxMotionBackgroundImage = ({ style, ...props }: ParallaxBackgroundIm
     offset: ["start end", "end start"],
   });
   const smoothProgress = useSpring(scrollYProgress, { stiffness: 64, damping: 18, mass: 0.28 });
-  const y = useTransform(smoothProgress, [0, 1], ["0%", "16%"]);
-  const scale = useTransform(smoothProgress, [0, 1], [1.06, 1.16]);
+  const y = useTransform(smoothProgress, [0, 1], ["0%", "6%"]);
+  const scale = useTransform(smoothProgress, [0, 1], [1.01, 1.06]);
 
   return <motion.img ref={imageRef} {...props} style={{ ...style, y, scale }} />;
 };

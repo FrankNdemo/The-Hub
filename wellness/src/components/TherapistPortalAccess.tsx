@@ -1,6 +1,6 @@
 import { FormEvent, useCallback, useEffect, useRef, useState } from "react";
-import { useNavigate } from "react-router-dom";
-import { ShieldCheck } from "lucide-react";
+import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
+import { CheckCircle2, KeyRound, Mail, ShieldCheck } from "lucide-react";
 import { toast } from "sonner";
 
 import { useWellnessHub } from "@/context/WellnessHubContext";
@@ -32,17 +32,23 @@ const formatPassphraseError = (message: string) => {
 
 const TherapistPortalAccess = () => {
   const navigate = useNavigate();
-  const { isTherapistAuthenticated, loginTherapist, verifyTherapistPassphrase, resetTherapistPassword } =
-    useWellnessHub();
+  const location = useLocation();
+  const [searchParams] = useSearchParams();
+  const {
+    confirmTherapistPasswordReset,
+    isTherapistAuthenticated,
+    loginTherapist,
+    requestTherapistPasswordReset,
+    verifyTherapistPassphrase,
+  } = useWellnessHub();
   const [showPassphrase, setShowPassphrase] = useState(false);
   const [passphrase, setPassphrase] = useState("");
   const [passphraseError, setPassphraseError] = useState("");
   const [loginOpen, setLoginOpen] = useState(false);
-  const [mode, setMode] = useState<"login" | "forgot">("login");
+  const [mode, setMode] = useState<"login" | "forgot" | "sent" | "reset">("login");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loginError, setLoginError] = useState("");
-  const [forgotSecret, setForgotSecret] = useState("");
   const [resetPassword, setResetPassword] = useState("");
   const [confirmResetPassword, setConfirmResetPassword] = useState("");
   const [resetError, setResetError] = useState("");
@@ -53,6 +59,18 @@ const TherapistPortalAccess = () => {
   const emailInputRef = useRef<HTMLInputElement | null>(null);
   const passwordInputRef = useRef<HTMLInputElement | null>(null);
   const unlockAttemptRef = useRef(0);
+  const resetUid = searchParams.get("therapist_reset_uid") ?? "";
+  const resetToken = searchParams.get("therapist_reset_token") ?? "";
+
+  useEffect(() => {
+    if (!resetUid || !resetToken) {
+      return;
+    }
+
+    setMode("reset");
+    setLoginOpen(true);
+    setShowPassphrase(false);
+  }, [resetToken, resetUid]);
 
   useEffect(() => {
     if (!showPassphrase || loginOpen) {
@@ -110,7 +128,6 @@ const TherapistPortalAccess = () => {
     setEmail("");
     setPassword("");
     setLoginError("");
-    setForgotSecret("");
     setResetPassword("");
     setConfirmResetPassword("");
     setResetError("");
@@ -211,6 +228,9 @@ const TherapistPortalAccess = () => {
     setLoginOpen(open);
 
     if (!open) {
+      if (mode === "reset") {
+        navigate(location.pathname, { replace: true });
+      }
       resetDialogState();
     }
   };
@@ -234,7 +254,24 @@ const TherapistPortalAccess = () => {
     navigate("/therapist/portal", { replace: true });
   };
 
-  const handlePasswordReset = async (event: FormEvent) => {
+  const handlePasswordResetRequest = async (event: FormEvent) => {
+    event.preventDefault();
+
+    setIsResettingPassword(true);
+    const result = await requestTherapistPasswordReset(email);
+    setIsResettingPassword(false);
+
+    if (!result.success) {
+      setResetError(result.error);
+      return;
+    }
+
+    setResetError("");
+    setMode("sent");
+    toast.success("Reset email sent. Check your inbox if this email is registered.");
+  };
+
+  const handlePasswordResetConfirm = async (event: FormEvent) => {
     event.preventDefault();
 
     if (resetPassword !== confirmResetPassword) {
@@ -243,7 +280,7 @@ const TherapistPortalAccess = () => {
     }
 
     setIsResettingPassword(true);
-    const result = await resetTherapistPassword(email, forgotSecret, resetPassword);
+    const result = await confirmTherapistPasswordReset(resetUid, resetToken, resetPassword);
     setIsResettingPassword(false);
 
     if (!result.success) {
@@ -251,11 +288,11 @@ const TherapistPortalAccess = () => {
       return;
     }
 
-    setForgotSecret("");
     setResetPassword("");
     setConfirmResetPassword("");
     setResetError("");
     setMode("login");
+    navigate(location.pathname, { replace: true });
     toast.success("Password reset. Use your new password to log in.");
   };
 
@@ -305,15 +342,22 @@ const TherapistPortalAccess = () => {
           <div className="rounded-[inherit] bg-gradient-to-br from-secondary/70 via-background to-background p-5 sm:p-7">
             <DialogHeader>
               <div className="mb-4 inline-flex h-14 w-14 items-center justify-center rounded-2xl bg-primary/10 text-primary">
-                <ShieldCheck className="h-6 w-6" />
+                {mode === "forgot" ? <Mail className="h-6 w-6" /> : null}
+                {mode === "sent" ? <CheckCircle2 className="h-6 w-6" /> : null}
+                {mode === "reset" ? <KeyRound className="h-6 w-6" /> : null}
+                {mode === "login" ? <ShieldCheck className="h-6 w-6" /> : null}
               </div>
               <DialogTitle className="font-heading text-3xl text-foreground">
-                {mode === "login" ? "Therapist Login" : "Reset Password"}
+                {mode === "login" ? "Therapist Login" : null}
+                {mode === "forgot" ? "Forgot Password?" : null}
+                {mode === "sent" ? "Check Your Email" : null}
+                {mode === "reset" ? "Create New Password" : null}
               </DialogTitle>
               <DialogDescription className="leading-6">
-                {mode === "login"
-                  ? "Enter your therapist account email and password after the shared secret is accepted."
-                  : "Use your therapist email and shared secret passphrase to create a new password."}
+                {mode === "login" ? "Enter your therapist email and password to open the secure dashboard." : null}
+                {mode === "forgot" ? "Enter your therapist email and we will send you a secure reset link." : null}
+                {mode === "sent" ? "A secure link is on its way if the email belongs to a therapist account." : null}
+                {mode === "reset" ? "Choose a strong new password for your therapist portal." : null}
               </DialogDescription>
             </DialogHeader>
 
@@ -359,77 +403,37 @@ const TherapistPortalAccess = () => {
                   onClick={() => {
                     setMode("forgot");
                     setLoginError("");
+                    setResetError("");
                   }}
                   className="w-full text-sm text-primary transition-colors hover:text-primary/80"
                 >
                   Forgot password?
                 </button>
               </form>
-            ) : (
-              <form onSubmit={handlePasswordReset} className="mt-5 space-y-4 sm:mt-6 sm:space-y-4" autoComplete="off">
-                <div className="grid gap-4">
-                  <div>
-                    <Label htmlFor="forgot-email">Therapist email</Label>
-                    <Input
-                      id="forgot-email"
-                      type="email"
-                      name="therapist-reset-email-manual"
-                      autoComplete="off"
-                      autoCorrect="off"
-                      autoCapitalize="none"
-                      spellCheck={false}
-                      value={email}
-                      onChange={(event) => setEmail(event.target.value)}
-                      className="mt-2"
-                      required
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="forgot-secret">Secret passphrase</Label>
-                    <Input
-                      id="forgot-secret"
-                      name="therapist-reset-secret-manual"
-                      autoComplete="off"
-                      value={forgotSecret}
-                      onChange={(event) => setForgotSecret(event.target.value)}
-                      className="mt-2"
-                      required
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="reset-password">New password</Label>
-                    <Input
-                      id="reset-password"
-                      type="password"
-                      name="therapist-reset-password-manual"
-                      autoComplete="new-password"
-                      value={resetPassword}
-                      onChange={(event) => setResetPassword(event.target.value)}
-                      className="mt-2"
-                      required
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="confirm-reset-password">Confirm new password</Label>
-                    <Input
-                      id="confirm-reset-password"
-                      type="password"
-                      name="therapist-confirm-reset-password-manual"
-                      autoComplete="new-password"
-                      value={confirmResetPassword}
-                      onChange={(event) => setConfirmResetPassword(event.target.value)}
-                      className="mt-2"
-                      required
-                    />
-                  </div>
+            ) : null}
+
+            {mode === "forgot" ? (
+              <form onSubmit={handlePasswordResetRequest} className="mt-5 space-y-5 sm:mt-6" autoComplete="off">
+                <div>
+                  <Label htmlFor="forgot-email">Therapist email</Label>
+                  <Input
+                    id="forgot-email"
+                    type="email"
+                    name="therapist-reset-email"
+                    autoComplete="email"
+                    autoCorrect="off"
+                    autoCapitalize="none"
+                    spellCheck={false}
+                    value={email}
+                    onChange={(event) => setEmail(event.target.value)}
+                    className="mt-2"
+                    placeholder="you@example.com"
+                    required
+                  />
                 </div>
                 {resetError ? <p className="text-sm text-destructive">{resetError}</p> : null}
-                <p className="text-sm leading-6 text-muted-foreground">
-                  The email must match your therapist profile. If you need to change the secret passphrase itself,
-                  sign in and update it from the dashboard security section.
-                </p>
                 <Button type="submit" variant="hero" className="w-full rounded-full" disabled={isResettingPassword}>
-                  {isResettingPassword ? "Saving..." : "Save New Password"}
+                  {isResettingPassword ? "Sending Reset Link..." : "Send Reset Link"}
                 </Button>
                 <button
                   type="button"
@@ -442,7 +446,56 @@ const TherapistPortalAccess = () => {
                   Back to login
                 </button>
               </form>
-            )}
+            ) : null}
+
+            {mode === "sent" ? (
+              <div className="mt-6 space-y-5">
+                <p className="text-sm leading-7 text-muted-foreground">
+                  If this email is registered, a password reset link has been sent. Please check your inbox and spam
+                  folder.
+                </p>
+                <Button type="button" variant="hero" className="w-full rounded-full" onClick={() => setMode("login")}>
+                  Return to Login
+                </Button>
+              </div>
+            ) : null}
+
+            {mode === "reset" ? (
+              <form onSubmit={handlePasswordResetConfirm} className="mt-5 space-y-4 sm:mt-6" autoComplete="off">
+                <div>
+                  <Label htmlFor="reset-password">New password</Label>
+                  <Input
+                    id="reset-password"
+                    type="password"
+                    name="therapist-reset-password"
+                    autoComplete="new-password"
+                    value={resetPassword}
+                    onChange={(event) => setResetPassword(event.target.value)}
+                    className="mt-2"
+                    minLength={8}
+                    required
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="confirm-reset-password">Confirm new password</Label>
+                  <Input
+                    id="confirm-reset-password"
+                    type="password"
+                    name="therapist-confirm-reset-password"
+                    autoComplete="new-password"
+                    value={confirmResetPassword}
+                    onChange={(event) => setConfirmResetPassword(event.target.value)}
+                    className="mt-2"
+                    minLength={8}
+                    required
+                  />
+                </div>
+                {resetError ? <p className="text-sm text-destructive">{resetError}</p> : null}
+                <Button type="submit" variant="hero" className="w-full rounded-full" disabled={isResettingPassword}>
+                  {isResettingPassword ? "Updating Password..." : "Reset Password"}
+                </Button>
+              </form>
+            ) : null}
           </div>
         </DialogContent>
       </Dialog>
