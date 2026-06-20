@@ -168,9 +168,12 @@ class PasswordResetRequestSerializer(serializers.Serializer):
     email = serializers.EmailField()
 
 
-class PasswordResetConfirmSerializer(serializers.Serializer):
+class PasswordResetLinkSerializer(serializers.Serializer):
     uid = serializers.CharField(trim_whitespace=True)
     token = serializers.CharField(trim_whitespace=True)
+
+
+class PasswordResetConfirmSerializer(PasswordResetLinkSerializer):
     nextPassword = serializers.CharField(trim_whitespace=False, min_length=8)
 
 

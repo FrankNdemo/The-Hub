@@ -93,23 +93,33 @@ const Footer = () => {
             <p className="mt-2 text-sm text-primary-foreground/65">Your path to care starts here. Tap for directions.</p>
           </div>
 
-          <div className="group mx-auto block w-full max-w-5xl overflow-hidden rounded-[1.75rem] border border-white/12 bg-white/5 shadow-[0_24px_52px_-34px_rgba(6,12,10,0.62)] transition-all duration-300 hover:border-white/20 hover:shadow-[0_30px_64px_-34px_rgba(6,12,10,0.72)]">
-            <div className="relative h-64 overflow-hidden bg-primary/20 sm:h-80 md:h-[24rem] lg:h-[28rem]">
+          <div className="group mx-auto block w-full max-w-5xl overflow-hidden rounded-none border border-primary-foreground/28 bg-white/5 shadow-none transition-all duration-300 hover:border-white/20 md:rounded-[1.75rem] md:border-white/12 md:shadow-[0_24px_52px_-34px_rgba(6,12,10,0.62)] md:hover:shadow-[0_30px_64px_-34px_rgba(6,12,10,0.72)]">
+            <div className="relative h-[20rem] overflow-hidden bg-primary/20 sm:h-[22rem] md:h-[24rem] lg:h-[28rem]">
               <iframe
                 title="The Wellness Hub location map"
                 src={mapEmbedSrc}
                 loading="lazy"
                 referrerPolicy="no-referrer-when-downgrade"
-                className="absolute inset-0 h-full w-full border-0 grayscale-[0.12] contrast-[1.04] saturate-[1.18]"
+                className="absolute inset-x-0 top-0 h-[12.5rem] w-full border-0 grayscale-[0.12] contrast-[1.04] saturate-[1.18] sm:h-[14rem] md:inset-0 md:h-full"
               />
-              <div className="pointer-events-none absolute inset-x-0 bottom-0 h-28 bg-gradient-to-t from-foreground/48 via-foreground/12 to-transparent" />
-              <div className="absolute left-0 top-0 min-h-[10rem] w-[min(25rem,100%)] rounded-br-2xl rounded-tl-[1.75rem] border border-primary-foreground/18 bg-primary p-5 text-left text-primary-foreground shadow-[0_20px_44px_-24px_rgba(6,12,10,0.75)] sm:min-h-[10.25rem] sm:w-[26rem] sm:p-6">
+              <div className="pointer-events-none absolute inset-x-0 bottom-0 hidden h-28 bg-gradient-to-t from-foreground/48 via-foreground/12 to-transparent md:block" />
+              <div className="absolute inset-x-0 bottom-0 min-h-[7.5rem] w-full rounded-none border-t border-primary-foreground/22 bg-primary p-4 text-left text-primary-foreground shadow-none sm:min-h-[8rem] sm:p-5 md:bottom-auto md:left-0 md:right-auto md:top-0 md:min-h-[10rem] md:w-[min(25rem,100%)] md:rounded-br-2xl md:rounded-tl-[1.75rem] md:border md:border-primary-foreground/18 md:p-5 md:shadow-[0_20px_44px_-24px_rgba(6,12,10,0.75)] lg:p-6">
                 <div className="flex items-start gap-3">
-                  <span className="mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary-foreground/14 text-primary-foreground">
+                  <span className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center text-primary-foreground md:h-10 md:w-10 md:rounded-full md:bg-primary-foreground/14">
                     <MapPin className="h-5 w-5" />
                   </span>
                   <span className="min-w-0">
-                    <span className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-[0.18em] text-primary-foreground/72">
+                    <a
+                      href={mapHref}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="inline-flex items-center gap-1.5 text-xs font-semibold uppercase tracking-[0.18em] text-primary-foreground/78 transition-colors hover:text-primary-foreground md:hidden"
+                      aria-label={`Open map for ${mapQuery}`}
+                    >
+                      Open in Maps
+                      <ExternalLink className="h-3.5 w-3.5" />
+                    </a>
+                    <span className="hidden items-center gap-1.5 text-xs font-semibold uppercase tracking-[0.18em] text-primary-foreground/72 md:flex">
                       Find us here
                     </span>
                     <span className="mt-1 block text-sm font-semibold leading-5 text-primary-foreground sm:text-base sm:leading-6">
@@ -121,7 +131,7 @@ const Footer = () => {
                       href={mapHref}
                       target="_blank"
                       rel="noreferrer"
-                      className="mt-3 inline-flex items-center gap-2 rounded-full border border-primary-foreground/28 bg-primary-foreground/14 px-4 py-2 text-xs font-bold uppercase tracking-[0.12em] text-primary-foreground transition-colors hover:bg-primary-foreground hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-foreground/70"
+                      className="mt-3 hidden items-center gap-2 rounded-full border border-primary-foreground/28 bg-primary-foreground/14 px-4 py-2 text-xs font-bold uppercase tracking-[0.12em] text-primary-foreground transition-colors hover:bg-primary-foreground hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-foreground/70 md:inline-flex"
                       aria-label={`Open map for ${mapQuery}`}
                     >
                       Open in Maps

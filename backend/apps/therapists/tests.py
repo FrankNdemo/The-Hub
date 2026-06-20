@@ -88,6 +88,13 @@ class TherapistAuthApiTests(APITestCase):
             "nextPassword": "NewWellnessHub2026!",
         }
 
+        validate_response = self.client.post(
+            "/api/v1/auth/password-reset/validate/",
+            {"uid": uid, "token": token},
+            format="json",
+        )
+        self.assertEqual(validate_response.status_code, status.HTTP_200_OK)
+
         response = self.client.post("/api/v1/auth/password-reset/confirm/", payload, format="json")
         self.assertEqual(response.status_code, status.HTTP_200_OK)
 
@@ -96,7 +103,15 @@ class TherapistAuthApiTests(APITestCase):
 
         reused_response = self.client.post("/api/v1/auth/password-reset/confirm/", payload, format="json")
         self.assertEqual(reused_response.status_code, status.HTTP_400_BAD_REQUEST)
-        self.assertIn("invalid or has expired", reused_response.data["detail"])
+        self.assertIn("already been used", reused_response.data["detail"])
+
+        reused_validate_response = self.client.post(
+            "/api/v1/auth/password-reset/validate/",
+            {"uid": uid, "token": token},
+            format="json",
+        )
+        self.assertEqual(reused_validate_response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn("already been used", reused_validate_response.data["detail"])
 
     def test_password_reset_confirm_rejects_invalid_link(self):
         response = self.client.post(
@@ -130,6 +145,7 @@ class TherapistAuthApiTests(APITestCase):
         self.assertIn("therapist_reset_token=", payload["htmlContent"])
 
 
+@override_settings(ALLOW_TEST_THERAPIST_CREDENTIALS=True)
 class ClientStoryApiTests(APITestCase):
     def setUp(self):
         call_command("bootstrap_wellness_data", with_test_credentials=True)

@@ -39,6 +39,7 @@ import {
   updateTherapistPasswordRequest,
   updateTherapistProfileRequest,
   updateTherapistSecretPassphraseRequest,
+  validateTherapistPasswordResetRequest,
   verifyTherapistPassphraseRequest,
   type DashboardOverviewResponse,
 } from "@/lib/api";
@@ -90,6 +91,7 @@ interface WellnessHubContextValue extends WellnessHubState {
     nextSecretPassphrase: string,
   ) => Promise<ActionResult>;
   requestTherapistPasswordReset: (email: string) => Promise<ActionResult>;
+  validateTherapistPasswordReset: (uid: string, token: string) => Promise<ActionResult>;
   confirmTherapistPasswordReset: (uid: string, token: string, nextPassword: string) => Promise<ActionResult>;
   logoutTherapist: () => Promise<void>;
 }
@@ -1088,6 +1090,18 @@ export const WellnessHubProvider = ({ children }: { children: React.ReactNode })
     }
   };
 
+  const validateTherapistPasswordReset = async (uid: string, token: string): Promise<ActionResult> => {
+    try {
+      await validateTherapistPasswordResetRequest(uid, token);
+      return { success: true };
+    } catch (error) {
+      return {
+        success: false,
+        error: getApiErrorMessage(error, "This password reset link has expired or has already been used."),
+      };
+    }
+  };
+
   const logoutTherapist = async () => {
     resetAuthenticatedState();
     clearStoredAuthTokens();
@@ -1131,6 +1145,7 @@ export const WellnessHubProvider = ({ children }: { children: React.ReactNode })
     updateTherapistPassword,
     updateTherapistSecretPassphrase,
     requestTherapistPasswordReset,
+    validateTherapistPasswordReset,
     confirmTherapistPasswordReset,
     logoutTherapist,
   };

@@ -36,7 +36,7 @@ const HeroSection = () => {
   };
 
   return (
-    <section id="home-hero" className="relative pb-0 pt-0 sm:overflow-hidden sm:pb-14" data-nav-theme="inverse">
+    <section id="home-hero" className="relative overflow-clip pb-0 pt-0 sm:overflow-hidden sm:pb-14" data-nav-theme="inverse">
       <div className="w-full">
         <div
           className="relative min-h-[120svh] border-b border-border/60 bg-[linear-gradient(135deg,hsl(42_31%_99%),hsl(42_31%_97%))] shadow-hover sm:min-h-[36rem] sm:overflow-hidden md:min-h-[38rem] lg:min-h-[44rem] xl:min-h-[48rem] 2xl:min-h-[52rem]"
@@ -47,7 +47,6 @@ const HeroSection = () => {
               alt="A smiling client seated in a bright, calm wellness-inspired living room"
               loading="eager"
               decoding="async"
-              fetchPriority="high"
               className="absolute inset-0 h-full w-full max-w-none object-cover object-[64%_18%] brightness-[1.03] saturate-[1.03] contrast-[1.05] sm:object-[76%_24%] sm:brightness-[1.06] sm:saturate-[1.02] sm:contrast-[1.08] md:object-[74%_28%] md:brightness-[1.02] md:saturate-[0.92] md:contrast-[1.02] lg:object-[70%_32%] xl:object-[68%_36%]"
               style={desktopImageEffects ? { y: heroImageY, scale: heroImageScale } : undefined}
             />
@@ -91,7 +90,7 @@ const HeroSection = () => {
 
           </div>
 
-          <div className="sticky top-0 z-30 h-[calc(70svh+0.25rem)] sm:relative sm:top-auto sm:h-auto">
+          <div className="sticky top-0 z-30 h-[100svh] sm:relative sm:top-auto sm:h-auto">
             <div className="absolute inset-x-0 top-0">
               <div className="mx-auto max-w-[112rem] px-4 pt-14 sm:px-6 sm:pt-14 md:px-8 md:pt-14 lg:px-10 lg:pt-14 2xl:px-14">
                 <div className="pl-2 text-left sm:pl-4 md:pl-6 lg:pl-8">

@@ -749,6 +749,16 @@ export const requestTherapistPasswordResetRequest = (email: string) =>
     { auth: false },
   );
 
+export const validateTherapistPasswordResetRequest = (uid: string, token: string) =>
+  request<SuccessResponse>(
+    "/auth/password-reset/validate/",
+    {
+      method: "POST",
+      body: JSON.stringify({ uid, token }),
+    },
+    { auth: false },
+  );
+
 export const confirmTherapistPasswordResetRequest = (uid: string, token: string, nextPassword: string) =>
   request<SuccessResponse>(
     "/auth/password-reset/confirm/",

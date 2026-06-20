@@ -26,6 +26,7 @@ from .serializers import (
     ClientStoryUpdateSerializer,
     LoginSerializer,
     PasswordResetConfirmSerializer,
+    PasswordResetLinkSerializer,
     PasswordResetRequestSerializer,
     TherapistProfilePublicSerializer,
     TherapistProfileUpdateSerializer,
@@ -40,6 +41,20 @@ logger = logging.getLogger(__name__)
 PASSWORD_RESET_REQUEST_MESSAGE = (
     "If this email is registered, a password reset link has been sent. Please check your inbox."
 )
+PASSWORD_RESET_INVALID_MESSAGE = "This password reset link has expired or has already been used."
+
+
+def get_password_reset_user(uid: str, token: str):
+    try:
+        user_id = force_str(urlsafe_base64_decode(uid))
+        user = User.objects.select_related("therapist_profile").get(pk=user_id)
+    except (TypeError, ValueError, OverflowError, User.DoesNotExist):
+        return None
+
+    if not hasattr(user, "therapist_profile") or not default_token_generator.check_token(user, token):
+        return None
+
+    return user
 
 
 def get_primary_therapist() -> TherapistProfile:
@@ -224,16 +239,10 @@ class PasswordResetConfirmView(APIView):
         serializer = PasswordResetConfirmSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
-        try:
-            user_id = force_str(urlsafe_base64_decode(serializer.validated_data["uid"]))
-            user = User.objects.select_related("therapist_profile").get(pk=user_id)
-        except (TypeError, ValueError, OverflowError, User.DoesNotExist):
-            user = None
-
-        token = serializer.validated_data["token"]
-        if not user or not hasattr(user, "therapist_profile") or not default_token_generator.check_token(user, token):
+        user = get_password_reset_user(serializer.validated_data["uid"], serializer.validated_data["token"])
+        if not user:
             return Response(
-                {"detail": "This password reset link is invalid or has expired."},
+                {"detail": PASSWORD_RESET_INVALID_MESSAGE},
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
@@ -245,6 +254,24 @@ class PasswordResetConfirmView(APIView):
 
         user.set_password(next_password)
         user.save(update_fields=["password"])
+        return Response({"success": True})
+
+
+class PasswordResetValidateView(APIView):
+    permission_classes = []
+    authentication_classes = []
+
+    def post(self, request):
+        serializer = PasswordResetLinkSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        user = get_password_reset_user(serializer.validated_data["uid"], serializer.validated_data["token"])
+        if not user:
+            return Response(
+                {"detail": PASSWORD_RESET_INVALID_MESSAGE},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
         return Response({"success": True})
 
 

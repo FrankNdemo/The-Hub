@@ -9,6 +9,7 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import NavigationImagePreloader from "@/components/NavigationImagePreloader";
+import WellnessLogo from "@/components/WellnessLogo";
 import {
   createBookingDraft,
   createExplorationCallDraft,
@@ -18,24 +19,33 @@ import {
 } from "@/context/FormDraftContext";
 import { NavigationPreviewProvider, useNavigationPreview } from "@/context/NavigationPreviewContext";
 import { WellnessHubProvider, useWellnessHub } from "@/context/WellnessHubContext";
+import AboutPage from "./pages/AboutPage";
+import BlogPage from "./pages/BlogPage";
+import BookingPage from "./pages/BookingPage";
+import ContactPage from "./pages/ContactPage";
+import ExplorationCallPage from "./pages/ExplorationCallPage";
 import Index from "./pages/Index";
+import NotFound from "./pages/NotFound";
+import ServicesPage from "./pages/ServicesPage";
+import StoryPage from "./pages/StoryPage";
+import TeamPage from "./pages/TeamPage";
 
-const AboutPage = lazy(() => import("./pages/AboutPage"));
-const BlogPage = lazy(() => import("./pages/BlogPage"));
 const BlogPostPage = lazy(() => import("./pages/BlogPostPage"));
-const BookingPage = lazy(() => import("./pages/BookingPage"));
-const ContactPage = lazy(() => import("./pages/ContactPage"));
-const ExplorationCallPage = lazy(() => import("./pages/ExplorationCallPage"));
 const JoinSessionPage = lazy(() => import("./pages/JoinSessionPage"));
 const ManageBookingPage = lazy(() => import("./pages/ManageBookingPage"));
-const NotFound = lazy(() => import("./pages/NotFound"));
-const ServicesPage = lazy(() => import("./pages/ServicesPage"));
-const StoryPage = lazy(() => import("./pages/StoryPage"));
-const TeamPage = lazy(() => import("./pages/TeamPage"));
 const TherapistDashboardPage = lazy(() => import("./pages/TherapistDashboardPage"));
 const TherapistSessionPage = lazy(() => import("./pages/TherapistSessionPage"));
 
 const queryClient = new QueryClient();
+
+const RouteLoadingFallback = () => (
+  <main className="flex min-h-screen items-center justify-center bg-secondary/30 px-6 pt-24" aria-live="polite">
+    <div className="animate-pulse opacity-75 motion-reduce:animate-none">
+      <WellnessLogo variant="footer" />
+      <span className="sr-only">Loading page</span>
+    </div>
+  </main>
+);
 
 const ScrollAndPreviewManager = () => {
   const location = useLocation();
@@ -104,7 +114,7 @@ const PreviewRoutes = () => {
       : location;
 
   return (
-    <Suspense fallback={<div className="min-h-screen bg-background" aria-hidden="true" />}>
+    <Suspense fallback={<RouteLoadingFallback />}>
     <Routes location={routeLocation}>
       <Route path="/" element={<Index />} />
       <Route path="/about" element={<AboutPage />} />

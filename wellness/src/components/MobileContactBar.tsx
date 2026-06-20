@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type SVGProps } from "react";
+import { useEffect, useState, type SVGProps } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { PhoneCall } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -11,20 +11,14 @@ const EXPLORATION_CALL_PATH = "/exploration-call#book-exploration-call";
 
 const WhatsAppIcon = ({ className, ...props }: SVGProps<SVGSVGElement>) => (
   <svg
-    viewBox="0 0 32 32"
+    viewBox="0 0 24 24"
     aria-hidden="true"
     focusable="false"
     className={className}
+    fill="currentColor"
     {...props}
   >
-    <path
-      fill="currentColor"
-      d="M16.01 3.2c-7.05 0-12.8 5.73-12.8 12.78 0 2.24.59 4.44 1.71 6.37L3.1 29l6.82-1.79a12.8 12.8 0 0 0 6.09 1.55h.01c7.05 0 12.78-5.74 12.78-12.79 0-3.41-1.33-6.62-3.74-9.04a12.7 12.7 0 0 0-9.05-3.73Z"
-    />
-    <path
-      fill="#fff"
-      d="M23.53 21.23c-.31.88-1.82 1.68-2.56 1.79-.68.1-1.54.15-2.48-.15-.57-.18-1.31-.42-2.25-.82-3.96-1.71-6.54-5.66-6.74-5.92-.2-.26-1.61-2.14-1.61-4.09s1.02-2.91 1.38-3.31c.36-.4.79-.5 1.05-.5h.76c.24.01.57-.09.89.68.34.81 1.15 2.8 1.25 3 .1.2.17.44.03.7-.13.26-.2.43-.4.67-.2.23-.42.52-.6.69-.2.2-.41.41-.18.81.23.4 1.01 1.66 2.16 2.69 1.49 1.33 2.74 1.74 3.14 1.94.4.2.64.17.87-.1.23-.27 1-.94 1.26-1.26.27-.34.54-.28.91-.17.37.13 2.36 1.11 2.76 1.31.4.2.67.3.77.47.1.17.1.98-.2 1.86Z"
-    />
+    <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.872.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.29.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 0 1-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 0 1-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 0 1 2.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0 0 12.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 0 0 5.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 0 0-3.48-8.413Z" />
   </svg>
 );
 
@@ -33,9 +27,7 @@ const MobileContactBar = () => {
   const [isContactOpen, setIsContactOpen] = useState(false);
   const [hasPassedHomeHero, setHasPassedHomeHero] = useState(true);
   const [isTherapistAccessActive, setIsTherapistAccessActive] = useState(false);
-  const [isFooterMapVisible, setIsFooterMapVisible] = useState(false);
-  const [tone, setTone] = useState<"default" | "inverse">("default");
-  const barRef = useRef<HTMLElement | null>(null);
+  const [isFooterContactSuppressed, setIsFooterContactSuppressed] = useState(false);
   const location = useLocation();
   const { bookingDraft } = useFormDrafts();
   const isHomePage = location.pathname === "/";
@@ -43,7 +35,7 @@ const MobileContactBar = () => {
   const shouldHide =
     isMenuOpen ||
     isTherapistAccessActive ||
-    isFooterMapVisible ||
+    isFooterContactSuppressed ||
     isActiveBookingFlow ||
     location.pathname.startsWith("/therapist") ||
     location.pathname === "/exploration-call" ||
@@ -70,23 +62,18 @@ const MobileContactBar = () => {
   }, []);
 
   useEffect(() => {
-    const footerHideTargets = Array.from(document.querySelectorAll<HTMLElement>("[data-mobile-contact-hide]"));
+    const findUsSection = document.querySelector<HTMLElement>("[data-mobile-contact-hide]");
 
-    if (!footerHideTargets.length) {
-      setIsFooterMapVisible(false);
+    if (!findUsSection || !("IntersectionObserver" in window)) {
+      setIsFooterContactSuppressed(false);
       return;
     }
 
     const observer = new IntersectionObserver(
-      (entries) => {
-        setIsFooterMapVisible(entries.some((entry) => entry.isIntersecting));
-      },
-      {
-        threshold: 0.08,
-      },
+      ([entry]) => setIsFooterContactSuppressed(entry.isIntersecting),
+      { rootMargin: "0px 0px -8% 0px", threshold: 0.04 },
     );
-
-    footerHideTargets.forEach((target) => observer.observe(target));
+    observer.observe(findUsSection);
 
     return () => observer.disconnect();
   }, [location.pathname]);
@@ -97,135 +84,21 @@ const MobileContactBar = () => {
       return;
     }
 
-    let frameId = 0;
+    const heroSection = document.getElementById("home-hero");
 
-    const updateHomeHeroState = () => {
-      const heroSection = document.getElementById("home-hero");
+    if (!heroSection || !("IntersectionObserver" in window)) {
+      setHasPassedHomeHero(true);
+      return;
+    }
 
-      if (!heroSection) {
-        setHasPassedHomeHero(true);
-        return;
-      }
+    const observer = new IntersectionObserver(
+      ([entry]) => setHasPassedHomeHero(!entry.isIntersecting),
+      { rootMargin: "0px 0px -64% 0px", threshold: 0 },
+    );
+    observer.observe(heroSection);
 
-      setHasPassedHomeHero(heroSection.getBoundingClientRect().bottom <= window.innerHeight * 0.36);
-    };
-
-    const queueHeroStateUpdate = () => {
-      window.cancelAnimationFrame(frameId);
-      frameId = window.requestAnimationFrame(updateHomeHeroState);
-    };
-
-    queueHeroStateUpdate();
-    window.addEventListener("scroll", queueHeroStateUpdate, { passive: true });
-    window.addEventListener("resize", queueHeroStateUpdate);
-
-    return () => {
-      window.cancelAnimationFrame(frameId);
-      window.removeEventListener("scroll", queueHeroStateUpdate);
-      window.removeEventListener("resize", queueHeroStateUpdate);
-    };
+    return () => observer.disconnect();
   }, [isHomePage]);
-
-  useEffect(() => {
-    if (shouldHide) {
-      return;
-    }
-
-    let frameId = 0;
-    let delayedTimeoutId = 0;
-
-    const resolveToneAtPoint = (x: number, y: number): "default" | "inverse" => {
-      const barElement = barRef.current;
-
-      if (!barElement) {
-        return "default";
-      }
-
-      const stackedElements = document.elementsFromPoint(x, y);
-
-      for (const element of stackedElements) {
-        if (!(element instanceof HTMLElement) || barElement.contains(element)) {
-          continue;
-        }
-
-        const themedAncestor = element.closest<HTMLElement>("[data-nav-theme]");
-
-        if (themedAncestor) {
-          return themedAncestor.dataset.navTheme === "inverse" ? "inverse" : "default";
-        }
-
-        const style = window.getComputedStyle(element);
-        const hasImageBackground = style.backgroundImage !== "none";
-        const isMedia = element.tagName === "IMG" || element.tagName === "VIDEO" || element.tagName === "PICTURE";
-
-        if (hasImageBackground || isMedia) {
-          return "inverse";
-        }
-
-        return "default";
-      }
-
-      return "default";
-    };
-
-    const updateTone = () => {
-      const barElement = barRef.current;
-
-      if (!barElement) {
-        return;
-      }
-
-      const bounds = barElement.getBoundingClientRect();
-      const sampleY = Math.max(1, Math.min(window.innerHeight - 1, bounds.top + bounds.height * 0.5));
-      const sampleXs = [0.25, 0.5, 0.75].map((ratio) =>
-        Math.max(1, Math.min(window.innerWidth - 1, bounds.left + bounds.width * ratio)),
-      );
-      const nextTone = sampleXs.some((sampleX) => resolveToneAtPoint(sampleX, sampleY) === "inverse")
-        ? "inverse"
-        : "default";
-
-      setTone((currentTone) => (currentTone === nextTone ? currentTone : nextTone));
-    };
-
-    const queueToneUpdate = () => {
-      window.cancelAnimationFrame(frameId);
-      frameId = window.requestAnimationFrame(updateTone);
-    };
-
-    queueToneUpdate();
-    delayedTimeoutId = window.setTimeout(queueToneUpdate, 180);
-    window.addEventListener("scroll", queueToneUpdate, { passive: true });
-    window.addEventListener("resize", queueToneUpdate);
-
-    return () => {
-      window.cancelAnimationFrame(frameId);
-      window.clearTimeout(delayedTimeoutId);
-      window.removeEventListener("scroll", queueToneUpdate);
-      window.removeEventListener("resize", queueToneUpdate);
-    };
-  }, [location.pathname, shouldHide]);
-
-  useEffect(() => {
-    if (!isContactOpen) {
-      return;
-    }
-
-    let frameId = 0;
-
-    const closeOnScroll = () => {
-      window.cancelAnimationFrame(frameId);
-      frameId = window.requestAnimationFrame(() => setIsContactOpen(false));
-    };
-
-    window.addEventListener("scroll", closeOnScroll, { passive: true });
-    window.addEventListener("resize", closeOnScroll);
-
-    return () => {
-      window.cancelAnimationFrame(frameId);
-      window.removeEventListener("scroll", closeOnScroll);
-      window.removeEventListener("resize", closeOnScroll);
-    };
-  }, [isContactOpen]);
 
   useEffect(() => {
     setIsContactOpen(false);
@@ -242,28 +115,38 @@ const MobileContactBar = () => {
   }
 
   return (
-    <>
-      <div className="h-[5.5rem] md:hidden" aria-hidden="true" />
-      <aside
-        ref={barRef}
-        aria-label="Quick contact options"
-        className="fixed inset-x-0 bottom-[max(0.9rem,env(safe-area-inset-bottom))] z-[70] flex justify-center px-4 md:hidden"
-      >
-        <div className="relative flex min-h-[10rem] w-full max-w-[18rem] items-end justify-center">
+    <aside
+      aria-label="Quick contact options"
+      className="pointer-events-none fixed bottom-[max(1rem,env(safe-area-inset-bottom))] right-4 z-[70] md:hidden"
+    >
+      <div className="relative h-[8.75rem] w-[12.5rem]">
           <div
             className={cn(
-              "absolute bottom-[5.15rem] left-1/2 flex -translate-x-1/2 items-center justify-center gap-3 transition-all duration-500 ease-out",
+              "absolute bottom-0 right-0 flex flex-col items-end gap-2 transition-all duration-200 ease-out",
               isContactOpen
-                ? "pointer-events-auto translate-y-0 scale-100 opacity-100"
-                : "pointer-events-none translate-y-9 scale-75 opacity-0",
+                ? "pointer-events-auto translate-x-0 opacity-100"
+                : "pointer-events-none translate-x-8 opacity-0",
             )}
             aria-hidden={!isContactOpen}
           >
+            <Link
+              to={EXPLORATION_CALL_PATH}
+              className={cn(
+                "flex h-12 items-center gap-2.5 rounded-full border border-primary/20 bg-white/96 px-4 text-xs font-bold text-primary shadow-[0_18px_40px_-20px_rgba(18,45,32,0.58)] backdrop-blur-xl transition-all duration-200",
+                isContactOpen ? "translate-x-0 opacity-100" : "translate-x-8 opacity-0",
+              )}
+              aria-label="Book an exploration call"
+              tabIndex={isContactOpen ? undefined : -1}
+              onClick={() => setIsContactOpen(false)}
+            >
+              <PhoneCall className="h-5 w-5 shrink-0 text-[#5e8673]" strokeWidth={2.45} aria-hidden="true" />
+              <span>Exploration Call</span>
+            </Link>
             <a
               href={WHATSAPP_HREF}
               className={cn(
-                "flex h-14 w-14 items-center justify-center rounded-full border border-white/65 bg-white/96 text-[#2f6f4e] shadow-[0_18px_40px_-20px_rgba(18,45,32,0.58)] backdrop-blur-xl transition-all duration-300",
-                isContactOpen ? "-translate-x-1" : "translate-x-8",
+                "flex h-12 items-center gap-2.5 rounded-full border border-[#5e8673]/45 bg-white/96 px-4 text-xs font-bold text-primary shadow-[0_18px_40px_-20px_rgba(18,45,32,0.58)] backdrop-blur-xl transition-all duration-200",
+                isContactOpen ? "translate-x-0 opacity-100" : "translate-x-8 opacity-0",
               )}
               aria-label="Chat on WhatsApp"
               target="_blank"
@@ -271,55 +154,50 @@ const MobileContactBar = () => {
               tabIndex={isContactOpen ? undefined : -1}
               onClick={() => setIsContactOpen(false)}
             >
-              <WhatsAppIcon className="h-8 w-8" />
+              <span className="flex h-7 w-7 items-center justify-center rounded-full bg-[#5e8673] text-primary-foreground">
+                <WhatsAppIcon className="h-[1.1rem] w-[1.1rem]" />
+              </span>
+              <span>WhatsApp</span>
             </a>
-            <Link
-              to={EXPLORATION_CALL_PATH}
-              className={cn(
-                "flex h-14 items-center gap-2 rounded-full border border-white/65 bg-white/96 px-4 text-xs font-bold uppercase tracking-[0.08em] text-primary shadow-[0_18px_40px_-20px_rgba(18,45,32,0.58)] backdrop-blur-xl transition-all duration-300",
-                isContactOpen ? "translate-x-1" : "-translate-x-8",
-              )}
-              aria-label="Book an exploration call"
-              tabIndex={isContactOpen ? undefined : -1}
-              onClick={() => setIsContactOpen(false)}
-            >
-              <PhoneCall className="h-5 w-5 shrink-0 text-[#5e8673]" strokeWidth={2.45} aria-hidden="true" />
-              <span className="max-w-[6.75rem] leading-tight">Exploration Call</span>
-            </Link>
           </div>
 
-          <button
-            type="button"
-            aria-expanded={isContactOpen}
-            aria-label={isContactOpen ? "Close contact options" : "Open contact options"}
-            onClick={() => setIsContactOpen((current) => !current)}
+          <div
             className={cn(
-              "group relative flex h-[4.85rem] w-[4.85rem] items-center justify-center rounded-full border border-white/55 bg-[#3f5d4d] text-white shadow-[0_22px_52px_-24px_rgba(20,43,33,0.8)] outline-none transition-[filter,transform,box-shadow] duration-500 animate-mobile-contact-float focus-visible:ring-4 focus-visible:ring-primary/25",
-              "before:absolute before:inset-[-0.45rem] before:rounded-full before:bg-[radial-gradient(circle,rgba(190,218,198,0.75),rgba(146,183,158,0.3)_48%,transparent_72%)] before:blur-[1px] before:content-['']",
-              "after:absolute after:inset-0 after:rounded-full after:border-[5px] after:border-[#b7d5bf]/85 after:shadow-[inset_0_0_16px_rgba(240,255,244,0.38),0_0_28px_rgba(128,173,143,0.55)] after:content-[''] after:animate-mobile-contact-glow",
-              tone === "inverse"
-                ? "drop-shadow-[0_5px_16px_rgba(0,0,0,0.55)]"
-                : "drop-shadow-[0_10px_20px_rgba(60,86,70,0.26)]",
-              isContactOpen && "scale-[1.03] shadow-[0_25px_58px_-22px_rgba(20,43,33,0.9)]",
+              "absolute bottom-0 right-0 transition-all duration-200 ease-out",
+              isContactOpen
+                ? "pointer-events-none translate-x-5 scale-75 opacity-0"
+                : "pointer-events-auto translate-x-0 scale-100 opacity-100",
             )}
           >
-            <span className="absolute inset-[0.66rem] rounded-full bg-[radial-gradient(circle_at_35%_25%,rgba(255,255,255,0.22),transparent_34%),linear-gradient(145deg,#63886e,#2f4a3d)]" />
-            <span className="relative z-10 text-center text-[0.58rem] font-bold uppercase leading-[1.15] tracking-[0.14em]">
-              Talk
-              <br />
-              With Us
-            </span>
-          </button>
+            <button
+              type="button"
+              aria-expanded={isContactOpen}
+              aria-label="Open contact options"
+              onClick={() => setIsContactOpen(true)}
+              className={cn(
+                "group relative flex h-[4.6rem] w-[4.6rem] items-center justify-center rounded-full border border-white/55 bg-[#3f5d4d] text-white shadow-[0_22px_52px_-24px_rgba(20,43,33,0.8)] outline-none transition-[filter,box-shadow] duration-200 focus-visible:ring-4 focus-visible:ring-primary/25",
+                "before:absolute before:inset-[-0.4rem] before:rounded-full before:bg-[radial-gradient(circle,rgba(190,218,198,0.68),rgba(146,183,158,0.26)_48%,transparent_72%)] before:blur-[1px] before:content-['']",
+                "after:absolute after:inset-0 after:rounded-full after:border-[5px] after:border-[#b7d5bf]/80 after:shadow-[inset_0_0_16px_rgba(240,255,244,0.34),0_0_24px_rgba(128,173,143,0.48)] after:content-[''] after:animate-mobile-contact-glow motion-reduce:after:animate-none",
+                "drop-shadow-[0_8px_18px_rgba(35,59,46,0.38)]",
+              )}
+            >
+              <span className="absolute inset-[0.62rem] rounded-full bg-[radial-gradient(circle_at_35%_25%,rgba(255,255,255,0.22),transparent_34%),linear-gradient(145deg,#63886e,#2f4a3d)]" />
+              <span className="relative z-10 text-center text-[0.56rem] font-bold uppercase leading-[1.15] tracking-[0.13em]">
+                Talk
+                <br />
+                With Us
+              </span>
+            </button>
+          </div>
         </div>
-        <span
-          className={cn(
-            "pointer-events-none fixed inset-0 z-[-1] bg-transparent transition-colors duration-300",
-            isContactOpen && "bg-foreground/[0.02]",
-          )}
-          aria-hidden="true"
-        />
-      </aside>
-    </>
+      <span
+        className={cn(
+          "pointer-events-none fixed inset-0 z-[-1] bg-transparent transition-colors duration-300",
+          isContactOpen && "bg-foreground/[0.02]",
+        )}
+        aria-hidden="true"
+      />
+    </aside>
   );
 };
 

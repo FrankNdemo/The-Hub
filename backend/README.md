@@ -50,6 +50,7 @@ https://your-backend-project.vercel.app/api/v1
 - `POST /api/v1/auth/logout/`
 - `POST /api/v1/auth/verify-passphrase/`
 - `POST /api/v1/auth/password-reset/request/`
+- `POST /api/v1/auth/password-reset/validate/`
 - `POST /api/v1/auth/password-reset/confirm/`
 - `GET /api/v1/auth/me/`
 - `GET /api/v1/dashboard/`

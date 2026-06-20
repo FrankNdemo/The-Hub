@@ -1,8 +1,8 @@
 import { FormEvent, useCallback, useEffect, useRef, useState } from "react";
 import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
-import { CheckCircle2, KeyRound, Mail, ShieldCheck } from "lucide-react";
 import { toast } from "sonner";
 
+import WellnessLogo from "@/components/WellnessLogo";
 import { useWellnessHub } from "@/context/WellnessHubContext";
 import { Button } from "@/components/ui/button";
 import {
@@ -39,6 +39,7 @@ const TherapistPortalAccess = () => {
     isTherapistAuthenticated,
     loginTherapist,
     requestTherapistPasswordReset,
+    validateTherapistPasswordReset,
     verifyTherapistPassphrase,
   } = useWellnessHub();
   const [showPassphrase, setShowPassphrase] = useState(false);
@@ -55,6 +56,8 @@ const TherapistPortalAccess = () => {
   const [isUnlocking, setIsUnlocking] = useState(false);
   const [isLoggingIn, setIsLoggingIn] = useState(false);
   const [isResettingPassword, setIsResettingPassword] = useState(false);
+  const [isCheckingResetLink, setIsCheckingResetLink] = useState(false);
+  const [isResetLinkValid, setIsResetLinkValid] = useState<boolean | null>(null);
   const passphraseInputRef = useRef<HTMLInputElement | null>(null);
   const emailInputRef = useRef<HTMLInputElement | null>(null);
   const passwordInputRef = useRef<HTMLInputElement | null>(null);
@@ -67,10 +70,30 @@ const TherapistPortalAccess = () => {
       return;
     }
 
+    let isActive = true;
     setMode("reset");
     setLoginOpen(true);
     setShowPassphrase(false);
-  }, [resetToken, resetUid]);
+    setResetError("");
+    setIsResetLinkValid(null);
+    setIsCheckingResetLink(true);
+
+    void validateTherapistPasswordReset(resetUid, resetToken).then((result) => {
+      if (!isActive) {
+        return;
+      }
+
+      setIsCheckingResetLink(false);
+      setIsResetLinkValid(result.success);
+      if (!result.success) {
+        setResetError(result.error);
+      }
+    });
+
+    return () => {
+      isActive = false;
+    };
+  }, [resetToken, resetUid, validateTherapistPasswordReset]);
 
   useEffect(() => {
     if (!showPassphrase || loginOpen) {
@@ -133,6 +156,8 @@ const TherapistPortalAccess = () => {
     setResetError("");
     setIsLoggingIn(false);
     setIsResettingPassword(false);
+    setIsCheckingResetLink(false);
+    setIsResetLinkValid(null);
   }, []);
 
   const unlockPortal = useCallback(async (value: string, options: { showError?: boolean } = {}) => {
@@ -338,26 +363,34 @@ const TherapistPortalAccess = () => {
       )}
 
       <Dialog open={loginOpen} onOpenChange={handleDialogChange}>
-        <DialogContent className="w-[calc(100vw-1rem)] max-w-[40rem] overflow-hidden rounded-[1.5rem] border-border/60 p-0 sm:w-[min(92vw,40rem)] sm:rounded-[1.75rem] lg:max-w-[36rem]">
-          <div className="rounded-[inherit] bg-gradient-to-br from-secondary/70 via-background to-background p-5 sm:p-7">
-            <DialogHeader>
-              <div className="mb-4 inline-flex h-14 w-14 items-center justify-center rounded-2xl bg-primary/10 text-primary">
-                {mode === "forgot" ? <Mail className="h-6 w-6" /> : null}
-                {mode === "sent" ? <CheckCircle2 className="h-6 w-6" /> : null}
-                {mode === "reset" ? <KeyRound className="h-6 w-6" /> : null}
-                {mode === "login" ? <ShieldCheck className="h-6 w-6" /> : null}
+        <DialogContent
+          overlayClassName="bg-[rgba(30,48,39,0.2)] backdrop-blur-[18px]"
+          className="w-[calc(100vw-1.25rem)] max-w-[38rem] overflow-hidden rounded-[1.75rem] border border-white/70 bg-[rgba(249,251,247,0.92)] p-0 shadow-[0_36px_100px_-42px_rgba(24,46,35,0.5)] backdrop-blur-2xl sm:w-[min(92vw,38rem)] sm:rounded-[2.2rem] [&>button]:right-5 [&>button]:top-5 [&>button]:flex [&>button]:h-11 [&>button]:w-11 [&>button]:items-center [&>button]:justify-center [&>button]:rounded-full [&>button]:border [&>button]:border-primary/20 [&>button]:bg-background/65 [&>button]:text-primary [&>button]:opacity-100 [&>button]:shadow-soft [&>button]:backdrop-blur-md [&>button>svg]:h-5 [&>button>svg]:w-5"
+        >
+          <div className="rounded-[inherit] bg-[linear-gradient(155deg,rgba(250,252,248,0.92),rgba(241,247,241,0.86))] px-5 pb-6 pt-5 sm:px-8 sm:pb-8 sm:pt-6">
+            <DialogHeader className="items-center pr-12 text-center sm:pr-12 sm:text-center">
+              <div className="mb-2 flex min-h-[5.5rem] items-center justify-center">
+                <WellnessLogo variant="footer" />
               </div>
-              <DialogTitle className="font-heading text-3xl text-foreground">
+              <DialogTitle className="font-heading text-3xl text-foreground sm:text-[2rem]">
                 {mode === "login" ? "Therapist Login" : null}
                 {mode === "forgot" ? "Forgot Password?" : null}
                 {mode === "sent" ? "Check Your Email" : null}
-                {mode === "reset" ? "Create New Password" : null}
+                {mode === "reset"
+                  ? isResetLinkValid === false
+                    ? "Reset Link Expired"
+                    : "Create New Password"
+                  : null}
               </DialogTitle>
-              <DialogDescription className="leading-6">
-                {mode === "login" ? "Enter your therapist email and password to open the secure dashboard." : null}
+              <DialogDescription className="max-w-md text-center leading-6">
+                {mode === "login" ? "Enter your credentials to continue" : null}
                 {mode === "forgot" ? "Enter your therapist email and we will send you a secure reset link." : null}
                 {mode === "sent" ? "A secure link is on its way if the email belongs to a therapist account." : null}
-                {mode === "reset" ? "Choose a strong new password for your therapist portal." : null}
+                {mode === "reset"
+                  ? isResetLinkValid === false
+                    ? "This secure link is no longer available."
+                    : "Choose a strong new password for your therapist portal."
+                  : null}
               </DialogDescription>
             </DialogHeader>
 
@@ -460,7 +493,22 @@ const TherapistPortalAccess = () => {
               </div>
             ) : null}
 
-            {mode === "reset" ? (
+            {mode === "reset" && isCheckingResetLink ? (
+              <div className="mt-6 rounded-lg border border-border/60 bg-background/70 px-4 py-5 text-sm text-muted-foreground">
+                Checking your secure reset link...
+              </div>
+            ) : null}
+
+            {mode === "reset" && isResetLinkValid === false ? (
+              <div
+                role="alert"
+                className="mt-6 rounded-lg border border-destructive/35 bg-destructive/8 px-4 py-4 text-sm font-medium leading-6 text-destructive"
+              >
+                {resetError || "This password reset link has expired or has already been used."}
+              </div>
+            ) : null}
+
+            {mode === "reset" && isResetLinkValid ? (
               <form onSubmit={handlePasswordResetConfirm} className="mt-5 space-y-4 sm:mt-6" autoComplete="off">
                 <div>
                   <Label htmlFor="reset-password">New password</Label>
