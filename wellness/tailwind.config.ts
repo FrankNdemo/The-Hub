@@ -88,14 +88,14 @@ export default {
         },
         "mobile-contact-bounce": {
           "0%, 100%": { transform: "translateY(0)" },
-          "50%": { transform: "translateY(-0.3rem)" },
+          "50%": { transform: "translateY(-0.2rem)" },
         },
       },
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
         "accordion-up": "accordion-up 0.2s ease-out",
-        "mobile-contact-glow": "mobile-contact-glow 14s ease-in-out infinite",
-        "mobile-contact-bounce": "mobile-contact-bounce 14s ease-in-out infinite",
+        "mobile-contact-glow": "mobile-contact-glow 18s ease-in-out infinite",
+        "mobile-contact-bounce": "mobile-contact-bounce 18s ease-in-out infinite",
       },
     },
   },
