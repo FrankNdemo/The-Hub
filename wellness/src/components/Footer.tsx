@@ -94,35 +94,35 @@ const Footer = () => {
           </div>
 
           <div className="group mx-auto block w-full max-w-5xl overflow-hidden rounded-none border border-primary-foreground/28 bg-white/5 shadow-none transition-all duration-300 hover:border-white/20 md:rounded-[1.75rem] md:border-white/12 md:shadow-[0_24px_52px_-34px_rgba(6,12,10,0.62)] md:hover:shadow-[0_30px_64px_-34px_rgba(6,12,10,0.72)]">
-            <div className="relative h-[20rem] overflow-hidden bg-primary/20 sm:h-[22rem] md:h-[24rem] lg:h-[28rem]">
+            <div className="relative h-[15rem] overflow-hidden bg-primary/20 sm:h-[17rem] md:h-[24rem] lg:h-[28rem]">
               <iframe
                 title="The Wellness Hub location map"
                 src={mapEmbedSrc}
-                loading="lazy"
+                loading="eager"
                 referrerPolicy="no-referrer-when-downgrade"
-                className="absolute inset-x-0 top-0 h-[12.5rem] w-full border-0 grayscale-[0.12] contrast-[1.04] saturate-[1.18] sm:h-[14rem] md:inset-0 md:h-full"
+                className="absolute inset-x-0 top-0 h-[9.5rem] w-full border-0 grayscale-[0.12] contrast-[1.04] saturate-[1.18] sm:h-[10.5rem] md:inset-0 md:h-full"
               />
               <div className="pointer-events-none absolute inset-x-0 bottom-0 hidden h-28 bg-gradient-to-t from-foreground/48 via-foreground/12 to-transparent md:block" />
-              <div className="absolute inset-x-0 bottom-0 min-h-[7.5rem] w-full rounded-none border-t border-primary-foreground/22 bg-primary p-4 text-left text-primary-foreground shadow-none sm:min-h-[8rem] sm:p-5 md:bottom-auto md:left-0 md:right-auto md:top-0 md:min-h-[10rem] md:w-[min(25rem,100%)] md:rounded-br-2xl md:rounded-tl-[1.75rem] md:border md:border-primary-foreground/18 md:p-5 md:shadow-[0_20px_44px_-24px_rgba(6,12,10,0.75)] lg:p-6">
-                <div className="flex items-start gap-3">
-                  <span className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center text-primary-foreground md:h-10 md:w-10 md:rounded-full md:bg-primary-foreground/14">
-                    <MapPin className="h-5 w-5" />
+              <div className="absolute inset-x-0 bottom-0 min-h-[5.5rem] w-full rounded-none border-t border-primary-foreground/22 bg-primary p-2.5 text-left text-primary-foreground shadow-none sm:min-h-[6.5rem] sm:p-3 md:bottom-auto md:left-0 md:right-auto md:top-0 md:min-h-[10rem] md:w-[min(25rem,100%)] md:rounded-br-2xl md:rounded-tl-[1.75rem] md:border md:border-primary-foreground/18 md:p-5 md:shadow-[0_20px_44px_-24px_rgba(6,12,10,0.75)] lg:p-6">
+                <div className="flex items-start gap-2 md:gap-3">
+                  <span className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center text-primary-foreground sm:h-8 sm:w-8 md:h-10 md:w-10 md:rounded-full md:bg-primary-foreground/14">
+                    <MapPin className="h-4 w-4 md:h-5 md:w-5" />
                   </span>
                   <span className="min-w-0">
                     <a
                       href={mapHref}
                       target="_blank"
                       rel="noreferrer"
-                      className="inline-flex items-center gap-1.5 text-xs font-semibold uppercase tracking-[0.18em] text-primary-foreground/78 transition-colors hover:text-primary-foreground md:hidden"
+                      className="inline-flex items-center gap-1 text-[0.58rem] font-semibold uppercase tracking-[0.13em] text-primary-foreground/78 transition-colors hover:text-primary-foreground sm:text-[0.65rem] md:hidden"
                       aria-label={`Open map for ${mapQuery}`}
                     >
                       Open in Maps
-                      <ExternalLink className="h-3.5 w-3.5" />
+                      <ExternalLink className="h-3 w-3" />
                     </a>
                     <span className="hidden items-center gap-1.5 text-xs font-semibold uppercase tracking-[0.18em] text-primary-foreground/72 md:flex">
                       Find us here
                     </span>
-                    <span className="mt-1 block text-sm font-semibold leading-5 text-primary-foreground sm:text-base sm:leading-6">
+                    <span className="mt-0.5 block text-xs font-semibold leading-4 text-primary-foreground sm:text-sm sm:leading-5 md:mt-1 md:text-base md:leading-6">
                       {mapLocationLines[0]}
                       <br />
                       {mapLocationLines[1]}

@@ -62,15 +62,22 @@ const TherapistPortalAccess = () => {
   const emailInputRef = useRef<HTMLInputElement | null>(null);
   const passwordInputRef = useRef<HTMLInputElement | null>(null);
   const unlockAttemptRef = useRef(0);
+  const resetValidationKeyRef = useRef("");
   const resetUid = searchParams.get("therapist_reset_uid") ?? "";
   const resetToken = searchParams.get("therapist_reset_token") ?? "";
 
   useEffect(() => {
     if (!resetUid || !resetToken) {
+      resetValidationKeyRef.current = "";
       return;
     }
 
-    let isActive = true;
+    const validationKey = `${resetUid}:${resetToken}`;
+    if (resetValidationKeyRef.current === validationKey) {
+      return;
+    }
+
+    resetValidationKeyRef.current = validationKey;
     setMode("reset");
     setLoginOpen(true);
     setShowPassphrase(false);
@@ -79,7 +86,7 @@ const TherapistPortalAccess = () => {
     setIsCheckingResetLink(true);
 
     void validateTherapistPasswordReset(resetUid, resetToken).then((result) => {
-      if (!isActive) {
+      if (resetValidationKeyRef.current !== validationKey) {
         return;
       }
 
@@ -90,9 +97,6 @@ const TherapistPortalAccess = () => {
       }
     });
 
-    return () => {
-      isActive = false;
-    };
   }, [resetToken, resetUid, validateTherapistPasswordReset]);
 
   useEffect(() => {

@@ -1,4 +1,4 @@
-import { useEffect, useState, type SVGProps } from "react";
+import { useEffect, useRef, useState, type SVGProps } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { PhoneCall } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -28,6 +28,7 @@ const MobileContactBar = () => {
   const [hasPassedHomeHero, setHasPassedHomeHero] = useState(true);
   const [isTherapistAccessActive, setIsTherapistAccessActive] = useState(false);
   const [isFooterContactSuppressed, setIsFooterContactSuppressed] = useState(false);
+  const lastScrollYRef = useRef(0);
   const location = useLocation();
   const { bookingDraft } = useFormDrafts();
   const isHomePage = location.pathname === "/";
@@ -110,6 +111,27 @@ const MobileContactBar = () => {
     }
   }, [shouldHide]);
 
+  useEffect(() => {
+    if (!isContactOpen) {
+      return;
+    }
+
+    lastScrollYRef.current = window.scrollY;
+
+    const collapseOnScrollUp = () => {
+      const nextScrollY = window.scrollY;
+
+      if (nextScrollY < lastScrollYRef.current - 4) {
+        setIsContactOpen(false);
+      }
+
+      lastScrollYRef.current = nextScrollY;
+    };
+
+    window.addEventListener("scroll", collapseOnScrollUp, { passive: true });
+    return () => window.removeEventListener("scroll", collapseOnScrollUp);
+  }, [isContactOpen]);
+
   if (shouldHide) {
     return null;
   }
@@ -129,19 +151,6 @@ const MobileContactBar = () => {
             )}
             aria-hidden={!isContactOpen}
           >
-            <Link
-              to={EXPLORATION_CALL_PATH}
-              className={cn(
-                "flex h-12 items-center gap-2.5 rounded-full border border-primary/20 bg-white/96 px-4 text-xs font-bold text-primary shadow-[0_18px_40px_-20px_rgba(18,45,32,0.58)] backdrop-blur-xl transition-all duration-200",
-                isContactOpen ? "translate-x-0 opacity-100" : "translate-x-8 opacity-0",
-              )}
-              aria-label="Book an exploration call"
-              tabIndex={isContactOpen ? undefined : -1}
-              onClick={() => setIsContactOpen(false)}
-            >
-              <PhoneCall className="h-5 w-5 shrink-0 text-[#5e8673]" strokeWidth={2.45} aria-hidden="true" />
-              <span>Exploration Call</span>
-            </Link>
             <a
               href={WHATSAPP_HREF}
               className={cn(
@@ -159,6 +168,19 @@ const MobileContactBar = () => {
               </span>
               <span>WhatsApp</span>
             </a>
+            <Link
+              to={EXPLORATION_CALL_PATH}
+              className={cn(
+                "flex h-12 items-center gap-2.5 rounded-full border border-primary/20 bg-white/96 px-4 text-xs font-bold text-primary shadow-[0_18px_40px_-20px_rgba(18,45,32,0.58)] backdrop-blur-xl transition-all duration-200",
+                isContactOpen ? "translate-x-0 opacity-100" : "translate-x-8 opacity-0",
+              )}
+              aria-label="Book an exploration call"
+              tabIndex={isContactOpen ? undefined : -1}
+              onClick={() => setIsContactOpen(false)}
+            >
+              <PhoneCall className="h-5 w-5 shrink-0 text-[#5e8673]" strokeWidth={2.45} aria-hidden="true" />
+              <span>Exploration Call</span>
+            </Link>
           </div>
 
           <div
@@ -175,7 +197,7 @@ const MobileContactBar = () => {
               aria-label="Open contact options"
               onClick={() => setIsContactOpen(true)}
               className={cn(
-                "group relative flex h-[4.6rem] w-[4.6rem] items-center justify-center rounded-full border border-white/55 bg-[#3f5d4d] text-white shadow-[0_22px_52px_-24px_rgba(20,43,33,0.8)] outline-none transition-[filter,box-shadow] duration-200 focus-visible:ring-4 focus-visible:ring-primary/25",
+                "group relative flex h-[4.6rem] w-[4.6rem] animate-mobile-contact-bounce items-center justify-center rounded-full border border-white/55 bg-[#3f5d4d] text-white shadow-[0_22px_52px_-24px_rgba(20,43,33,0.8)] outline-none transition-[filter,box-shadow] duration-200 focus-visible:ring-4 focus-visible:ring-primary/25 motion-reduce:animate-none",
                 "before:absolute before:inset-[-0.4rem] before:rounded-full before:bg-[radial-gradient(circle,rgba(190,218,198,0.68),rgba(146,183,158,0.26)_48%,transparent_72%)] before:blur-[1px] before:content-['']",
                 "after:absolute after:inset-0 after:rounded-full after:border-[5px] after:border-[#b7d5bf]/80 after:shadow-[inset_0_0_16px_rgba(240,255,244,0.34),0_0_24px_rgba(128,173,143,0.48)] after:content-[''] after:animate-mobile-contact-glow motion-reduce:after:animate-none",
                 "drop-shadow-[0_8px_18px_rgba(35,59,46,0.38)]",

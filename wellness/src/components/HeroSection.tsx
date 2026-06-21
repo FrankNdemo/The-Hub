@@ -39,7 +39,7 @@ const HeroSection = () => {
     <section id="home-hero" className="relative overflow-clip pb-0 pt-0 sm:overflow-hidden sm:pb-14" data-nav-theme="inverse">
       <div className="w-full">
         <div
-          className="relative min-h-[120svh] border-b border-border/60 bg-[linear-gradient(135deg,hsl(42_31%_99%),hsl(42_31%_97%))] shadow-hover sm:min-h-[36rem] sm:overflow-hidden md:min-h-[38rem] lg:min-h-[44rem] xl:min-h-[48rem] 2xl:min-h-[52rem]"
+          className="relative min-h-[110svh] border-b border-border/60 bg-[linear-gradient(135deg,hsl(42_31%_99%),hsl(42_31%_97%))] shadow-hover sm:min-h-[36rem] sm:overflow-hidden md:min-h-[38rem] lg:min-h-[44rem] xl:min-h-[48rem] 2xl:min-h-[52rem]"
         >
           <div className="absolute inset-0 overflow-hidden">
             <motion.img
@@ -113,7 +113,7 @@ const HeroSection = () => {
               {isMobileMenuOpen ? <X size={28} strokeWidth={3.1} /> : <Menu size={28} strokeWidth={3.1} />}
             </button>
 
-            <div className="absolute inset-x-0 top-[42svh] mx-auto flex max-w-[112rem] px-4 pb-3 sm:relative sm:top-auto sm:min-h-[36rem] sm:items-start sm:px-6 sm:pb-12 sm:pt-52 md:min-h-[38rem] md:px-8 md:pt-56 lg:min-h-[44rem] lg:px-10 lg:pb-14 lg:pt-64 xl:min-h-[48rem] xl:pt-72 2xl:min-h-[52rem] 2xl:px-14 2xl:pt-80">
+            <div className="absolute inset-x-0 top-[42svh] mx-auto flex max-w-[112rem] px-4 pb-1.5 sm:relative sm:top-auto sm:min-h-[36rem] sm:items-start sm:px-6 sm:pb-12 sm:pt-52 md:min-h-[38rem] md:px-8 md:pt-56 lg:min-h-[44rem] lg:px-10 lg:pb-14 lg:pt-64 xl:min-h-[48rem] xl:pt-72 2xl:min-h-[52rem] 2xl:px-14 2xl:pt-80">
               <div className="animate-fade-up max-w-[24rem] pl-2 text-left sm:mt-10 sm:max-w-[26rem] sm:pl-4 md:mt-14 md:max-w-[30rem] md:pl-6 lg:mt-16 lg:max-w-[33rem] lg:pl-8">
                 <h1
                   className="max-w-[22rem] font-heading text-[2.68rem] font-medium leading-[0.92] text-white [text-shadow:0_12px_30px_rgba(0,0,0,0.42)] sm:max-w-[21rem] sm:text-[2.8rem] md:max-w-[23rem] md:text-[3.1rem] lg:max-w-[26rem] lg:text-[3.45rem]"
