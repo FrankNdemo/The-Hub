@@ -30,6 +30,20 @@ const formatPassphraseError = (message: string) => {
   return message;
 };
 
+const isTemporaryPassphraseFailure = (message: string) => {
+  const normalized = message.trim().toLowerCase();
+
+  return (
+    normalized.includes("temporarily unavailable") ||
+    normalized.includes("unable to reach") ||
+    normalized.includes("something went wrong") ||
+    normalized.includes("could not complete") ||
+    normalized.includes("unable to verify")
+  );
+};
+
+const waitForPassphraseRetry = () => new Promise((resolve) => window.setTimeout(resolve, 250));
+
 const TherapistPortalAccess = () => {
   const navigate = useNavigate();
   const location = useLocation();
@@ -177,6 +191,10 @@ const TherapistPortalAccess = () => {
 
     try {
       result = await verifyTherapistPassphrase(value);
+      if (!result.success && isTemporaryPassphraseFailure(result.error)) {
+        await waitForPassphraseRetry();
+        result = await verifyTherapistPassphrase(value);
+      }
     } catch {
       result = {
         success: false,
@@ -211,23 +229,6 @@ const TherapistPortalAccess = () => {
     setShowPassphrase(false);
     setIsUnlocking(false);
   }, [resetDialogState, verifyTherapistPassphrase]);
-
-  useEffect(() => {
-    if (!showPassphrase || loginOpen) {
-      return;
-    }
-
-    const value = passphrase.trim();
-    if (value.length < 3) {
-      return;
-    }
-
-    const timeout = window.setTimeout(() => {
-      void unlockPortal(value, { showError: false });
-    }, 300);
-
-    return () => window.clearTimeout(timeout);
-  }, [loginOpen, passphrase, showPassphrase, unlockPortal]);
 
   const handlePassphraseChange = (value: string) => {
     setPassphrase(value);
@@ -342,16 +343,22 @@ const TherapistPortalAccess = () => {
               : "shadow-[0_0_20px_hsl(var(--primary)/0.16)] focus-within:shadow-[0_0_34px_hsl(var(--primary)/0.28)]"
           }`}
         >
-          <div className="flex items-center">
+          <div className="relative flex items-center">
             <Input
               ref={passphraseInputRef}
               value={passphrase}
               onChange={(event) => handlePassphraseChange(event.target.value)}
-              className="h-10 rounded-full border-0 bg-transparent shadow-none focus-visible:ring-0"
+              className="h-10 rounded-full border-0 bg-transparent pr-9 shadow-none focus-visible:ring-0"
               autoFocus
               aria-label="Enter secure passphrase"
               disabled={isUnlocking}
             />
+            {isUnlocking ? (
+              <span
+                className="pointer-events-none absolute right-2.5 top-1/2 h-4 w-4 -translate-y-1/2 rounded-full border-2 border-dotted border-primary/70 border-t-transparent animate-spin"
+                aria-hidden="true"
+              />
+            ) : null}
           </div>
           {passphraseError ? <p className="mt-2 text-xs text-destructive">{passphraseError}</p> : null}
         </form>

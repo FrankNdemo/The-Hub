@@ -87,15 +87,15 @@ export default {
           "50%": { opacity: "1", transform: "scale(1.035)" },
         },
         "mobile-contact-bounce": {
-          "0%, 100%": { transform: "translateY(0)" },
-          "50%": { transform: "translateY(-0.2rem)" },
+          "0%, 70%, 100%": { transform: "translateY(0)" },
+          "35%": { transform: "translateY(-0.12rem)" },
         },
       },
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
         "accordion-up": "accordion-up 0.2s ease-out",
         "mobile-contact-glow": "mobile-contact-glow 18s ease-in-out infinite",
-        "mobile-contact-bounce": "mobile-contact-bounce 18s ease-in-out infinite",
+        "mobile-contact-bounce": "mobile-contact-bounce 9s cubic-bezier(0.45, 0, 0.55, 1) infinite",
       },
     },
   },
